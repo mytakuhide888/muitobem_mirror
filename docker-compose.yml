@@ -1,0 +1,92 @@
+services:
+  db:
+    image: mysql:8.0
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_0900_ai_ci"
+      - "--skip-log-bin"
+      - "--innodb_buffer_pool_size=256M"
+      - "--max_connections=150"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db_backups:/backups
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  django:
+    build:
+      context: ./app          # ← ここを backend ではなく app に
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: db
+    volumes:
+      - ./app:/app           # manage.py のある階層をマウント
+      - ./app/deploy:/app/deploy
+      - ./var/webhook_dumps:/app/var/webhook_dumps
+    expose:
+      - "8000"
+    command:
+      - bash
+      - -lc
+      - >
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        python manage.py runserver 0.0.0.0:8000
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - django
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./app/deploy:/srv/static:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - static_volume:/static:ro
+
+  scheduler:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: db
+    volumes:
+      - ./app:/app
+      - static_volume:/app/deploy
+    command: >
+      bash -lc '
+        while :; do
+          flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
+          sleep 60;
+        done
+      '
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  db_data:
+  static_volume:
+  caddy_data:
+  caddy_config:

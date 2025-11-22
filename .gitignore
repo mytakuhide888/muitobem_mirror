@@ -1,0 +1,22 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.log
+*.sqlite3
+
+# venv
+venv/
+
+# 環境変数ファイル
+.env
+.env.*
+
+# バックアップ・一時ファイル
+db_backups/
+var/
+*.zip
+
+# エディタ
+.vscode/
+.idea/
+*.swp
