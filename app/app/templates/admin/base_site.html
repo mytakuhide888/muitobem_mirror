@@ -22,19 +22,21 @@
     }
     /* 左側のUL（トグル + トップメニュー）をグリッド状にする */
     #jazzy-navbar .navbar-nav:first-child {
-      flex-wrap: wrap;
-      gap: 6px 12px;
-      row-gap: 10px;
+      display: grid;
+      grid-template-columns: auto repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px 12px;
+      width: 100%;
+      flex-wrap: wrap !important; /* bootstrap側のnowrapを上書き */
     }
     /* トップメニューの各項目を3列程度で折り返す */
     #jazzy-navbar .navbar-nav:first-child > .nav-item {
-      flex: 1 1 180px;
-      min-width: 140px;
+      min-width: 150px;
       max-width: 240px;
     }
     /* 左端のハンバーガーだけは幅を固定 */
     #jazzy-navbar .navbar-nav:first-child > .nav-item:first-child {
-      flex: 0 0 auto;
+      min-width: 40px;
+      max-width: 48px;
     }
     /* テキストを2段以上に折り返せるようにする */
     #jazzy-navbar .navbar-nav:first-child .nav-link {
@@ -49,13 +51,13 @@
     }
     /* 画面幅が狭いときは2列→1列に落とす */
     @media (max-width: 992px) {
-      #jazzy-navbar .navbar-nav:first-child > .nav-item {
-        flex: 1 1 45%;
+      #jazzy-navbar .navbar-nav:first-child {
+        grid-template-columns: auto repeat(auto-fit, minmax(160px, 1fr));
       }
     }
     @media (max-width: 576px) {
-      #jazzy-navbar .navbar-nav:first-child > .nav-item {
-        flex: 1 1 100%;
+      #jazzy-navbar .navbar-nav:first-child {
+        grid-template-columns: auto 1fr;
       }
     }
   </style>
