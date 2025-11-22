@@ -23,7 +23,7 @@ services:
 
   django:
     build:
-      context: ./app          # backend ではなく app を使う
+      context: ./app
       dockerfile: Dockerfile
     env_file: .env
     depends_on:
@@ -32,31 +32,18 @@ services:
     environment:
       MYSQL_HOST: db
     volumes:
-      - ./app:/app           # manage.py のある階層
+      - ./app:/app
       - ./app/deploy:/app/deploy
       - ./var/webhook_dumps:/app/var/webhook_dumps
     expose:
       - "8000"
-    command: >
-      bash -lc '
-        until python - <<'"'"'PY'"'"'
-import os, MySQLdb
-MySQLdb.connect(
-    host=os.getenv("MYSQL_HOST", "db"),
-    user=os.getenv("MYSQL_USER", ""),
-    passwd=os.getenv("MYSQL_PASSWORD", ""),
-    db=os.getenv("MYSQL_DATABASE", ""),
-    connect_timeout=3,
-)
-PY
-        do
-          echo "DB not ready, retrying..." && sleep 2
-        done;
-
+    command:
+      - bash
+      - -lc
+      - >
         python manage.py migrate &&
         python manage.py collectstatic --noinput &&
         python manage.py runserver 0.0.0.0:8000
-      '
 
   caddy:
     image: caddy:2-alpine
@@ -85,27 +72,14 @@ PY
     volumes:
       - ./app:/app
       - static_volume:/app/deploy
-    command: >
-      bash -lc '
-        until python - <<'"'"'PY'"'"'
-import os, MySQLdb
-MySQLdb.connect(
-    host=os.getenv("MYSQL_HOST", "db"),
-    user=os.getenv("MYSQL_USER", ""),
-    passwd=os.getenv("MYSQL_PASSWORD", ""),
-    db=os.getenv("MYSQL_DATABASE", ""),
-    connect_timeout=3,
-)
-PY
-        do
-          echo "DB not ready for scheduler, retrying..." && sleep 2
-        done;
-
+    command:
+      - bash
+      - -lc
+      - >
         while :; do
           flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
           sleep 60;
         done
-      '
     logging:
       driver: "json-file"
       options:
