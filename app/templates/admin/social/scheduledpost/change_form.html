@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools %}
+{% if original and original.status == 'DRAFT' %}
+<ul class="object-tools">
+  <li><form method="post" action="{% url 'admin:social_scheduledpost_approve' original.pk %}">{% csrf_token %}<button class="btn btn-success">承認</button></form></li>
+</ul>
+{% endif %}
+{{ block.super }}
+{% endblock %}

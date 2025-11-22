@@ -1,0 +1,114 @@
+{# /app/app/console/templates/admin/console/tpl_edit.html #}
+{% extends "admin/console/base.html" %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<form method="post" class="module aligned">{% csrf_token %}
+  <div style="display:grid;grid-template-columns: 280px 1fr; gap:16px;">
+    <aside>
+      <div class="module">
+        <h3>差し込み変数</h3>
+        <p class="help">クリックで本文に <code>[[var]]</code> / <code>{{ var }}</code> を挿入します。</p>
+        <div class="cc-vars">
+          <div class="cc-vars-sec"><strong>共通</strong>
+            <ul>
+              <li data-v="[[shop_name]]">[[shop_name]]</li>
+              <li data-v="[[support_hours]]">[[support_hours]]</li>
+              <li data-v="[[support_email]]">[[support_email]]</li>
+              <li data-v="[[now]]">[[now]]</li>
+            </ul>
+          </div>
+          <div class="cc-vars-sec"><strong>Instagram</strong>
+            <ul>
+              <li data-v="[[account.username]]">[[account.username]]</li>
+              <li data-v="[[user.username]]">[[user.username]]</li>
+              <li data-v="[[post.link]]">[[post.link]]</li>
+            </ul>
+          </div>
+          <div class="cc-vars-sec"><strong>Threads</strong>
+            <ul>
+              <li data-v="[[account.username]]">[[account.username]]</li>
+              <li data-v="[[user.username]]">[[user.username]]</li>
+              <li data-v="[[post.link]]">[[post.link]]</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {% if obj %}
+      <div class="module">
+        <h3>操作</h3>
+        <p><a class="button" href="{% url 'console:tpl_delete' obj.pk %}">削除</a></p>
+      </div>
+      {% endif %}
+    </aside>
+
+    <section>
+      <div class="module">
+        {{ form.non_field_errors }}
+        <div class="form-row">{{ form.service.label_tag }} {{ form.service }}</div>
+        <div class="form-row">{{ form.name.label_tag }} {{ form.name }}</div>
+        <div class="form-row">{{ form.key.label_tag }} {{ form.key }}</div>
+        <div class="form-row">{{ form.description.label_tag }} {{ form.description }}</div>
+        <div class="form-row">{{ form.is_active.label_tag }} {{ form.is_active }}</div>
+        <div class="form-row">{{ form.content.label_tag }} {{ form.content }}</div>
+        <div class="submit-row">
+          <input type="submit" class="default" value="保存">
+          <button id="cc-preview" type="button">プレビュー</button>
+        </div>
+      </div>
+
+      <div class="module" id="cc-preview-box" style="display:none;">
+        <h3>プレビュー</h3>
+        <pre id="cc-preview-out" style="white-space:pre-wrap;"></pre>
+      </div>
+    </section>
+  </div>
+</form>
+
+<style>
+  .cc-vars ul{list-style:none;padding-left:0;margin:6px 0}
+  .cc-vars li{padding:6px 8px;border:1px solid #ddd;margin-bottom:6px;border-radius:4px;cursor:pointer}
+  .cc-vars li:hover{background:#f7f7f7}
+  .cc-tpl-body{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+</style>
+
+<script>
+(function(){
+  const textarea = document.querySelector('textarea.cc-tpl-content');  // ← クラス名も変更
+  document.querySelectorAll('.cc-vars li').forEach(li=>{
+    li.addEventListener('click', ()=>{
+      const text = li.getAttribute('data-v');
+      insertAtCursor(textarea, text);
+      textarea.focus();
+    });
+  });
+  function insertAtCursor(el, text){
+    const [start, end] = [el.selectionStart, el.selectionEnd];
+    el.value = el.value.slice(0, start) + text + el.value.slice(end);
+    const pos = start + text.length;
+    el.setSelectionRange(pos, pos);
+  }
+
+  const btn = document.getElementById('cc-preview');
+  const box = document.getElementById('cc-preview-box');
+  const out = document.getElementById('cc-preview-out');
+  const csrftoken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
+
+  btn.addEventListener('click', async ()=>{
+    const svc = document.querySelector('select[name$="service"]').value;
+    const contentText = textarea.value;   // ← ここも
+    const res = await fetch("{% url 'console:tpl_preview_api' %}", {
+      method: "POST",
+      headers: {"X-CSRFToken": csrftoken, "Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({service:svc, content:contentText})  // ← content=
+    });
+    const data = await res.json();
+    out.textContent = data.rendered || "";
+    box.style.display = "block";
+    box.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+})();
+</script>
+{% endblock %}

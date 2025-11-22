@@ -1,0 +1,12 @@
+{% extends "admin/console/base.html" %}
+{% block title %}削除確認{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> › 削除確認</div>{% endblock %}
+{% block content %}
+<h1>削除確認</h1>
+<p>次のデータを削除します。元に戻せません。</p>
+<p><strong>{{ obj }}</strong></p>
+<form method="post" class="module">{% csrf_token %}
+  <button type="submit" class="button default">削除する</button>
+  <a href="{% url back %}" class="button">キャンセル</a>
+</form>
+{% endblock %}

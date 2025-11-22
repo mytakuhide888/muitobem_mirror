@@ -1,0 +1,10 @@
+# exclude DB/data and other heavies from build context
+mysql-data/
+.git
+__pycache__/
+*.py[co]
+.env
+.env.*
+node_modules/
+media/
+staticfiles/

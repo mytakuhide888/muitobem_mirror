@@ -1,0 +1,77 @@
+{% load i18n static admin_urls admin_list %}
+{% get_app_list request as app_list %}
+
+<style>
+.cc-accordion summary{cursor:pointer;padding:8px 12px;font-weight:600;border-radius:4px;background:#2c3e50;color:#fff;margin:8px 0 4px}
+.cc-accordion .cc-section{margin:6px 0 10px 10px;padding-left:8px;border-left:3px solid #d9e1f2}
+.cc-accordion a.cc-link{display:block;padding:6px 10px;text-decoration:none}
+</style>
+
+<nav class="cc-accordion">
+
+  <details open>
+    <summary>IG</summary>
+    <div class="cc-section">
+      {% for app in app_list %}
+        {% if app.app_label == "ig" %}
+          {% for model in app.models %}
+            <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+  <details open>
+    <summary>Threads管理</summary>
+    <div class="cc-section">
+      {% for app in app_list %}
+        {% if app.app_label == "th" %}
+          {% for model in app.models %}
+            <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+  <details open>
+    <summary>SNS管理</summary>
+    <div class="cc-section">
+      {% for app in app_list %}
+        {% if app.app_label == "sns_core" or app.app_label == "social" or app.app_label == "social_webhooks" or app.app_label == "social_scheduler" %}
+          {% for model in app.models %}
+            <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+  <details>
+    <summary>モール管理</summary>
+    <div class="cc-section">
+      {% for app in app_list %}
+        {% if app.app_label == "yaget" %}
+          {% for model in app.models %}
+            <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+  <details>
+    <summary>アカウント管理</summary>
+    <div class="cc-section">
+      {% for app in app_list %}
+        {% if app.app_label == "auth" %}
+          {% for model in app.models %}
+            <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+</nav>

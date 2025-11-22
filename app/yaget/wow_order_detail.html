@@ -1,0 +1,488 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+wowma注文詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">wowma注文詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">wowma注文詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">wowma注文詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">注文ID:{{ object.orderid }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr><th class='text-secondary bg-warning'>注文ID</th><td>{{ object.orderid }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>ショップID</th><td>{{ object.shop_id }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>サイトや端末</th><td>{{ object.site_and_device }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>メールアドレス</th><td>{{ object.mail_address }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文者氏名</th><td>{{ object.order_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文者かな</th><td>{{ object.order_kana }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>郵便番号</th><td>{{ object.order_zipcode }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文者住所</th><td>{{ object.order_address }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文者電話番号_1</th><td>{{ object.order_phone_number_1 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文者電話番号_2</th><td>{{ object.order_phone_number_2 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>ニックネーム</th><td>{{ object.nickname }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先氏名</th><td>{{ object.sender_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先かな</th><td>{{ object.sender_kana }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先zipcode</th><td>{{ object.sender_zipcode }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先住所</th><td>{{ object.sender_address }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先_電話番号_1</th><td>{{ object.sender_phone_number_1 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送付先_電話番号_2</th><td>{{ object.sender_phone_number_2 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文オプション</th><td>{{ object.order_option }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>決済方法</th><td>{{ object.settlement_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>ユーザコメント</th><td>{{ object.user_comment }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>メモ</th><td>{{ object.memo }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>order_ステータス</th><td>{{ object.order_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>コンタクト_ステータス</th><td>{{ object.contact_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>承認_ステータス</th><td>{{ object.authorization_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>支払い_ステータス</th><td>{{ object.payment_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>発送_ステータス</th><td>{{ object.ship_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>印刷_ステータス</th><td>{{ object.print_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>キャンセル_ステータス</th><td>{{ object.cancel_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>キャンセル理由</th><td>{{ object.cancel_reason }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>キャンセルコメント</th><td>{{ object.cancel_comment }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>売上金額合計</th><td>{{ object.total_sale_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>売上個数合計</th><td>{{ object.total_sale_unit }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送料</th><td>{{ object.postage_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>請求金額</th><td>{{ object.charge_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>総合計金額</th><td>{{ object.total_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>クーポン利用合計金額</th><td>{{ object.coupon_total_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>利用ポイント</th><td>{{ object.use_point }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>利用ポイント</th><td>{{ object.use_point_cancel }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>au利用ポイント金額</th><td>{{ object.use_au_point_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>au利用ポイント</th><td>{{ object.use_au_point }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>au利用ポイント</th><td>{{ object.use_au_point_cancel }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>ポイント</th><td>{{ object.point_fixed_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>承認ステータス</th><td>{{ object.settle_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>pg結果</th><td>{{ object.pg_result }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>pg_orderid</th><td>{{ object.pg_orderid }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>pg_請求金額</th><td>{{ object.pg_request_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>クーポンタイプ</th><td>{{ object.coupon_type }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>クーポンキー</th><td>{{ object.coupon_key }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>カード判定</th><td>{{ object.card_jagdement }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送名</th><td>{{ object.delivery_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送方法id</th><td>{{ object.delivery_method_id }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>お届希望時間帯</th><td>{{ object.delivery_request_time }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送業者</th><td>{{ object.shipping_carrier }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>追跡番号</th><td>{{ object.shipping_number }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>受注日</th><td>{{ object.order_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>コンタクトした日</th><td>{{ object.contact_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>承認日</th><td>{{ object.authorization_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>支払い日</th><td>{{ object.payment_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>発送日</th><td>{{ object.ship_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>印刷日</th><td>{{ object.print_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>キャンセル日</th><td>{{ object.cancel_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>ポイント確定日</th><td>{{ object.point_fixed_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送希望日</th><td>{{ object.delivery_request_day }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送日</th><td>{{ object.shipping_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>作成日</th><td>{{ object.create_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>更新日</th><td>{{ object.update_date }}</td></tr>
+
+                    {% for order_detail in order_detail_list %}
+                        <tr><th class='text-secondary'>■受注詳細■</th><td></td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文詳細ID</th><td>{{ order_detail.order_detail_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>管理用ID</th><td>{{ order_detail.item_management_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>バイヤーズ商品ページ</th><td><a href="https://buyerz.shop/shopdetail/{{ order_detail.item_code|slice:"4:" }}/" target="_blank">商品ページを確認</a></td></tr>
+                        <tr><th class='text-secondary bg-warning'>商品コード</th><td>{{ order_detail.item_code }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>ロットナンバー</th><td>{{ order_detail.lot_number }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>商品名</th><td>{{ order_detail.item_name }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>オプション情報</th><td>{{ order_detail.item_option }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>オプション手数料</th><td>{{ order_detail.item_option_price }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>ギフト包装種別</th><td>{{ order_detail.gift_wrapping_type }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>ギフト手数料</th><td>{{ order_detail.gift_wrapping_price }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>ギフトメッセージ</th><td>{{ order_detail.gift_message }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>のし種別</th><td>{{ order_detail.noshi_type }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>のし贈り主名1</th><td>{{ order_detail.noshi_presenter_name1 }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>のし贈り主名2</th><td>{{ order_detail.noshi_presenter_name2 }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>のし贈り主名3</th><td>{{ order_detail.noshi_presenter_name3 }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>キャンセルステータス</th><td>{{ order_detail.item_cancel_status }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>取引明細キャンセル日時</th><td>{{ order_detail.item_cancel_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>値引き前金額</th><td>{{ order_detail.before_discount }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>値引き額</th><td>{{ order_detail.discount }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>商品代金</th><td>{{ order_detail.item_price }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文個数</th><td>{{ order_detail.unit }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>商品代金 合計</th><td>{{ order_detail.total_item_price }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>商品代金 合計</th><td>{{ order_detail.total_item_charge_price }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>消費税区分</th><td>{{ order_detail.tax_type }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>軽減税率設定</th><td>{{ order_detail.reduced_tax }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>消費税率</th><td>{{ order_detail.tax_rate }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>ギフト代金</th><td>{{ order_detail.gift_point }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>発送日表示文言</th><td>{{ order_detail.shipping_day_disp_text }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>発送期限日</th><td>{{ order_detail.shipping_time_limit_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>作成日</th><td>{{ order_detail.create_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>更新日</th><td>{{ order_detail.update_date }}</td></tr>
+                    {% endfor %}
+
+                    {% for buyers_order in buyers_order_list %}
+                        <tr><th class='text-secondary'>■バイヤーズへの発注詳細■</th><td></td></tr>
+                        <tr><th class='text-secondary bg-warning'>バイヤーズ注文番号</th><td>{{ buyers_order.buyers_order_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>状況</th><td>{{ buyers_order.status }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>支払い方法</th><td>{{ buyers_order.payment_method }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>支払い合計金額</th><td>{{ buyers_order.payment_total }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>配送方法</th><td>{{ buyers_order.delivery_method }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>伝票番号</th><td>{{ buyers_order.shipping_no }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>AuPay支払いID</th><td>{{ buyers_order.au_pay_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文日</th><td>{{ buyers_order.order_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>入金確認日</th><td>{{ buyers_order.payment_chk_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>発送日</th><td>{{ buyers_order.shipped_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>備考</th><td>{{ buyers_order.memo }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文個数</th><td>{{ buyers_order.unit }}</td></tr>
+                    {% endfor %}
+
+                    <tr>
+                      <td><a href="{% url 'yaget:wow_order_update' object.pk %}">編集</a></td>
+                    </tr>
+                </tbody>
+              </table>
+
+                <table>
+                    <tr>
+                        <th>
+                <span id="overlay">
+                    <span class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </span>
+                </span>
+                        </th>
+                        <td>
+                <span id="posts">送信結果がたぶんここ
+                </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">wowmaの注文ステータスを更新</div>
+                        <form id="ajax-wow-order_seller_chk" action="{% url 'yaget:wow_order_seller_chk_ajax_res' %}" method="POST">
+                            <input id="id_pk" type="hidden" value={{ object.pk }}>
+                            <div>ステータス:</div><select id="id_order_status" name="order_status" form="ajax-wow-order_seller_chk">
+                                <option value="新規受付">新規受付</option>
+                                <option value="新規予約">新規予約</option>
+                                <option value="予約中">予約中</option>
+                                <option value="発送前入金待ち">発送前入金待ち</option>
+                                <option value="与信待ち">与信待ち</option>
+                                <option value="発送待ち" selected>発送待ち</option>
+                                <option value="発送後入金待ち">発送後入金待ち</option>
+                                <option value="完了">完了</option>
+                                <option value="保留">保留</option>
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_wow_order_seller_chk">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_wow_order_seller_chk">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div></div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">wowmaに発送完了と追跡番号を送信</div>
+                        <form id="ajax-wow-upsert" action="{% url 'yaget:wow_order_sending_info_ajax' %}" method="POST">
+                            <input id="id_pk_wow_upsert" type="hidden" value={{ object.pk }}>
+                            <br/><div style="width:300px;">発送日:</div><input type="date" id="id_shipping_date" name="shipping_date">
+                            <div>配送会社:</div><select id="id_shipping_carrier" name="shipping_carrier" form="ajax-wow-upsert">
+                                <option value="1">クロネコヤマト</option>
+                                <option value="2">佐川急便</option>
+                                <option value="3">JPエクスプレス（旧 日本通運）</option>
+                                <option value="4">福山通運</option>
+                                <option value="5">西濃運輸</option>
+                                <option value="6" selected>日本郵便</option>
+                                <option value="9">その他配送会社</option>
+                            </select>
+                            <div>配送お問い合せ番号:</div><input type="text" id="id_shipping_number" name="shipping_number">
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_wow_order_sending_info">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_wow_order_sending_info">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">バイヤーズに発注</div>
+                        <form id="ajax_wow_do_order_buyers" action="{% url 'yaget:wow_do_order_buyers_ajax' %}" method="POST">
+                            <input id="id_pk_wow_do_order_buyers" type="hidden" value={{ object.pk }}>
+                            <br/>
+                            <div style="width:300px;">支払い方法:</div><select id="id_payment_method" name="payment_method" form="ajax_wow_do_order_buyers">
+                                <option value="0">ポイント支払い</option>
+                                <option value="1">au pay</option>
+                                <option value="2">クレジットカード</option>
+                                <option value="3">ゆうちょ振り込み</option>
+                            </select>
+
+
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_wow_do_order_buyers">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_wow_do_order_buyers">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">メール送信</div>
+                        <form id="ajax_wow_send_gmail" action="{% url 'yaget:wow_send_gmail_ajax' %}" method="POST">
+                            <input id="id_pk_wow_send_gmail" type="hidden" value={{ object.pk }}>
+                            <br/>
+                            <div style="width:300px;">メール種別:</div><select id="id_mail_type" name="mail_type" form="ajax_wow_send_gmail">
+                                <option value="1">受注確認メール</option>
+                                <option value="2">発送通知メール</option>
+                                <option value="3">その他連絡メール</option>
+                            </select>
+                            <div>その他連絡文（改行もしくは全角スペースで改行）:</div>
+                            <textarea name="その他連絡文" cols="40" rows="10"  id="id_other_message" name="other_message"></textarea>
+
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_wow_send_gmail">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_wow_send_gmail">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+
+
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:wow_order_list' %}">wowma注文一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        $("#overlay_wow_order_seller_chk").hide();
+        $("#overlay_wow_order_sending_info").hide();
+        $("#overlay_wow_do_order_buyers").hide();
+        $("#overlay_wow_send_gmail").hide();
+        // ajaxの前処理
+        //  $(document).ajaxSend(function() {
+        //    $("#overlay").fadeIn(300);　
+        //  });
+
+        // 送信ボタンで呼ばれる wowma情報確認
+        $('#ajax-wow-order_seller_chk').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_wow_order_seller_chk").fadeIn(300);
+              $("#overlay_wow_order_sending_info").hide();
+            });
+            $.ajax({
+                'url': '{% url "yaget:wow_order_seller_chk_ajax_res" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk').val(),  // プライマリキー
+                    'order_status': $('#id_order_status').val(),  //
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_wow_order_seller_chk").fadeOut(300);
+                    $("#overlay_wow_order_sending_info").hide();
+                  },500);
+                // <p>はろー</p>のような要素を作成し、それを記事一覧エリアに追加し、入力欄をクリアする。
+                //res_text = {text: response.gid} + '_' + {text: response.gname}
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                //const p = $('<p>', {text: response.gname});
+                $('#posts_wow_order_seller_chk').empty(); // 指定した子要素を削除
+                $('#posts_wow_order_seller_chk').append(p_msg); // 指定した要素の子の前に追加
+                $('#posts_wow_order_seller_chk').append(p_ret_code); // 指定した要素の子の前に追加
+                //$('#posts').replaceWith(p); // 要素をまるごと置き換え。これやると消えてしまう
+                //$('#id_pk').val('');
+            });
+        });
+
+        // 送信ボタンで呼ばれる wowmaに発送情報更新
+        $('#ajax-wow-upsert').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_wow_order_sending_info").fadeIn(300);　
+            });
+
+            $.ajax({
+                'url': '{% url "yaget:wow_order_sending_info_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_wow_upsert').val(),  // プライマリキー
+                    'shipping_date': $('#id_shipping_date').val(),  //　発送日
+                    'shipping_carrier': $('#id_shipping_carrier').val(),  //　配送会社
+                    'shipping_number': $('#id_shipping_number').val(),  //　送り状番号
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_wow_order_sending_info").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_wow_order_sending_info').empty(); // 指定した子要素を削除
+                $('#posts_wow_order_sending_info').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_wow_order_sending_info').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+        // 送信ボタンで呼ばれる バイヤーズに発注をかける
+        $('#ajax_wow_do_order_buyers').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_wow_do_order_buyers").fadeIn(300);　
+            });
+
+            $.ajax({
+                'url': '{% url "yaget:wow_do_order_buyers_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_wow_do_order_buyers').val(),  // プライマリキー
+                    'payment_method': $('#id_payment_method').val(),  //　支払い方法
+                },
+                'dataType': 'json',
+                'timeout': 30000,
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_wow_do_order_buyers").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_wow_do_order_buyers').empty(); // 指定した子要素を削除
+                $('#posts_wow_do_order_buyers').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_wow_do_order_buyers').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+        // 送信ボタンで呼ばれる Gmail送信
+        $('#ajax_wow_send_gmail').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_wow_send_gmail").fadeIn(300);
+            });
+
+            var text = $('#id_other_message').val();
+            var textArray = text.split('\n');
+            var newText = textArray.join('＃＃＃');
+
+            $.ajax({
+                'url': '{% url "yaget:wow_send_gmail_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_wow_send_gmail').val(),  // プライマリキー
+                    'mail_type': $('#id_mail_type').val(),  //　メール種別
+                    'other_message': newText,  //　その他連絡文
+                },
+                'dataType': 'json',
+                'timeout': 30000,
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_wow_send_gmail").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_wow_send_gmail').empty(); // 指定した子要素を削除
+                $('#posts_wow_send_gmail').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_wow_send_gmail').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+    </script>
+{% endblock %}

@@ -1,0 +1,381 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+qoo10注文詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">qoo10注文詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">qoo10注文詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">qoo10注文詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">注文番号[{{ object.order_no }}]</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr><th class='text-secondary bg-warning'>注文番号</th><td>{{ object.order_no }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送状態</th><td>{{ object.shipping_status }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>販売者ID</th><td>{{ object.seller_id }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>カート番号</th><td>{{ object.pack_no }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文日</th><td>{{ object.order_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>決済日</th><td>{{ object.payment_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>発送予定日</th><td>{{ object.est_shipping_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>発送日</th><td>{{ object.shipping_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送完了日</th><td>{{ object.delivered_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>購入者名</th><td>{{ object.buyer }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>購入者名（カタカナ）</th><td>{{ object.buyer_gata }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>購入者の電話番号</th><td>{{ object.buyer_tel }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>購入者の携帯電話番号</th><td>{{ object.buyer_mobile }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>購入者の携帯電話番号</th><td>{{ object.buyer_email }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>バイヤーズ商品ページ</th><td><a href="{{ buyers_goods_detail.glink }}" target="_blank">商品ページを確認</a></td></tr>
+                    <tr><th class='text-secondary bg-warning'>商品ID</th><td>{{ buyers_goods_detail.gid }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>Qoo10商品番号</th><td>{{ object.item_code }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>販売商品コード</th><td>{{ object.seller_item_code }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>商品名</th><td>{{ object.item_title }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>オプション</th><td>{{ object.option }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>オプションコード</th><td>{{ object.option_code }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文金額</th><td>{{ object.order_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文数量</th><td>{{ object.order_qty }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>値引き額</th><td>{{ object.discount }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>合計金額</th><td>{{ object.total }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>受取人名</th><td>{{ object.receiver }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>受取人名（カタカナ）</th><td>{{ object.receiver_gata }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>お届け先の国家</th><td>{{ object.shipping_country }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>郵便番号</th><td>{{ object.zipcode }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>お届け先住所</th><td>{{ object.shipping_addr }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>住所(都道府県/市区町村)</th><td>{{ object.addr1 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>住所(市区町村以降)</th><td>{{ object.addr2 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>受取人の電話番号</th><td>{{ object.receiver_tel }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>受取人の携帯電話番号</th><td>{{ object.receiver_mobile }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送希望日</th><td>{{ object.hope_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送信者</th><td>{{ object.sender_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送り主の電話番号</th><td>{{ object.sender_tel }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送り主の国家</th><td>{{ object.sender_nation }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送り主の郵便番号</th><td>{{ object.sender_zipcode }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送り主の住所</th><td>{{ object.sender_addr }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送方法</th><td>{{ object.shipping_way }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送メッセージ</th><td>{{ object.shipping_msg }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>決済手段</th><td>{{ object.payment_method }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>販売者負担割引額</th><td>{{ object.seller_discount }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文金額通貨</th><td>{{ object.currency }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送料</th><td>{{ object.shipping_rate }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>関連注文番号</th><td>{{ object.related_order }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送料グループの種類</th><td>{{ object.shipping_rate_type }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>配送会社</th><td>{{ object.delivery_company }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>訪問受領認証番号</th><td>{{ object.voucher_code }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>発注時に生成されるパッキング番号</th><td>{{ object.packing_no }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>販売者単位のシリアル番号</th><td>{{ object.seller_delivery_no }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>注文サイト国：JP</th><td>{{ object.payment_nation }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>贈答品</th><td>{{ object.gift }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>決済金額</th><td>{{ object.cod_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>カート割引</th><td>{{ object.cart_discount_seller }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>負担カート割引</th><td>{{ object.cart_discount_qoo10 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>総供給原価</th><td>{{ object.settle_price }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>支店名</th><td>{{ object.branch_name }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>送り状番号</th><td>{{ object.tracking_no }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託</th><td>{{ object.oversea_consignment }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託受取人</th><td>{{ object.oversea_consignment_receiver }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託国家</th><td>{{ object.oversea_consignment_country }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託郵便番号</th><td>{{ object.oversea_consignment_zipcode }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託住所(都道府県/市区町村)</th><td>{{ object.oversea_consignment_addr1 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>海外委託住所(市区町村以降)</th><td>{{ object.oversea_consignment_addr2 }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>遅延の理由</th><td>{{ object.delay_type }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>販売者メモ</th><td>{{ object.delay_memo }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>作成日</th><td>{{ object.create_date }}</td></tr>
+                    <tr><th class='text-secondary bg-warning'>更新日</th><td>{{ object.update_date }}</td></tr>
+
+                    {% for buyers_order in buyers_order_list %}
+                        <tr><th class='text-secondary'>■バイヤーズへの発注詳細■</th><td></td></tr>
+                        <tr><th class='text-secondary bg-warning'>バイヤーズ注文番号</th><td>{{ buyers_order.buyers_order_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>状況</th><td>{{ buyers_order.status }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>支払い方法</th><td>{{ buyers_order.payment_method }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>支払い合計金額</th><td>{{ buyers_order.payment_total }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>配送方法</th><td>{{ buyers_order.delivery_method }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>伝票番号</th><td>{{ buyers_order.shipping_no }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>AuPay支払いID</th><td>{{ buyers_order.au_pay_id }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文日</th><td>{{ buyers_order.order_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>入金確認日</th><td>{{ buyers_order.payment_chk_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>発送日</th><td>{{ buyers_order.shipped_date }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>備考</th><td>{{ buyers_order.memo }}</td></tr>
+                        <tr><th class='text-secondary bg-warning'>注文個数</th><td>{{ buyers_order.unit }}</td></tr>
+                    {% endfor %}
+
+                    <tr>
+                      <td><a href="{% url 'yaget:qoo_order_update' object.pk %}">編集</a></td>
+                    </tr>
+                </tbody>
+              </table>
+
+                <table>
+                    <tr>
+                        <th>
+                <span id="overlay">
+                    <span class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </span>
+                </span>
+                        </th>
+                        <td>
+                <span id="posts">送信結果がたぶんここ
+                </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">qoo10に発送予定日を更新</div><br/>
+                        <form id="ajax-qoo-order_seller_chk" action="{% url 'yaget:qoo_order_seller_chk_ajax_res' %}" method="POST">
+                            <input id="id_pk" type="hidden" value={{ object.pk }}>
+                            <br/><div>発送予定日:</div><input type="date" id="id_est_shipping_date" name="est_shipping_date">
+                            <div>遅延理由（なければそのままで）:</div><select id="id_delay_type" name="delay_type" form="ajax-qoo-order_seller_chk">
+                                <option value="" selected>（遅延なし）</option>
+                                <option value="1">1：商品準備中</option>
+                                <option value="2">2：注文製作</option>
+                                <option value="3">3：顧客の要求</option>
+                                <option value="4">4：その他</option>
+                            </select>
+                            <div>遅延メモ:</div><input type="text" id="id_delay_memo" name="delay_memo">
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_order_seller_chk_ajax_res">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_qoo_order_seller_chk">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div></div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">qoo10に発送完了と追跡番号を送信</div><br/>
+                        <form id="ajax-qoo_order_sending_info" action="{% url 'yaget:qoo_order_sending_info_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_upsert" type="hidden" value={{ object.pk }}>
+                            <br/>
+                            <div>配送会社:</div><select id="id_delivery_company" name="delivery_company" form="ajax-qoo_order_sending_info">
+                                <option value="ゆうメール" selected>ゆうメール</option>
+                                <option value="ゆうパック">ゆうパック</option>
+                                <option value="定形外郵便">定形外郵便</option>
+                                <option value="クリックポスト">クリックポスト</option>
+                                <option value="クロネコ便">クロネコ便</option>
+                                <option value="佐川急便">佐川急便</option>
+                            </select>
+                            <div>送り状番号:</div><input type="text" id="id_tracking_no" name="tracking_no">
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_order_sending_info_ajax">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_qoo_order_sending_info">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">バイヤーズに発注</div>
+                        <form id="ajax_qoo_do_order_buyers" action="{% url 'yaget:qoo_do_order_buyers_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_do_order_buyers" type="hidden" value={{ object.pk }}>
+                            <br/>
+                            <div>支払い方法:</div><select id="id_payment_method" name="payment_method" form="ajax_qoo_do_order_buyers">
+                                <option value="0">ポイント支払い</option>
+                                <option value="1">au pay</option>
+                                <option value="2">クレジットカード</option>
+                                <option value="3">ゆうちょ振り込み</option>
+                            </select>
+
+                            <br/><button type="submit" class="btn btn-outline-primary">送信</button>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <th>
+                                <span id="overlay_qoo_do_order_buyers">
+                                    <span class="spinner-border" role="status">
+                                      <span class="sr-only">Loading...</span>
+                                    </span>
+                                </span>
+                                        </th>
+                                        <td>
+                                <span id="posts_qoo_do_order_buyers">送信結果がたぶんここ
+                                </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:qoo_order_list' %}">Qoo10注文一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        $("#overlay_order_seller_chk_ajax_res").hide();
+        $("#overlay_order_sending_info_ajax").hide();
+        $("#overlay_qoo_do_order_buyers").hide();
+        // ajaxの前処理
+        //  $(document).ajaxSend(function() {
+        //    $("#overlay").fadeIn(300);　
+        //  });
+
+        // 送信ボタンで呼ばれる qoo10情報確認
+        $('#ajax-qoo-order_seller_chk').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_order_seller_chk_ajax_res").fadeIn(300);　
+            });
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_order_seller_chk_ajax_res" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk').val(),  // プライマリキー
+                    'est_shipping_date': $('#id_est_shipping_date').val(),  //
+                    'delay_type': $('#id_delay_type').val(),  //
+                    'delay_memo': $('#id_delay_memo').val(),  //
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_order_seller_chk_ajax_res").fadeOut(300);
+                  },500);
+                // <p>はろー</p>のような要素を作成し、それを記事一覧エリアに追加し、入力欄をクリアする。
+                //res_text = {text: response.gid} + '_' + {text: response.gname}
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                //const p = $('<p>', {text: response.gname});
+                $('#posts_qoo_order_seller_chk').empty(); // 指定した子要素を削除
+                $('#posts_qoo_order_seller_chk').append(p_msg); // 指定した要素の子の前に追加
+                $('#posts_qoo_order_seller_chk').append(p_ret_code); // 指定した要素の子の前に追加
+                //$('#posts').replaceWith(p); // 要素をまるごと置き換え。これやると消えてしまう
+                //$('#id_pk').val('');
+            });
+        });
+
+        // 送信ボタンで呼ばれる qoo10に注文情報更新
+        $('#ajax-qoo_order_sending_info').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_order_sending_info_ajax").fadeIn(300);　
+            });
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_order_sending_info_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_upsert').val(),  // プライマリキー
+                    'delivery_company': $('#id_delivery_company').val(),  //　配送会社
+                    'tracking_no': $('#id_tracking_no').val(),  //　送り状番号
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_order_sending_info_ajax").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_qoo_order_sending_info').empty(); // 指定した子要素を削除
+                $('#posts_qoo_order_sending_info').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_qoo_order_sending_info').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+        // 送信ボタンで呼ばれる バイヤーズに発注をかける
+        $('#ajax_qoo_do_order_buyers').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+            $(document).ajaxSend(function() {
+              $("#overlay_qoo_do_order_buyers").fadeIn(300);　
+            });
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_do_order_buyers_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_do_order_buyers').val(),  // プライマリキー
+                    'payment_method': $('#id_payment_method').val(),  //　支払い方法
+                },
+                'dataType': 'json',
+                'timeout': 30000,
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay_qoo_do_order_buyers").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_qoo_do_order_buyers').empty(); // 指定した子要素を削除
+                $('#posts_qoo_do_order_buyers').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_qoo_do_order_buyers').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+    </script>
+{% endblock %}

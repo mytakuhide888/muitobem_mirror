@@ -1,0 +1,16 @@
+{% extends "admin/change_list.html" %}
+{% load i18n static %}
+
+{% block content %}
+  <div class="submit-row" style="gap:.5rem;display:flex;flex-wrap:wrap;margin-bottom:1rem">
+    <form action="{% url 'social:post-import' %}" method="post" style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="button">{% trans "投稿インポート" %}</button>
+    </form>
+    <form action="{% url 'social:post-sync' %}" method="post" style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="button">{% trans "投稿同期" %}</button>
+    </form>
+  </div>
+  {{ block.super }}
+{% endblock %}

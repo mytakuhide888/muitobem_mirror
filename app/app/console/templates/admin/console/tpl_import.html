@@ -1,0 +1,14 @@
+{% extends "admin/console/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="module">
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <p>エクスポートした <code>message_templates.json</code> を選択してください。</p>
+    <input type="file" name="file" accept="application/json">
+    <div class="submit-row">
+      <input type="submit" class="default" value="インポート">
+      <a class="button" href="{% url 'console:tpl_list' %}">戻る</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

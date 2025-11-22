@@ -1,0 +1,115 @@
+{% load i18n static admin_urls %}
+{% with app_list=available_apps %}
+<nav id="nav-sidebar" aria-label="{% translate 'Sidebar' %}">
+<style>
+    .cc-accordion summary{cursor:pointer;padding:8px 12px;font-weight:700;border-radius:4px;background:#2c3e50;color:#fff;margin:8px 0 4px}
+    .cc-accordion .cc-section{margin:6px 0 10px 10px;padding-left:8px;border-left:3px solid #d9e1f2}
+    .cc-accordion a.cc-link{display:block;padding:6px 10px;text-decoration:none}
+    .cc-subhead{font-size:12px;opacity:.8;margin:6px 0 2px 2px}
+    details[open] summary{opacity:.95}
+</style>
+
+  <div class="cc-accordion">
+
+    {# === インスタグラム管理（app_label=ig） === #}
+    <details open>
+      <summary>インスタグラム管理</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label == 'ig' %}
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    {# === SNS管理（sns_core / social） === #}
+    <details>
+      <summary>SNS管理</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label == 'sns_core' or app.app_label == 'social' %}
+            <div class="cc-subhead">{{ app.name }}</div>
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    {# === Threads管理（th） === #}
+    <details>
+      <summary>Threads管理</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label == 'th' %}
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    {# === モール管理（yaget） === #}
+    <details>
+      <summary>モール管理</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label == 'yaget' %}
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    {# === 認証と認可（auth） === #}
+    <details>
+      <summary>アカウント管理</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label == 'auth' %}
+            <div class="cc-subhead">{{ app.name }}</div>
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    {# === その他（上記以外） === #}
+    <details>
+      <summary>その他</summary>
+      <div class="cc-section">
+        {% for app in app_list %}
+          {% if app.app_label != 'ig' and app.app_label != 'sns_core' and app.app_label != 'social' and app.app_label != 'th' and app.app_label != 'yaget' and app.app_label != 'auth' %}
+            <div class="cc-subhead">{{ app.name }}</div>
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% else %}<span class="cc-link">{{ model.name }}</span>{% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+  </div>
+</nav>
+{% endwith %}

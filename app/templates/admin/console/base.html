@@ -1,0 +1,44 @@
+{# app/templates/admin/console/base.html #}
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{# ページタイトル（子テンプレートで上書き可） #}
+{% block title %}{% block page_title %}運用コンソール{% endblock %}{% endblock %}
+
+{# 追加スタイル（必要最低限の体裁） #}
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    /* 共通レイアウト用の軽い整形 */
+    .module { background:#fff; border:1px solid #e5e7eb; border-radius:6px; padding:12px; }
+    .form-row { margin-bottom:10px; }
+    .form-row label { display:inline-block; min-width:120px; font-weight:600; }
+    .button { display:inline-block; padding:.4rem .8rem; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; cursor:pointer; }
+    .button.default { background:#2563eb; border-color:#2563eb; color:#fff; }
+    .errorlist { color:#b91c1c; margin:.25rem 0 0; }
+    .help { opacity:.85; font-size:.9em; }
+    /* スマホでの余白調整 */
+    @media (max-width: 768px){
+      .form-row label{ min-width:auto; display:block; margin-bottom:6px; }
+    }
+  </style>
+  {# 任意: あれば専用CSSも読み込み（無ければ404でも問題なし） #}
+  <link rel="stylesheet" href="{% static 'console/console.css' %}" />
+{% endblock %}
+
+{# 追加スクリプト（必要なら） #}
+{% block extrahead %}
+  {{ block.super }}
+  <script>
+    // ここに全ページ共通で使う軽いユーティリティ等を置いてもOK
+    window.CC_CONSOLE = true;
+  </script>
+  {# 任意: あれば専用JSも読み込み #}
+  <script defer src="{% static 'console/console.js' %}"></script>
+{% endblock %}
+
+{# 重要: content ブロックは上書きしない。
+    子テンプレート（dashboard.html, tpl_list.html 等）が
+    そのまま {% block content %}…{% endblock %} を使えるようにするため。 #}
+
+{# breadcrumbs ブロックも子側でそのまま上書きできます。 #}

@@ -1,0 +1,244 @@
+{% load i18n admin_urls %}
+{% with app_list=available_apps %}
+<aside class="main-sidebar sidebar-dark-primary elevation-4" id="cc-adminlte-sidebar">
+  <!-- Brand -->
+  <a href="{% url 'admin:index' %}" class="brand-link">
+    <span class="brand-text font-weight-light">SNS運用 管理</span>
+  </a>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- user panel / 検索など欲しければここに -->
+
+    <!-- 左メニュー（AdminLTE の Treeview） -->
+    <nav class="mt-2">
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+
+        <!-- インスタグラム管理 -->
+        <li class="nav-item has-treeview menu-open">
+          <a href="#" class="nav-link active"><i class="nav-icon fab fa-instagram"></i><p>インスタグラム管理<i class="right fas fa-angle-left"></i></p></a>
+          <ul class="nav nav-treeview">
+            {% for app in app_list %}{% if app.app_label == 'ig' %}
+              {% for model in app.models %}
+                <li class="nav-item"><a href="{{ model.admin_url }}" class="nav-link"><i class="far fa-circle nav-icon"></i><p>{{ model.name }}</p></a></li>
+              {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+        </li>
+
+        <!-- SNS管理（sns_core / social / social_scheduler / social_webhooks） -->
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link"><i class="nav-icon fas fa-share-alt"></i><p>SNS管理<i class="right fas fa-angle-left"></i></p></a>
+          <ul class="nav nav-treeview">
+            {% for app in app_list %}
+            {% if app.app_label == 'sns_core' or app.app_label == 'social' or app.app_label == 'social_scheduler' or app.app_label == 'social_webhooks' %}
+              {% for model in app.models %}
+                <li class="nav-item"><a href="{{ model.admin_url }}" class="nav-link"><i class="far fa-circle nav-icon"></i><p>{{ model.name }}</p></a></li>
+              {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+        </li>
+
+        <!-- Threads管理 -->
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link"><i class="nav-icon fas fa-comments"></i><p>Threads管理<i class="right fas fa-angle-left"></i></p></a>
+          <ul class="nav nav-treeview">
+            {% for app in app_list %}{% if app.app_label == 'th' %}
+              {% for model in app.models %}
+                <li class="nav-item"><a href="{{ model.admin_url }}" class="nav-link"><i class="far fa-circle nav-icon"></i><p>{{ model.name }}</p></a></li>
+              {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+        </li>
+
+        {% url 'console:index' as console_index_url %}
+        {% url 'console:connection_test' as console_conn_url %}
+        {% url 'console:logs' as console_logs_url %}
+        {% url 'console:webhook_test' as console_webhook_url %}
+
+        <li class="nav-item has-treeview{% if request.path|slice:':9' == '/console/' %} menu-open{% endif %}" data-cc-key="console">
+          <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-tools"></i>
+            <p>SNS運用コンソール<i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{{ console_index_url }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>ダッシュボード</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ console_conn_url }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>アカウント連携テスト</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ console_logs_url }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>直近ログの確認</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ console_webhook_url }}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>Webhook受信テスト</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'console:accounts' %}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>アカウント連携</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'console:permissions' %}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>権限チェック</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'console:webhook_setup' %}" class="nav-link">
+                <i class="far fa-circle nav-icon"></i><p>Webhook設定</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'console:tpl_list' %}">
+            <i class="nav-icon fas fa-file-alt"></i>
+            <p>返信テンプレート</p>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'console:setup_env' %}">
+            <i class="nav-icon fas fa-magic"></i>
+            <p>設定ウィザード</p>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'console:help' %}">
+            <i class="nav-icon fas fa-question-circle"></i>
+            <p>連携ガイド</p>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'console_help_integration' %}"><i class="nav-icon fas fa-life-ring"></i> 連携ガイド</a>
+        </li>
+
+        <!-- モール管理（yaget など） -->
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link"><i class="nav-icon fas fa-store"></i><p>モール管理<i class="right fas fa-angle-left"></i></p></a>
+          <ul class="nav nav-treeview">
+            {% for app in app_list %}{% if app.app_label == 'yaget' %}
+              {% for model in app.models %}
+                <li class="nav-item"><a href="{{ model.admin_url }}" class="nav-link"><i class="far fa-circle nav-icon"></i><p>{{ model.name }}</p></a></li>
+              {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+        </li>
+
+        <!-- 認証と認可 -->
+        <li class="nav-item has-treeview">
+          <a href="#" class="nav-link"><i class="nav-icon fas fa-user-shield"></i><p>認証と認可<i class="right fas fa-angle-left"></i></p></a>
+          <ul class="nav nav-treeview">
+            {% for app in app_list %}{% if app.app_label == 'auth' %}
+              {% for model in app.models %}
+                <li class="nav-item"><a href="{{ model.admin_url }}" class="nav-link"><i class="far fa-circle nav-icon"></i><p>{{ model.name }}</p></a></li>
+              {% endfor %}
+            {% endif %}{% endfor %}
+          </ul>
+        </li>
+
+        <!-- その他 -->
+        {# --- その他 --- #}
+        <li class="nav-item has-treeview">
+        <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-ellipsis-h"></i>
+            <p>その他<i class="right fas fa-angle-left"></i></p>
+        </a>
+        <ul class="nav nav-treeview">
+            {% for app in app_list %}
+            {% with label=app.app_label %}
+                {% if label != 'ig' and label != 'sns_core' and label != 'social' and label != 'social_scheduler' and label != 'social_webhooks' and label != 'th' and label != 'yaget' and label != 'auth' %}
+                {% for model in app.models %}
+                    <li class="nav-item">
+                    <a href="{{ model.admin_url }}" class="nav-link">
+                        <i class="far fa-circle nav-icon"></i><p>{{ app.name }} / {{ model.name }}</p>
+                    </a>
+                    </li>
+                {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% endfor %}
+        </ul>
+        </li>
+
+      </ul>
+    </nav>
+  </div>
+</aside>
+{% endwith %}
+
+<style>
+  /* Admin のヘッダー高さに合わせてサイドバー配置 */
+  :root { --cc-admin-header-h: 60px; --cc-sidebar-w: 250px; }
+  body.sidebar-mini .main-sidebar { top: var(--cc-admin-header-h); height: calc(100vh - var(--cc-admin-header-h)); position: fixed; }
+  /* コンテンツを右にオフセット */
+  body.sidebar-mini #main { margin-left: var(--cc-sidebar-w); }
+  /* 折りたたみ時 */
+  body.sidebar-mini.sidebar-collapse #main { margin-left: 4.6rem; } /* AdminLTE の縮小幅 */
+  /* Django admin の右側ボックスと干渉しないため */
+  @media (max-width: 991px) { body.sidebar-mini #main { margin-left: 0; } }
+    /* ---- ツリー開閉（AdminLTEなしで動く軽量実装） ---- */
+  #cc-adminlte-sidebar .nav-treeview { display: none; padding-left: 10px; }
+  #cc-adminlte-sidebar .menu-open > .nav-treeview { display: block; }
+  #cc-adminlte-sidebar a.nav-link.toggle { cursor: pointer; user-select: none; }
+  /* 見出しの右矢印を回転（任意） */
+  #cc-adminlte-sidebar .nav-link .right { transition: transform .15s; }
+  #cc-adminlte-sidebar .menu-open > a.nav-link .right { transform: rotate(-90deg); }
+</style>
+
+<script>
+  // AdminLTE の pushmenu を使って開閉状態を保存
+  (function(){
+    document.body.classList.add('sidebar-mini'); // サイドバー用の基本クラス
+    var KEY='cc:adminlte:collapsed';
+    if (localStorage.getItem(KEY)==='1') { document.body.classList.add('sidebar-collapse'); }
+    document.addEventListener('DOMContentLoaded', function(){
+      // ヘッダーのハンバーガー（Django 管理のもの）を流用
+      var btn=document.querySelector('#header .toggle-nav-sidebar, #header .navbar-toggler, .brand-link');
+      function toggle(){
+        document.body.classList.toggle('sidebar-collapse');
+        localStorage.setItem(KEY, document.body.classList.contains('sidebar-collapse')?'1':'0');
+      }
+      if(btn){ btn.addEventListener('click', function(e){ toggle(); }); }
+    });
+  })();
+  /* 大カテゴリのアコーディオン（開閉状態はローカルストレージに保存） */
+(function () {
+  var root = document.getElementById('cc-adminlte-sidebar');
+  if (!root) return;
+
+  var groups = root.querySelectorAll('.nav-item.has-treeview');
+  groups.forEach(function (li) {
+    var toggle = li.querySelector(':scope > a.nav-link');
+    var tree   = li.querySelector(':scope > ul.nav-treeview');
+    if (!toggle || !tree) return;
+
+    // ハンドラ付与
+    toggle.classList.add('toggle');
+    toggle.addEventListener('click', function (e) {
+      e.preventDefault(); // # への遷移抑止
+      var open = li.classList.toggle('menu-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      // 状態保存キー（data-cc-key があれば優先）
+      var key = 'cc:tree:' + (li.dataset.ccKey || toggle.textContent.trim());
+      try { open ? localStorage.setItem(key, '1') : localStorage.removeItem(key); } catch(_) {}
+    });
+
+    // 状態復元
+    var key = 'cc:tree:' + (li.dataset.ccKey || toggle.textContent.trim());
+    try { if (localStorage.getItem(key)) li.classList.add('menu-open'); } catch(_) {}
+  });
+})();
+</script>

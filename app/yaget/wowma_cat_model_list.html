@@ -1,0 +1,99 @@
+{% extends './base.html' %}
+{% csrf_token %}{# フォームを POST する場合は必要 #}
+{{ formset.management_form }}{# フォームセットを利用する場合は必要 #}
+{% load static %}
+{% block content %}  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">wowmaカテゴリリスト一覧</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">wowmaカテゴリリスト一覧 です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="col-sm">
+          <nav class="pull-right header">
+              <ul id="menu">
+                <li>
+                  <a href="{% url 'yaget:black_list_create' %}" class="">
+                    ※なにか追加したいアクションがあれば
+                  </a>
+                </li>
+              </ul>
+          </nav>
+        </div>
+
+      <h1>検索条件</h1>
+      <form method="POST">
+          {% csrf_token %}
+        <ul class="list-group">
+          <li class="list-group-item">
+            <div class="d-flex flex-sm-row">
+              <div class="p-2">
+              {% for field in test_form %}
+                  {% if forloop.counter == 5 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 9 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 13 %}
+                  </div><div class="p-2">
+                  {% endif %}
+                  <div class="form-group">
+                      <label class="col small">{{ field.label }}:</label>
+                      <div class="col-md-8 small">
+                          {{ field }}
+                      </div>
+                  </div>
+                    {% if forloop.counter == forloop.last %}
+                    </div>
+                    {% endif %}
+              {% endfor %}
+            </div>
+          </li>
+          <li class="list-group-item">
+            <input class="btn btn-success col-md-3" type="submit" id="button" name="button" value="検索">
+          </li>
+        </ul>
+      </form>
+        <div class="col-md-3">{{ page_obj.start_index }} - {{ page_obj.end_index }}/ {{ page_obj.paginator.count }} 件中 ({{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ)</div>
+
+          <div class="col-6 offset-3 justify-content-center">
+            {% if is_paginated %}
+                {% include 'pagination.html' %}
+            {% endif %}
+          </div>
+
+        <form action="" method="post">
+          <div class="row">
+              {% for form in formset %}
+                  <div class="col-sm-4">
+                      {{ form.as_p }}
+                  </div>
+              {% endfor %}
+          </div>
+          {{ formset.management_form }}
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">送信</button>
+        </form>
+    </section>
+    <!-- /.content -->
+    <div class="col-6 offset-3 justify-content-center">
+        {% if is_paginated %}
+            {% include 'pagination.html' %}
+        {% endif %}
+    </div>
+  </div>
+{% endblock content %}

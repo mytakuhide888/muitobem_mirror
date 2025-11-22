@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<article class="card card-outline card-danger">
+  <div class="card-header"><h3 class="card-title">ユーザーデータ削除手順</h3></div>
+  <div class="card-body">
+    <p>当サービスで保持しているお客様データの削除手順は以下の通りです。</p>
+
+    <h4>1. Meta側での連携解除（推奨）</h4>
+    <ol>
+      <li>FacebookまたはInstagramの設定 → 「アプリとウェブサイト」を開く</li>
+      <li>当サービス（アプリ名）を選択し「削除 / 許可を取り消す」を実行</li>
+    </ol>
+
+    <h4>2. 当サービスへの削除依頼</h4>
+    <p>下記情報をメールでお送りください。</p>
+    <ul>
+      <li>対象アカウント（Instagramユーザー名 / Facebookページ名 等）</li>
+      <li>削除を希望するデータの範囲（アクセストークン / 受信イベントログ 等）</li>
+      <li>ご本人確認に必要な情報</li>
+    </ul>
+    <p>宛先: support@muitobem.top（サンプル。実際の窓口に置き換えてください）</p>
+
+    <h4>3. 削除の実施</h4>
+    <p>当サービスは、合理的な期間内に保有データを削除または匿名化し、完了後にメールでご連絡します。</p>
+
+    <p class="text-muted mt-3">※ 本ページは開発者審査・法令対応のための最小構成です。運用実態に合わせて追記ください。</p>
+  </div>
+</article>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<h1>直近ログの確認</h1>
+
+<form method="get" class="mb-3" style="display:flex; gap:12px; align-items: flex-end; flex-wrap: wrap;">
+  <div>
+    <label>対象:</label>
+    <input type="text" name="path" value="{{ path }}" style="min-width: 360px;">
+  </div>
+  <div>
+    <label>行数:</label>
+    <input type="number" name="lines" value="{{ lines }}" min="10" step="10" style="width: 100px;">
+  </div>
+  <div>
+    <label>レベル:</label>
+    <select name="level">
+      <option value="ALL" {% if level == "ALL" %}selected{% endif %}>ALL</option>
+      <option value="ERROR" {% if level == "ERROR" %}selected{% endif %}>ERROR</option>
+      <option value="WARNING" {% if level == "WARNING" %}selected{% endif %}>WARNING</option>
+      <option value="INFO" {% if level == "INFO" %}selected{% endif %}>INFO</option>
+    </select>
+  </div>
+  <div>
+    <button class="button default" type="submit">更新</button>
+    <a class="button" href="{% url 'console:index' %}">ダッシュボード</a>
+    <a class="button" href="?path={{ path|urlencode }}&lines={{ lines }}&level={{ level }}&download=1">ダウンロード</a>
+  </div>
+</form>
+
+{% if not exists %}
+  <div class="alert alert-warning">ログファイルが見つかりません: {{ path }}</div>
+{% endif %}
+
+<pre style="white-space: pre-wrap; background:#0b0b0b; color:#e6e6e6; padding:12px; border-radius:4px; max-height: 70vh; overflow:auto;">{{ text }}</pre>
+{% endblock %}

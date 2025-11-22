@@ -1,0 +1,74 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}連携ガイド{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> / 連携ガイド</div>{% endblock %}
+
+{% block content %}
+<h1>連携ガイド</h1>
+<p>Instagram / Threads の連携から自動返信の動作確認まで、最短で進めるための手順です。</p>
+
+<style>
+  .steps {display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:16px 0;}
+  .step-card{border:1px solid #e0e0e0;border-radius:8px;padding:16px;background:#fff}
+  .step-card h2{font-size:18px;margin:0 0 8px}
+  .step-card ol{margin:8px 0 0 20px}
+  .cta{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .note{font-size:12px;color:#666;margin-top:8px}
+</style>
+
+<div class="steps">
+
+  <section class="step-card">
+    <h2>1. アカウント連携（Instagram）</h2>
+    <ol>
+      <li>管理画面左メニュー「インスタグラム管理」→各モデルが表示されることを確認</li>
+      <li>Instagram を<strong>プロアカウント（クリエイター推奨）</strong>に切替</li>
+      <li>Metaの許可ダイアログで <strong>すべてのアクセス</strong> を許可</li>
+    </ol>
+    <div class="cta">
+      <a class="button" href="{% url 'console:connection_test' %}">接続テスト</a>
+      <a class="button default" href="{% url 'admin:index' %}">管理トップを開く</a>
+    </div>
+    <p class="note">※ 接続テストの「モデル参照」行が PASS になれば最低限の連携は完了です。</p>
+  </section>
+
+  <section class="step-card">
+    <h2>2. 自動返信の準備</h2>
+    <ol>
+      <li>「SNS管理」配下で <strong>返信テンプレート</strong> と <strong>自動返信ルール</strong> を作成</li>
+      <li>キーワードは略さず、<strong>「無料鑑定希望」</strong> 等の分かりやすい語を推奨</li>
+      <li>ルールの対象チャネル（DM / コメントなど）を用途別に設定</li>
+    </ol>
+    <p class="note">※ 送信用テンプレートは絵文字・改行もOK。長文でも可読性を意識します。</p>
+  </section>
+
+  <section class="step-card">
+    <h2>3. 動作確認</h2>
+    <ol>
+      <li><strong>Webhook受信テスト</strong>：サンプルJSONを送って受信ハンドラの疎通確認</li>
+      <li><strong>Webhookイベント一覧</strong>：受信履歴を横断検索・再処理（スタブ）</li>
+      <li><strong>直近ログ</strong>：標準出力 or ログファイルの末尾（最大1000行）</li>
+    </ol>
+    <div class="cta">
+      <a class="button" href="{% url 'console:webhook_test' %}">Webhook受信テスト</a>
+      <a class="button" href="{% url 'console:webhook_events' %}">Webhookイベント一覧</a>
+      <a class="button default" href="{% url 'console:logs' %}">直近ログ</a>
+    </div>
+    <p class="note">※ エラーはログ/イベント一覧に出ます。接続テストの WARN（環境変数）は後で設定。</p>
+  </section>
+
+  <section class="step-card">
+    <h2>4. よくある詰まりどころ</h2>
+    <ul>
+      <li>初回連携で <code>OAuth Exception / 404</code> など → Instagramの「アカウントセンター」から「今後のアクティビティをリンク」解除→必要なものだけ再リンク</li>
+      <li>ビジネス/クリエイター切替前 → 先に<strong>プロアカウント化</strong>してください</li>
+      <li>キーワード不一致 → 省略語（例：IG）は避け、本文そのままの語でルール作成</li>
+    </ul>
+  </section>
+
+</div>
+
+<div class="cta">
+  <a class="button" href="{% url 'console:index' %}">← ダッシュボードへ戻る</a>
+</div>
+{% endblock %}

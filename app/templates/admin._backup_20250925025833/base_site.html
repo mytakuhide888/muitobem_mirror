@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}
+{% load i18n static admin_urls admin_list %}
+
+{% block branding %}
+  <h1 id="site-name"><a href="{% url "admin:index" %}">{% trans "SNS運用 管理画面" %}</a></h1>
+{% endblock %}
+
+{# ここで左メニュー（nav-sidebar）を自作に置き換える #}
+{% block nav-sidebar %}
+  <!-- NAV-BLOCK-OVERRIDE-WORKS -->
+  <!-- {% include "admin/partials/custom_sidebar.html" %} -->
+  {% include "admin/nav_sidebar.html" %}
+{% endblock %}

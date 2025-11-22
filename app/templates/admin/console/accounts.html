@@ -1,0 +1,175 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% url 'console:oauth_begin'           as oauth_new %}
+{% url 'meta_public:meta_oauth_start'  as oauth_legacy %}
+{% with login_href=oauth_new|default:oauth_legacy %}
+
+{% block extrastyle %}
+<style>
+  .table-sm td, .table-sm th { padding: .35rem .5rem; }
+  .muted { color:#6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="mb-3">アカウント連携</h1>
+
+  {% if not token_present %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <div>
+      Facebook ユーザートークンが未設定です。Meta ログインを実行し、
+      必要な権限（instagram_basic / pages_show_list / instagram_manage_messages など）を付与してください。
+    </div>
+    <a class="btn btn-warning" href="{% url 'meta_public:meta_oauth_start' %}">
+      Metaアカウントを連携
+    </a>
+  </div>
+  {% endif %}
+
+  {# 既存の連携済みアカウント #}
+  <div class="card mb-4">
+    <div class="card-header">連携済み Instagram ビジネスアカウント</div>
+    <div class="card-body p-0">
+      <table class="table table-striped table-sm mb-0">
+        <thead>
+          <tr>
+            <th style="width:22%">表示名 / ユーザー名</th>
+            <th style="width:18%">IGビジネスID</th>
+            <th style="width:14%">Webhook</th>
+            <th style="width:22%">トークン有効期限</th>
+            <th>権限（granted）</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in existing %}
+          <tr>
+            <td>
+              {% firstof a.display_name a.username "-" %}
+            </td>
+            <td>
+              {% firstof a.ig_business_id a.external_id a.id "-" %}
+            </td>
+            <td>
+              {% if a.webhook_subscribed %}
+                <span class="badge bg-success">ON</span>
+              {% else %}
+                <span class="badge bg-secondary">OFF</span>
+              {% endif %}
+              {% if a.webhook_subscribed_at %}
+                <span class="muted ms-2">{{ a.webhook_subscribed_at }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {# どちらか入っている方を表示 #}
+              {% if a.token_expires_at %}
+                ユーザー: {{ a.token_expires_at }}
+              {% elif a.page_token_expires_at %}
+                ページ: {{ a.page_token_expires_at }}
+              {% else %}
+                <span class="muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ a.permissions.granted|join:", " |default:"-" }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-3">
+              候補がありません。
+              {% if not token_present %}
+                まずは <a href="{{ login_url }}">Meta ログイン</a> で権限付与し、
+              {% endif %}
+              /me/accounts の候補を取得してください。
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# 取り込み候補（/me/accounts → ページ → それに紐づく IG） #}
+  <div class="card mb-4">
+    <div class="card-header">取り込み候補（Facebook ページ／紐づく IG）</div>
+    <div class="card-body p-0">
+      {% url 'console:accounts_import' as import_new %}
+      {% url 'meta_public:meta_import' as import_legacy %}
+      <form method="post" action="{{ import_new|default:import_legacy }}">
+        {% csrf_token %}
+        <table class="table table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th style="width:32%">ページ名</th>
+              <th style="width:28%">IGユーザー名</th>
+              <th class="text-end">選択</th>
+            </tr>
+          </thead>
+          <tbody>
+            {# 旧ビューが渡す構造： item.page / item.ig #}
+            {% for item in pages_igs %}
+              <tr>
+                <td>{{ item.page.name|default:"-" }}</td>
+                <td>{{ item.ig.username|default:"-" }}</td>
+                <td class="text-end">
+                  <label class="mb-0">
+                    {# 旧バックエンドは ig_ids に ig.id を受け取る #}
+                    <input type="checkbox" name="ig_ids" value="{{ item.ig.id }}">
+                    取り込み
+                  </label>
+                </td>
+                <td>
+                  <!-- 連携解除は別エンドポイントへ送る -->
+                  <button
+                    type="submit"
+                    class="btn btn-outline-secondary"
+                    formaction="{% url 'meta_public:meta_disconnect' %}"
+                    formmethod="post"
+                    formnovalidate
+                    name="page_id"
+                    value="{{ item.page.id }}"
+                  >
+                    連携解除
+                  </button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-3">
+                  候補がありません。まずは Facebook ログインで権限付与し、/me/accounts を取得してください。
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="p-3 d-flex justify-content-between align-items-center">
+          <div class="muted">
+            {% if token_present %}Facebook ユーザートークンはセット済みです。{% else %}Facebook ユーザートークンが未設定です。{% endif %}
+          </div>
+          <div>
+            <button type="submit" class="btn btn-primary">選択した候補を取り込む</button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  {# ヘルプ #}
+  <div class="card">
+    <div class="card-header">ヘルプ</div>
+    <div class="card-body">
+      <ol class="mb-0">
+        <li>右上メニューの「権限チェック」でトークン状態と付与権限を確認できます。</li>
+        <li>トークンが未設定の場合は Meta ログインで付与 → このページに戻り候補を取り込んでください。</li>
+        <li>取り込み後、Webhook 設定を ON にすると DM/コメント通知が届きます。</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+{% endwith %}

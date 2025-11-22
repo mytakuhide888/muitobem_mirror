@@ -1,0 +1,18 @@
+{% extends './base.html' %}
+{% load static %}
+{% block content %}  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <h1>{{title}}</h1>
+    <p>{{message|safe}}</p>
+    <div>
+      <table>
+          <form action="{% url 'yaget:stock_chk' %}" method="post">
+          {% csrf_token %}
+          <tr><th></th><td><input type="submit" value="click"></td></tr>
+          </form>
+      </table>
+    </div>
+      <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+      <div><a class="btn btn-primary" href="{% url 'yaget:top' %}">Topへ戻る</a></div>
+  </div>
+{% endblock content %}

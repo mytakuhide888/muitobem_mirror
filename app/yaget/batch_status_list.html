@@ -1,0 +1,124 @@
+{% extends './base.html' %}
+{% load static %}
+{% block content %}  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">バッチ実行状況</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">バッチ実行状況 です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="col-sm">
+          <nav class="pull-right header">
+          </nav>
+        </div>
+
+      <h1>検索条件</h1>
+      <form method="POST">
+          {% csrf_token %}
+        <ul class="list-group">
+          <li class="list-group-item">
+            <div class="d-flex flex-sm-row">
+              <div class="p-2">
+              {% for field in test_form %}
+                  {% if forloop.counter == 5 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 9 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 13 %}
+                  </div><div class="p-2">
+                  {% endif %}
+                  <div class="form-group">
+                      <label class="col small">{{ field.label }}:</label>
+                      <div class="col-md-8 small">
+                          {{ field }}
+                      </div>
+                  </div>
+                    {% if forloop.counter == forloop.last %}
+                    </div>
+                    {% endif %}
+              {% endfor %}
+            </div>
+          </li>
+          <li class="list-group-item">
+            <input class="btn btn-success col-md-3" type="submit" id="button" name="button" value="検索">
+          </li>
+        </ul>
+      </form>
+        <div class="col-md-3">{{ page_obj.start_index }} - {{ page_obj.end_index }}/ {{ page_obj.paginator.count }} 件中 ({{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ)</div>
+
+          <div class="col-6 offset-3 justify-content-center">
+            {% if is_paginated %}
+                {% include 'pagination.html' %}
+            {% endif %}
+          </div>
+
+        <table class="table table-sm table-striped table-hover table-bordered">
+          <thead>
+            <tr class="text-secondary bg-warning small">
+              <th class="">バッチ処理番号</th>
+              <th class="">バッチ名</th>
+              <th class="">メッセージ</th>
+              <th class="">実行状況</th>
+              <th class="">開始時刻</th>
+              <th class="">終了時刻</th>
+              <th class="">中止時刻</th>
+              <th class="">作成日</th>
+              <th class="">更新日</th>
+              <th class="">詳細</th>
+              <th class="">削除</th>
+            </tr>
+          </thead>
+        {% if object_list|length == 0 %}
+            <p>検索結果が存在しません。</p>
+        {% else %}
+          <tbody>
+            {% for post in object_list %}
+              <tr class="small">
+                <td>{{ post.batch_id }}</td>
+                <td>{{ post.batch_name }}</td>
+                <td>{{ post.message|truncatechars:100 }}</td>
+                {% if post.batch_status == 0 %}
+                  <td>実行中</td>
+                {% elif post.batch_status == 1 %}
+                  <td>正常終了</td>
+                {% elif post.batch_status == 2 %}
+                  <td>異常終了</td>
+                {% else %}
+                  <td>不明？</td>
+                {% endif %}
+                <td>{{ post.start_date }}</td>
+                <td>{{ post.end_date }}</td>
+                <td>{{ post.stop_date }}</td>
+                <td>{{ post.create_date }}</td>
+                <td>{{ post.update_date }}</td>
+                <td><a href="{% url 'yaget:batch_status_detail' post.pk %}">詳細</a></td>
+                <td><a href="{% url 'yaget:batch_status_delete' post.pk %}">削除</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        {% endif %}
+        </table>
+    </section>
+    <!-- /.content -->
+    <div class="col-6 offset-3 justify-content-center">
+        {% if is_paginated %}
+            {% include 'pagination.html' %}
+        {% endif %}
+    </div>
+  </div>
+{% endblock content %}

@@ -1,0 +1,31 @@
+{% extends "admin/console/base.html" %}
+{% block title %}設定ウィザード：テンプレ雛形{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">運用コンソール</a> / 設定ウィザード（2/3）
+</div>{% endblock %}
+
+{% block content %}
+<h1>設定ウィザード（2/3）返信テンプレ雛形</h1>
+<p>よく使う返信テンプレを2つ自動作成します（存在すれば再利用）。</p>
+
+<ul>
+  <li><strong>無料鑑定 初回返信</strong>：必要情報の案内文</li>
+  <li><strong>営業時間外 受信</strong>：営業時間外の自動応答</li>
+</ul>
+
+{% if not model_found %}
+  <p class="warning">テンプレート用モデルが見つかりませんでした（<code>social</code> / <code>sns_core</code>）。管理画面から作成してください。</p>
+{% else %}
+  {% if admin_add_url %}
+    <p>管理画面から手動で作る場合は <a href="{{ admin_add_url }}">こちら</a>。</p>
+  {% endif %}
+  <form method="post">{% csrf_token %}
+    <button class="button" type="submit">雛形を作成する</button>
+  </form>
+{% endif %}
+
+{% if created %}<pre>{% for m in created %}✓ {{ m }}{% if not forloop.last %}\n{% endif %}{% endfor %}</pre>{% endif %}
+{% if errors %}<pre>{% for m in errors %}✗ {{ m }}{% if not forloop.last %}\n{% endif %}{% endfor %}</pre>{% endif %}
+
+<p style="margin-top:10px;"><a class="button default" href="{% url 'console:setup_env' %}">← 戻る</a></p>
+{% endblock %}

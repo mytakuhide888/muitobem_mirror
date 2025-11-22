@@ -1,0 +1,48 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+バッチ実行状況 削除
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">バッチ実行状況  削除</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">バッチ実行状況  削除ページ</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">バッチ実行状況  削除ページ</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <p>{{ object.batch_id }}を削除していいですか？</p>
+        <form action="" method="POST" novalidate>
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit">削除する</button>
+        </form>
+        <div class="content">
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:batch_status_list' %}">バッチ実行状況一覧ページへ</a></div>
+        </div>
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

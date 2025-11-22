@@ -1,0 +1,30 @@
+{% extends "admin/console/base.html" %}
+{% block title %}設定ウィザード：返信ルール{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">運用コンソール</a> / 設定ウィザード（3/3）
+</div>{% endblock %}
+
+{% block content %}
+<h1>設定ウィザード（3/3）自動返信ルール</h1>
+<p>キーワード <code>無料鑑定希望</code> に対して、テンプレート <strong>無料鑑定 初回返信</strong> を返すルールを自動作成します。</p>
+
+{% if not rule_found %}
+  <p class="warning">ルール用モデルが見つかりませんでした。{% if admin_rule_add_url %}<a href="{{ admin_rule_add_url }}">管理画面で作成</a>{% endif %}</p>
+{% endif %}
+
+{% if not template_found %}
+  <p class="warning">テンプレートモデルが見つかりませんでした。</p>
+{% elif not template_obj %}
+  <p class="warning">テンプレート <code>無料鑑定 初回返信</code> が見つかりません。{% if admin_tpl_changelist_url %}<a href="{{ admin_tpl_changelist_url }}">テンプレ一覧</a>{% endif %}</p>
+{% endif %}
+
+<form method="post">{% csrf_token %}
+  <button class="button" type="submit">ルールを作成する</button>
+  <a class="button default" href="{% url 'console:index' %}">スキップして完了</a>
+</form>
+
+{% if created %}<pre style="margin-top:10px;">{% for m in created %}✓ {{ m }}{% if not forloop.last %}\n{% endif %}{% endfor %}</pre>{% endif %}
+{% if errors %}<pre style="margin-top:10px;">{% for m in errors %}✗ {{ m }}{% if not forloop.last %}\n{% endif %}{% endfor %}</pre>{% endif %}
+
+<p style="margin-top:10px;"><a class="button default" href="{% url 'console:setup_templates' %}">← 戻る</a></p>
+{% endblock %}

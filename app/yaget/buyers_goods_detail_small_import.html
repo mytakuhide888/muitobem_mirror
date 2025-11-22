@@ -1,0 +1,53 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+商品詳細_絞り込み_TSVインポート
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">商品詳細_絞り込み_一括インポート</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">商品詳細_絞り込み_一括インポートページ</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">商品詳細絞り込みTSVインポートします</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+
+        <form action="" method="POST" enctype="multipart/form-data">
+          <p>ファイルを選択ボタンをクリックして、アップロードするCSVファイルを選択します</p>
+          {% csrf_token %}
+          <div class="form-group">
+            {{form.file}}
+          </div>
+          <br/>
+          <button type="submit">送信</button>
+        </form>
+        <div class="content">
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:buyers_goods_detail_list' %}">商品一覧ページへ</a></div>
+        </div>
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

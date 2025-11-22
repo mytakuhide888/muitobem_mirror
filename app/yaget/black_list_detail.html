@@ -1,0 +1,67 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+ブラックリスト 詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">ブラックリスト 詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">ブラックリスト詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">バッチ実行状況詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">{{ title }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr>
+                      <th class="text-secondary bg-warning">バイヤーズ商品ID(gid)</th>
+                      <td>{{ object.gid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">作成時刻</th>
+                      <td>{{ object.create_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">更新時刻</th>
+                      <td>{{ object.update_date }}</td>
+                    </tr>
+                </tbody>
+              </table>
+                <hr>
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:black_list_list' %}">ブラックリスト一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

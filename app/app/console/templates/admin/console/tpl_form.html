@@ -1,0 +1,213 @@
+{% extends "admin/console/base.html" %}
+{% block title %}返信テンプレート{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">運用コンソール</a> ›
+  <a href="{% url 'console:tpl_list' %}">返信テンプレート</a> › 編集
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>返信テンプレート - {% if mode == "new" %}新規{% else %}編集{% endif %}</h1>
+
+<form method="post" class="module" id="tpl-form">
+  {% csrf_token %}
+
+  {# --- エラー要約（全体） --- #}
+  {% if form.errors or form.non_field_errors %}
+    <ul class="errorlist" style="margin-bottom:12px">
+      {% for field in form.visible_fields %}
+        {% for e in field.errors %}
+          <li><strong>{{ field.label }}:</strong> {{ e }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div>
+      <div class="form-row">
+        {{ form.service.label_tag }} {{ form.service }}
+        {% if form.service.errors %}<div class="errorlist">{{ form.service.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.name.label_tag }} {{ form.name }}
+        {% if form.name.errors %}<div class="errorlist">{{ form.name.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.key.label_tag }} {{ form.key }}
+        {% if form.key.errors %}<div class="errorlist">{{ form.key.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.description.label_tag }} {{ form.description }}
+        {% if form.description.errors %}<div class="errorlist">{{ form.description.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.is_active.label_tag }} {{ form.is_active }}
+        {% if form.is_active.errors %}<div class="errorlist">{{ form.is_active.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.content.label_tag }} {{ form.content }}
+        {% if form.content.errors %}<div class="errorlist">{{ form.content.errors }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        <button type="submit" class="button default">保存</button>
+        {% if obj %}
+          <a href="{% url 'console:tpl_delete' obj.pk %}" class="button" onclick="return confirm('削除します。よろしいですか？');">削除</a>
+        {% endif %}
+        <a href="{% url 'console:tpl_list' %}" class="button">一覧へ</a>
+      </div>
+    </div>
+
+    <div>
+      <h3>ライブプレビュー</h3>
+      <p>右の JSON に差し込み値を入れると、下に即時レンダリングされます。</p>
+      <textarea id="tpl-json" rows="12" style="width:100%;font-family:monospace;">{{ sample_json }}</textarea>
+      <div class="form-row"><button type="button" id="btn-preview" class="button">プレビュー更新</button></div>
+      <div class="module" id="preview-box" style="white-space:pre-wrap;min-height:120px;"></div>
+
+      <div class="module" style="margin-top:12px;">
+        <h4 style="margin:0 0 8px;">差し込みチートシート</h4>
+        <div id="var-cheats" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
+      <div class="help" id="missing-vars" style="margin-top:8px;color:#b35;">
+        未設定の変数: <span id="missing-list">-</span>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+(function(){
+  const elContent = document.getElementById("id_content");
+  const elJson    = document.getElementById("tpl-json");
+  const elOut     = document.getElementById("preview-box");
+  const elMissing = document.getElementById("missing-list");
+  const elBtn     = document.getElementById("btn-preview");
+  const elCheats  = document.getElementById("var-cheats");
+
+  if(!elContent || !elJson || !elOut || !elMissing || !elBtn) return;
+
+  // 深いキー (a.b.c) を辿る
+  function pick(obj, path){
+    return path.split(".").reduce((o,k)=> (o && Object.prototype.hasOwnProperty.call(o,k)) ? o[k] : undefined, obj);
+  }
+
+  // {{ var }} マッチ（Django に解釈されないよう RegExp 文字列で表現）
+  const RE_MUSTACHE = new RegExp("\\{\\{\\s*([a-zA-Z0-9_\\.]+)\\s*\\}\\}", "g");
+
+  function renderTemplate(tpl, ctx){
+    const missing = new Set();
+    const rendered = String(tpl || "").replace(RE_MUSTACHE, (_, key) => {
+      const v = pick(ctx, key);
+      if (v === undefined || v === null) { missing.add(key); return ""; }
+      return String(v);
+    });
+    return { rendered, missing: Array.from(missing) };
+  }
+
+  function parseCtx(){
+    try{
+      const txt = (elJson.value || "").trim();
+      return txt ? JSON.parse(txt) : {};
+    }catch(e){
+      elOut.textContent = "JSONの形式が不正です: " + e.message;
+      elMissing.textContent = "-";
+      return null;
+    }
+  }
+
+  function doPreview(){
+    const ctx = parseCtx();
+    if (ctx == null) return;
+    const { rendered, missing } = renderTemplate(elContent.value || "", ctx);
+    elOut.textContent = rendered;
+    elMissing.textContent = missing.length ? missing.join(", ") : "-";
+  }
+
+  // JSON からキー一覧を作ってチートシートを再構築
+  function flatten(obj, prefix="", out=[]){
+    if (obj && typeof obj === "object" && !Array.isArray(obj)){
+      for(const k of Object.keys(obj)){
+        const p = prefix ? prefix + "." + k : k;
+        flatten(obj[k], p, out);
+      }
+    }else{
+      if (prefix) out.push(prefix);
+    }
+    return out;
+  }
+  function caretInsert(textarea, snippet){
+    const s = textarea.selectionStart ?? textarea.value.length;
+    const e = textarea.selectionEnd ?? textarea.value.length;
+    const v = textarea.value;
+    textarea.value = v.slice(0,s) + snippet + v.slice(e);
+    const pos = s + snippet.length;
+    textarea.setSelectionRange(pos, pos);
+    textarea.focus();
+  }
+  function rebuildCheats(){
+    if (!elCheats) return;
+    elCheats.innerHTML = "";
+    let ctx={};
+    try{ ctx = JSON.parse(elJson.value || "{}"); }catch(_){}
+    const keys = Array.from(new Set(flatten(ctx)));
+    if(!keys.length){
+      elCheats.innerHTML = '<span style="opacity:.65">JSON に値を入れると候補が出ます。</span>';
+      return;
+    }
+    keys.forEach(k=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "button";
+      // \u007B = {, \u007D = }  → Django に解釈されない
+      const label = '\u007B\u007B ' + k + ' \u007D\u007D';
+      btn.textContent = label;
+      btn.addEventListener("click", ()=> caretInsert(elContent, label));
+      elCheats.appendChild(btn);
+    });
+  }
+
+  // name から key を自動生成（上書きは控えめ）
+  const nameInput = document.getElementById("id_name");
+  const keyInput  = document.getElementById("id_key");
+  if (nameInput && keyInput){
+    const slugify = (s)=>
+      (s||"")
+        .trim()
+        .toLowerCase()
+        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
+        .replace(/[^a-z0-9\-_\s]+/g,"")
+        .replace(/\s+/g,"-")
+        .replace(/\-+/g,"-")
+        .replace(/^\-+|\-+$/g,"");
+    let lastAuto = keyInput.value || "";
+    const shouldOverwrite = ()=> (keyInput.value === "" || keyInput.value === lastAuto);
+    nameInput.addEventListener("input", ()=>{
+      if(!shouldOverwrite()) return;
+      lastAuto = slugify(nameInput.value);
+      keyInput.value = lastAuto;
+    });
+  }
+
+  // イベント
+  let timer=null;
+  function schedule(){ clearTimeout(timer); timer=setTimeout(doPreview, 250); }
+  elContent.addEventListener("input", schedule);
+  elJson.addEventListener("input", ()=>{ schedule(); rebuildCheats(); });
+  elBtn.addEventListener("click", doPreview);
+
+  // 初期描画
+  rebuildCheats();
+  doPreview();
+})();
+</script>
+{% endblock %}

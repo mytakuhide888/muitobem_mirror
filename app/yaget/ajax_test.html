@@ -1,0 +1,97 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+Ajax テストページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">ajax test</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">ajax_test</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+    <h2>記事一覧</h2>
+    <table>
+        <tr>
+            <th>
+    <span id="overlay">
+        <span class="spinner-border" role="status">
+          <span class="sr-only">Loading...</span>
+        </span>
+    </span>
+            </th>
+            <td>
+    <span id="posts">送信結果がたぶんここ
+    </span>
+            </td>
+        </tr>
+    </table>
+    <hr>
+
+    <h2>記事の追加</h2>
+    <form id="ajax-add-post" action="{% url 'yaget:ajax_test_add' %}" method="POST">
+        <input type="text" id="id_title" required>
+        <button type="submit" >送信</button>
+        {% csrf_token %}
+    </form>
+
+
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}
+
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        // ajaxの前処理
+          $(document).ajaxSend(function() {
+            $("#overlay").fadeIn(300);　
+          });
+
+        // 送信ボタンで呼ばれる
+        $('#ajax-add-post').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:ajax_test_add" %}',
+                'type': 'POST',
+                'data': {
+                    'title': $('#id_title').val(),  // 記事タイトル
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                // <p>はろー</p>のような要素を作成し、それを記事一覧エリアに追加し、入力欄をクリアする。
+                const p = $('<p>', {text: response.title});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').prepend(p); // 指定した要素の子の前に追加
+                //$('#posts').replaceWith(p); // 要素をまるごと置き換え。これやると消えてしまう
+                $('#id_title').val('');
+            });
+
+        });
+    </script>
+{% endblock %}

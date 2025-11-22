@@ -1,0 +1,120 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+qoo10のショップ登録情報 詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">qoo10のショップ登録情報 詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">qoo10のショップ登録情報 詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">qoo10のショップ登録情報 詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">{{ title }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr>
+                      <th class="text-secondary bg-warning">ショップ番号(my_shop_num)</th>
+                      <td>{{ object.my_shop_num }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">ショップ名</th>
+                      <td>{{ object.shop_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">ユーザID</th>
+                      <td>{{ object.user_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">認証キー</th>
+                      <td>{{ object.auth_key }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">パスワード</th>
+                      <td>{{ object.pwd }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">ターゲットURL</th>
+                      <td>{{ object.target_url }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元名称</th>
+                      <td>{{ object.from_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元郵便番号</th>
+                      <td>{{ object.from_postcode }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元都道府県</th>
+                      <td>{{ object.from_state }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元住所1</th>
+                      <td>{{ object.from_address_1 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元住所2</th>
+                      <td>{{ object.from_address_2 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">発送元電話番号</th>
+                      <td>{{ object.from_phone }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">ステータス</th>
+                      <td>{{ object.shop_status }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">作成時刻</th>
+                      <td>{{ object.create_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">更新時刻</th>
+                      <td>{{ object.update_date }}</td>
+                    </tr>
+                </tbody>
+              </table>
+              <table>
+                  <tr>
+                      <td><a href="{% url 'yaget:qoo_shop_info_update' object.pk %}">編集</a></td>
+                  </tr>
+              </table>
+                <hr>
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:qoo_shop_info_list' %}">qoo10のショップ登録情報 一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

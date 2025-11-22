@@ -1,0 +1,63 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+商品詳細_一括削除_確認画面
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">商品詳細_一括削除_確認画面</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">商品詳細_一括削除_確認画面</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">商品詳細一括削除します（確認画面）</h3>
+      </div>
+        {% if message %}
+        <p>{{message|safe}}</p>
+        {% endif %}
+      <div class="card-footer">
+
+          <p>削除する内容を確認してください</p>
+          <table  class="ui celled table table table-hover" >
+            {% for gid, gname in item_list.items %}
+            <tr>
+                <td>{{ gid }}</td><td>{{ gname }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+
+          <!-- <form action="" method="post"> -->
+          <form action="{% url 'yaget:buyers_goods_delete_done' %}" method="post">
+          {% csrf_token %}
+              <table>
+                <tr><th></th><td><button type="submit" name="next" value="delete">削除実行</button></td></tr>
+              </table>
+          </form>
+
+        <div class="content">
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:buyers_goods_detail_list' %}">商品一覧ページへ</a></div>
+        </div>
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

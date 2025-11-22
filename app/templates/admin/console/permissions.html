@@ -1,0 +1,22 @@
+{% extends "admin/console/base.html" %}
+{% block title %}権限チェック{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">運用コンソール › 権限チェック</div>{% endblock %}
+{% block content %}
+<h1>権限チェック</h1>
+<table class="listing">
+  <thead><tr><th>アカウント</th><th>機能</th><th>状態</th><th>不足権限</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.account.username }} ({{ r.account.external_id }})</td>
+      <td>{{ r.feature }}</td>
+      <td>{% if r.ok %}<span style="color:#090">OK</span>{% else %}<span style="color:#c00">NG</span>{% endif %}</td>
+      <td>{% if r.missing %}{{ r.missing|join:", " }}{% else %}-{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">登録されたアカウントがありません。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p><a class="button" href="{% url 'meta_public:meta_oauth_start' %}">権限を追加で許可（再ログイン）</a></p>
+{% endblock %}

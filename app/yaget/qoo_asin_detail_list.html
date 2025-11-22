@@ -1,0 +1,364 @@
+{% extends './base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% block content %}  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Qoo10用 ASIN 一覧表示</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">Qoo10用 ASIN 商品一覧表示 です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="col-sm">
+          <nav class="pull-right header">
+              <ul id="menu">
+                <li class="font-minsmall">
+                  <a href="{% url 'yaget:qoo_asin_csv_export' %}" class="">
+                    Qoo10用 ASIN一覧CSVダウンロード
+                  </a>
+                </li>
+              </ul>
+          </nav>
+        </div>
+        <div class="col-sm">
+          <nav class="pull-right header">
+              <ul id="menu_import">
+                <li class="font-minsmall">
+                  <a href="{% url 'yaget:qoo_asin_csv_import' %}" class="">
+                    Qoo10用 ASIN CSVインポート
+                  </a>
+                </li>
+              </ul>
+          </nav>
+        </div>
+
+        <div class="card-header">
+          <h3 class="card-title">検索条件</h3>
+        </div>
+      <div class="card card-info container-fluid">
+        <div class="row card-body font-minsmall">
+          <form method="POST" class="form-group form-inline search-box">
+              {% csrf_token %}
+              {% for field in test_form %}
+                  <!-- <div class="col-lg-3 col-6"> -->
+                    <div class="input-group input-group-sm">
+                      <!-- <label class="col-md-offset-2 col-2 control-label">{{ field.label }}:</label>
+                      -->
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">{{ field.label }}:</span>
+                            {% render_field field class="form-control" %}
+                        </div>
+                    </div>
+              <!--
+                  <div class="form-group form-inline">
+                      <label class="col-md-offset-2 col-md-3 control-label">{{ field.label }}:</label>
+                      <div class="col-md-8">
+                          {{ field }}
+                      </div>
+                  </div>
+                -->
+
+              {% endfor %}
+
+              <input class="btn btn-success col-md-3" type="submit" id="button" name="button" value="検索">
+              <!-- <input class="btn btn-success offset-md-8 col-md-3" type="submit" id="button" name="button" value="検索">-->
+          </form>
+        </div><!-- class="card-body" -->
+      </div><!-- class="card card-info" -->
+      <div class="col-md-3">{{ page_obj.start_index }} - {{ page_obj.end_index }}/ {{ page_obj.paginator.count }} 件中 ({{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ) (全 {{ obj_all_cnt }}件)</div>
+
+          <div class="col-6 offset-3 justify-content-center">
+            {% if is_paginated %}
+                {% include 'pagination.html' %}
+            {% endif %}
+          </div>
+
+          <form action="" method="post">{% csrf_token %}<!-- 20230308-->
+            <div class="table-responsive">
+              <table id="asin_list_table" class="table table-sm table-striped table-hover table-bordered table-info" style="table-layout:fixed;">
+                <thead>
+                  <tr class="text-secondary bg-warning">
+                    <th class="" style="width:25px;">NG対象</th>
+                    <th class="" style="width:40px;">詳細</th>
+                    <th class="" style="width:105px;">asin</th>
+                    <th class="" style="width:500px;" colspan="6">title</th>
+                    <th class="" style="width:30px;">csv番号</th>
+                    <th class="" style="width:70px;">作成日</th>
+                    <th class="" style="width:70px;">更新日</th>
+                    <th class="" style="width:45px;">編集</th>
+                    <th class="" style="width:45px;">削除</th>
+                  </tr>
+                </thead>
+              {% if object_list|length == 0 %}
+                  <p>検索結果が存在しません。</p>
+              {% else %}
+                <tbody>
+                  {% for post in object_list %}
+                    <!-- <tr class="text-nowrap"> -->
+                    <tr>
+                        <!-- <input type="radio" name="asin_{{ post.asin }}" value="" checked="checked" style="display:none;"/> -->
+                      <!--<input type="hidden" name = "asin_{{ post.asin }}"  id="asin_{{ post.asin }}" value="none" /> -->
+                      {% if post.is_blacklist_ok_img == True or post.is_blacklist_ok_img == None %}
+                      <td rowspan="2"><input type="checkbox" name="asin_{{ post.asin }}"><label for="asin_{{ post.asin }}"></label><input type="hidden" name = "asin_{{ post.asin }}"  id="asin_{{ post.asin }}" value="none" /></td>
+                      <!-- <td><input type="radio" name="asin_{{ post.asin }}" id="asin_{{ post.asin }}" value="1"><label for="asin_{{ post.asin }}">値：{{ post.is_blacklist_ok_img }}</label></td> -->
+                      {% else %}
+                      <td rowspan="2"><input type="checkbox" name="asin_{{ post.asin }}" checked><label for="asin_{{ post.asin }}"></label><input type="hidden" name = "asin_{{ post.asin }}"  id="asin_{{ post.asin }}" value="on" /></td>
+                      <!-- <td><input type="radio" name="asin_{{ post.asin }}" id="asin_{{ post.asin }}" value="1" checked><label for="asin_{{ post.asin }}">値：{{ post.is_blacklist_ok_img }}</label></td> -->
+                      {% endif %}
+                      <td rowspan="2"><a href="{% url 'yaget:qoo_asin_detail_detail' post.pk %}">詳細</a></td>
+                      <td>{{ post.asin }}</td>
+                      <td style="width:300px; height:auto;" colspan="6">{{ post.title }}</td>
+                      <td>{{ post.csv_no }}</td>
+                      <td rowspan="2">{{ post.create_date }}</td>
+                      <td rowspan="2">{{ post.update_date }}</td>
+                      <td rowspan="2"><a href="{% url 'yaget:qoo_asin_detail_update' post.pk %}">編集</a></td>
+                      <td rowspan="2"><a href="{% url 'yaget:qoo_asin_detail_delete' post.pk %}">削除</a></td>
+                      <input type="hidden" name = "link_chk"  value="none" />
+                    </tr>
+                    <tr>
+                      {% if post.small_image_url == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.small_image_url }}" target="_blank">
+                        <img src="{{ post.small_image_url }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_0 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_0 }}" target="_blank">
+                        <img src="{{ post.img_tag_0 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_1 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_1 }}" target="_blank">
+                        <img src="{{ post.img_tag_1 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_2 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_2 }}" target="_blank">
+                        <img src="{{ post.img_tag_2 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_3 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_3 }}" target="_blank">
+                        <img src="{{ post.img_tag_3 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_4 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_4 }}" target="_blank">
+                        <img src="{{ post.img_tag_4 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                      {% if post.img_tag_5 == None %}
+                      <td>-
+                      </td>
+                      {% else %}
+                      <td><div><a href="{{ post.img_tag_5 }}" target="_blank">
+                        <img src="{{ post.img_tag_5 }}" style="width:100px; height:auto;" align="middle" border="0">
+                        </a></div>
+                      </td>
+                      {% endif %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              {% endif %}
+              <tr>
+                <td colspan="4">
+                  <button type="submit" class="btn btn-primary">選択済を出品NGに更新</button>
+                </td>
+              </tr>
+            </table>
+            </div><!-- end of <div class="table-responsive">-->
+          </form><!-- 20230308 -->
+        </section>
+    <!-- /.content -->
+    <div class="col-6 offset-3 justify-content-center">
+        {% if is_paginated %}
+            {% include 'pagination.html' %}
+        {% endif %}
+    </div>
+  </div>
+
+<script>
+function preloader() {
+  let table = document.getElementById("asin_list_table");
+  let rows = table.querySelectorAll("tbody tr");
+
+  let backgroundcolor_dict = {};
+  let tr_color = window.getComputedStyle(rows[0], "").color;
+  var targets_a = null;
+
+  rows.forEach((row) => {
+    // 行ごとに背景色が異なるため全ての行の変更前の背景色を取得
+    backgroundcolor_dict[String(row.rowIndex)] = window.getComputedStyle(
+      row,
+      ""
+    ).backgroundColor;
+
+    // 初期の色を変えておく
+    if (row.querySelector("input")) {
+      if (row.querySelector("input").style.visibility != "hidden") {
+        if (row.querySelector("input").type == "radio") {
+          if (row.querySelector('input[type="radio"]').checked == true){
+                // 選択された行のみ配色変更
+                row.style.backgroundColor = "#E72727";
+                // 青色背景 row.style.backgroundColor = "#0A9BCD";
+                row.style.color = "#FFFFFF";
+          }
+        }
+        if (row.querySelector("input").type == "checkbox") {
+          if (row.querySelector('input[type="checkbox"]').checked == true) {
+            // 選択された行のみ配色変更
+            row.style.backgroundColor = "#E72727";
+            // 青色背景 row.style.backgroundColor = "#0A9BCD";
+            row.style.color = "#FFFFFF";
+          }
+        } else {
+          // console.log('>>> checkbox not in');
+        }
+      }
+    }
+    targets_a = row.getElementsByTagName("a");
+    // console.log(targets_a);
+    //row.getElementsByTagName("a").foreach((target_a) =>{
+    var targets_array = Array.from(targets_a);
+    targets_array.forEach(target_a => {
+      target_a.addEventListener(
+        "click",
+        function () {
+          // console.log('a clicked');
+          row.querySelector('[name="link_chk"]').value="clicked";
+        },
+        false
+      );
+    });
+    row.addEventListener(
+      "click",
+      function () {
+        // console.log('row clicked');
+        // 一度全て元の配色
+        // rows.forEach((click_row) => {
+        //   click_row.style.backgroundColor =
+        //     backgroundcolor_dict[String(row.rowIndex)];
+        //   click_row.style.color = tr_color;
+        // });
+
+        if (row.querySelector('[name="link_chk"]').value=="clicked" ){
+          //console.log('row clicked-clicked set none');
+          row.querySelector('[name="link_chk"]').value="none";
+          return
+        } else {
+          //console.log('row clicked-none continue');
+        }
+
+        if (row.querySelector("input").style.visibility != "hidden") {
+          if (row.querySelector("input").type == "radio") {
+            if (row.querySelector('input[type="radio"]').checked == true){
+              // チェックが入っている行がクリックされたらチェックを外して色を戻す
+              row.querySelector('input[type="radio"]').checked = false;
+              // 選択された行のみ配色を元に戻す
+              row.style.backgroundColor = "#CFE2FF";
+              row.style.color = "#212529";
+            } else {
+              // チェックが入ってない行がクリックされたらチェックして色を変える
+              row.querySelector('input[type="radio"]').checked = true;
+              // 選択された行のみ配色変更
+              row.style.backgroundColor = "#E72727";
+              // 青色背景 row.style.backgroundColor = "#0A9BCD";
+              row.style.color = "#FFFFFF";
+            }
+          }
+          if (row.querySelector("input").type == "checkbox") {
+            var hiddenInput = $("#" + row.querySelector('input[type="checkbox"]').name);
+            if (row.querySelector('input[type="checkbox"]').checked == false) {
+              row.querySelector('input[type="checkbox"]').checked = true;
+              // チェックされたのでNG
+              // 選択された行のみ配色変更
+              hiddenInput.attr('disabled', 'disabled');
+              row.style.backgroundColor = "#E72727";
+              row.style.color = "#FFFFFF";
+            } else {
+              row.querySelector('input[type="checkbox"]').checked = false;
+              // 選択された行のみ配色を元に戻す
+              hiddenInput.removeAttr('disabled');//hiddenのタグを有効にする
+              hiddenInput.val('false');
+              row.style.backgroundColor = "#CFE2FF";
+              row.style.color = "#212529";
+            }
+          }
+        }
+      },
+      false
+    );
+  });
+}
+
+window.onload = preloader;
+
+// 以下はradioをクリックで選択を外す処理
+/*
+const radioButtons = document.querySelectorAll('input[type="radio"]');
+
+  const clearRadioButton = (radioButton) => {
+    setTimeout(func =()=>{
+      radioButton.checked = false;
+    },100)
+  }
+
+  radioButtons.forEach(radioButton => {
+    let queryStr = 'label[for="' + radioButton.id + '"]'
+    let label = document.querySelector(queryStr)
+
+    radioButton.addEventListener("mouseup", func=()=>{
+      if(radioButton.checked){
+        clearRadioButton(radioButton)
+      }
+    });
+
+    if(label){
+      label.addEventListener("mouseup", func=()=>{
+        if(radioButton.checked){
+          clearRadioButton(radioButton)
+        }
+      });
+    }
+  });
+*/
+</script>
+
+{% endblock content %}

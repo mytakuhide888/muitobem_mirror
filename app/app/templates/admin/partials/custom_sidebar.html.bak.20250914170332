@@ -1,0 +1,66 @@
+{% load i18n %}
+<div class="cc-accordion">
+  {% if available_apps %}
+    <!-- Threads管理 -->
+    <details data-cc-acc-key="threads">
+      <summary>Threads管理</summary>
+      <div class="cc-section">
+        {% for app in available_apps %}
+          {% if app.app_label == "th" %}
+            {% for model in app.models %}
+              <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- SNS管理（既存のSNS系アプリ群をまとめて表示） -->
+    <details data-cc-acc-key="sns">
+      <summary>SNS管理</summary>
+      <div class="cc-section">
+        {% for app in available_apps %}
+          {% if app.app_label == "sns_core" or
+                app.app_label == "social_core" or
+                app.app_label == "social" or
+                app.app_label == "webhooks" or
+                app.app_label == "social_webhooks" or
+                app.app_label == "social_scheduler" %}
+            {% for model in app.models %}
+              <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- モール管理（中カテゴリのプレースホルダ） -->
+    <details data-cc-acc-key="mall">
+      <summary>モール管理</summary>
+      <div class="cc-section">
+        <!-- モール関連アプリのリンクをここに追加 -->
+      </div>
+    </details>
+
+    {% for app in available_apps %}
+      {% if app.app_label != "th" and
+            app.app_label != "sns_core" and
+            app.app_label != "social_core" and
+            app.app_label != "social" and
+            app.app_label != "webhooks" and
+            app.app_label != "social_webhooks" and
+            app.app_label != "social_scheduler" %}
+        <details data-cc-acc-key="{{ app.app_label }}">
+          <summary>{{ app.name }}</summary>
+          <div class="cc-section">
+            {% for model in app.models %}
+              {% if model.admin_url %}
+                <a class="cc-link" href="{{ model.admin_url }}">{{ model.name }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </details>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>

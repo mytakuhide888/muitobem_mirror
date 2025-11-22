@@ -1,0 +1,156 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+amaカテゴリ 詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">amaカテゴリ 詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">amaカテゴリ詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">amaカテゴリ詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">{{ title }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr>
+                      <th class="text-secondary bg-warning">カテゴリID(product_cat_id)</th>
+                      <td>{{ object.product_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">カテゴリフルパス(product_cat_name)</th>
+                      <td>{{ object.product_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">親カテゴリID(parent_cat_id)</th>
+                      <td>{{ object.parent_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level1_id(level_1_cat_id)</th>
+                      <td>{{ object.level_1_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level2_id(level_2_cat_id)</th>
+                      <td>{{ object.level_2_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level3_id(level_3_cat_id)</th>
+                      <td>{{ object.level_3_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level4_id(level_4_cat_id)</th>
+                      <td>{{ object.level_4_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level5_id(level_5_cat_id)</th>
+                      <td>{{ object.level_5_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level6_id(level_6_cat_id)</th>
+                      <td>{{ object.level_6_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level7_id(level_7_cat_id)</th>
+                      <td>{{ object.level_7_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level8_id(level_8_cat_id)</th>
+                      <td>{{ object.level_8_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level1_name(level_1_cat_name)</th>
+                      <td>{{ object.level_1_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level2_name(level_2_cat_name)</th>
+                      <td>{{ object.level_2_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level3_name(level_3_cat_name)</th>
+                      <td>{{ object.level_3_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level4_name(level_4_cat_name)</th>
+                      <td>{{ object.level_4_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level5_name(level_5_cat_name)</th>
+                      <td>{{ object.level_5_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level6_name(level_6_cat_name)</th>
+                      <td>{{ object.level_6_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level7_name(level_7_cat_name)</th>
+                      <td>{{ object.level_7_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">level8_name(level_8_cat_name)</th>
+                      <td>{{ object.level_8_cat_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo_cat_id(qoo_cat_id)</th>
+                      <td>{{ object.qoo_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow_cat_id(wow_cat_id)</th>
+                      <td>{{ object.wow_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">yahoo_cat_id(yahoo_cat_id)</th>
+                      <td>{{ object.yahoo_cat_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">作成時刻</th>
+                      <td>{{ object.create_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">更新時刻</th>
+                      <td>{{ object.update_date }}</td>
+                    </tr>
+                </tbody>
+              </table>
+              <table>
+                <tr>
+                    <td><a href="{% url 'yaget:wowma_cat_update' object.pk %}">編集</a></td>
+                </tr>
+              </table>
+              <hr>
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:ama_cat_list' %}">amaカテゴリリスト一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+{% block nav-sidebar %}{% include "admin/partials/custom_sidebar.html" %}{% endblock %}
+{% block extrastyle %}{{ block.super }}<style>
+.cc-accordion summary{cursor:pointer;padding:8px 12px;font-weight:600;border-radius:4px;background:#2c3e50;color:#fff;margin:8px 0 4px}
+.cc-accordion .cc-section{margin:6px 0 10px 10px;padding-left:8px;border-left:3px solid #d9e1f2}
+.cc-accordion a.cc-link{display:block;padding:6px 10px;text-decoration:none}
+</style>{% endblock %}
+{% block extrahead %}{{ block.super }}<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('[data-cc-acc-key]').forEach(function(el){
+    const key='cc-acc-'+el.getAttribute('data-cc-acc-key');
+    const state=localStorage.getItem(key);
+    if(state==='open'){el.setAttribute('open','');}
+    el.addEventListener('toggle',function(){
+      if(el.open){localStorage.setItem(key,'open');}
+      else{localStorage.removeItem(key);}
+    });
+  });
+});
+</script>{% endblock %}

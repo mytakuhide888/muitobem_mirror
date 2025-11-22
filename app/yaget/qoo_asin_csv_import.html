@@ -1,0 +1,78 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+Qoo10用ASIN (TSV) インポート
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Qoo10用ASIN (TSV) インポート</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">Qoo10用ASIN (TSV) インポートページ</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">Qoo10用ASIN (TSV) インポートします</h3>
+      </div>
+        <p>{{message|safe}}</p>
+
+      <div class="card-footer">
+        <h1>指定したASIN情報の取得・更新</h1>
+        <form  action="{% url 'yaget:get_qoo_asin_detail_single' %}" method="post">
+            <div class="input-group">
+            {% csrf_token %}
+
+            <div class="p-2">
+              <div class="form-group form-inline">
+                <label class="col-md-offset-2 col-md-3 control-label">asin:</label>
+                <div class="col-md-8">
+                    <input type="text" name="asin" id="asin">
+                </div>
+              </div>
+
+              <div class="form-group">
+                    <span class="input-group-append">
+                        <button type="submit" class="btn btn-primary">指定したASIN情報を更新します</button>
+                    </span>
+                </div>
+              </div>
+            </div>
+        </form>
+      </div>
+
+      <div class="card-footer">
+        <h1>ASINリストのCSVアップロード</h1>
+        <form action="{% url 'yaget:get_qoo_asin_detail_upd_csv' %}" method="POST" enctype="multipart/form-data">
+          <p>ファイルを選択ボタンをクリックして、アップロードするCSVファイルを選択します</p>
+          {% csrf_token %}
+          <div class="form-group">
+            {{form.file}}
+          </div>
+          <br/>
+          <button type="submit">送信</button>
+        </form>
+        <div class="content">
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:qoo_asin_detail_list' %}">Qoo10用ASIN一覧ページへ</a></div>
+        </div>
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}

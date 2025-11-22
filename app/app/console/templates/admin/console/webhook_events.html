@@ -1,0 +1,78 @@
+{% extends "admin/console/base.html" %}
+{% load static %}
+
+{% block title %}Webhookイベント一覧{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">運用コンソール / Webhookイベント一覧</div>{% endblock %}
+
+{% block content %}
+<h1>Webhookイベント一覧</h1>
+<p>Instagram / Threads の受信イベントを横断的に確認できます。検索はペイロード全文の単純一致です。</p>
+
+<form method="get" class="module" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+  <div>
+    <label>サービス</label><br>
+    <select name="service">
+      <option value="all" {% if service == "all" %}selected{% endif %}>すべて</option>
+      <option value="instagram" {% if service == "instagram" %}selected{% endif %}>Instagram</option>
+      <option value="threads" {% if service == "threads" %}selected{% endif %}>Threads</option>
+    </select>
+  </div>
+  <div>
+    <label>件数</label><br>
+    <input type="number" name="limit" value="{{ limit }}" min="1" max="1000" style="width:100px;">
+  </div>
+  <div style="flex:1 1 320px;">
+    <label>検索キーワード</label><br>
+    <input type="text" name="q" value="{{ q }}" style="width:100%;">
+  </div>
+  <div>
+    <button class="button">絞り込み</button>
+    <a class="button default" href="{% url 'console:webhook_events' %}">リセット</a>
+    <a class="button" href="{% url 'console:index' %}">← ダッシュボードに戻る</a>
+  </div>
+</form>
+
+{% if errors %}
+  <div class="module" style="border-left:4px solid #f39c12;">
+    <strong>注意</strong>
+    <ul style="margin:6px 0 0 18px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="module" style="overflow:auto;">
+  <table class="listing" style="min-width:960px;">
+    <thead>
+      <tr>
+        <th style="width:200px;">受信時刻</th>
+        <th style="width:120px;">種別</th>
+        <th>サマリ</th>
+        <th style="width:120px;">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.dt|default:"(不明)" }}</td>
+        <td>{% if r.src == "instagram" %}Instagram{% else %}Threads{% endif %}</td>
+        <td>
+          <details>
+            <summary>{{ r.summary }}</summary>
+            <pre style="white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:8px;">{{ r.pretty }}</pre>
+          </details>
+        </td>
+        <td>
+          <form method="post" action="{% url 'console:webhook_replay' src=src pk=row.id %}?back={{ request.get_full_path|urlencode }}">
+            {% csrf_token %}
+            <button class="button default" title="将来、再処理を実行（今はスタブ）">再処理</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;color:#999;">該当イベントはありません</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

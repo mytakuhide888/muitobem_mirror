@@ -1,0 +1,47 @@
+{% extends "admin/console/base.html" %}
+{% block title %}設定ウィザード：環境変数チェック{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">運用コンソール</a> / 設定ウィザード（1/3）
+</div>{% endblock %}
+
+{% block content %}
+<h1>設定ウィザード（1/3）環境変数チェック</h1>
+<p>最低限の環境変数が設定されているか確認します。</p>
+
+<style>
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:12px}
+  .card{border:1px solid #eee;border-radius:8px;padding:12px;background:#fff}
+  .ok{color:#0a0}
+  .ng{color:#a00}
+  code.k{font-weight:700}
+</style>
+
+<div class="grid">
+  <section class="card">
+    <h2>必須（Required）</h2>
+    <ul>
+      {% for k,v in must.items %}
+      <li><code class="k">{{ k }}</code> ： {% if v %}<span class="ok">OK</span>{% else %}<span class="ng">未設定</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="card">
+    <h2>推奨（Recommended）</h2>
+    <ul>
+      {% for k,v in opt.items %}
+      <li><code class="k">{{ k }}</code> ： {% if v %}<span class="ok">OK</span>{% else %}<span>未設定</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<p style="margin-top:12px;">
+  <a class="button default" href="{% url 'console:connection_test' %}">接続テストを開く</a>
+  <a class="button" href="?">再チェック</a>
+  {% if all_ok %}
+    <a class="button" href="?next=templates">次へ（テンプレ作成）</a>
+  {% else %}
+    <span class="ng">※ 必須が未設定です。設定後に「再チェック」を押してください。</span>
+  {% endif %}
+</p>
+{% endblock %}

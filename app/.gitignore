@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Node/Front
+node_modules/
+
+# Docker / DB
+mysql-data/
+*.log
+
+# OS
+.DS_Store
+
+# ignore local app-level docker files
+/app/Dockerfile
+/app/docker-compose.yml

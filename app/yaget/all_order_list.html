@@ -1,0 +1,231 @@
+{% extends './base.html' %}
+{% load static %}
+{% block content %}  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">注文一覧表示</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">注文一覧表示</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">注文一覧ページです</h3>
+      </div>
+     {% if messages %}
+      <ul class="messages_ul">
+          {% for message_body in messages %}
+              <li class="alert{% if message_body.tags %} alert-{{ message_body.tags }}{% endif %}" role="alert">{{ message_body }}</li>
+          {% endfor %}
+      </ul>
+      {% endif %}
+      {% if message %}
+        <p>{{message|safe}}</p>
+      {% endif %}
+        <div class="col-sm">
+          <nav class="pull-right header">
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-title">qoo10の注文情報更新</div>
+                    <form id="ajax-qoo-get_order_info" action="{% url 'yaget:qoo_get_order_info_ajax_res' %}" method="POST">
+                        <select id="id_shipping_stat" name="shipping_stat" form="ajax-qoo-get_order_info">
+                            <option value="1" >1：出荷待ち</option>
+                            <option value="2" selected>2：配送要請中</option>
+                            <option value="3">3：発注確認</option>
+                            <option value="4">4：配送中</option>
+                            <option value="5">5：配送完了</option>
+                        </select>
+                        <input type="date" id="id_search_sdate" name="search_sdate">
+                        <input type="date" id="id_search_edate" name="search_edate">
+                        <select id="id_search_condition" name="search_condition" form="ajax-qoo-get_order_info">
+                            <option value="1">1：注文日</option>
+                            <option value="2" selected>2：決済完了日</option>
+                            <option value="3">3：配送日</option>
+                            <option value="4">4：配送完了日</option>
+                        </select>
+
+                        <button type="submit" class="btn btn-outline-primary">送信</button>
+                        <div>
+                            <table>
+                                <tr>
+                                    <th>
+                            <span id="overlay">
+                                <span class="spinner-border" role="status">
+                                  <span class="sr-only">Loading...</span>
+                                </span>
+                            </span>
+                                    </th>
+                                    <td>
+                            <span id="posts_qoo_get_order_info">送信結果がたぶんここ
+                            </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        {% csrf_token %}
+                    </form>
+                </div>
+            </div>
+
+              <ul id="menu">
+                <li>
+                </li>
+              </ul>
+              <ul id="menu_s">
+                <li>
+                  </a>
+                </li>
+              </ul>
+          </nav>
+        </div>
+
+      <h1>検索条件</h1>
+      <form method="POST">
+          {% csrf_token %}
+        <ul class="list-group">
+          <li class="list-group-item">
+            <div class="d-flex flex-sm-row">
+              <div class="p-2">
+              {% for field in test_form %}
+                  {% if forloop.counter == 6 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 11 %}
+                  </div><div class="p-2">
+                  {% elif forloop.counter == 16 %}
+                  </div><div class="p-2">
+                  {% endif %}
+                  <div class="form-group">
+                      <label class="col small">{{ field.label }}:</label>
+                      <div class="col-md-8 small">
+                          {{ field }}
+                      </div>
+                  </div>
+                    {% if forloop.counter == forloop.last %}
+                    </div>
+                    {% endif %}
+              {% endfor %}
+            </div>
+          </li>
+          <li class="list-group-item">
+            <input class="btn btn-success col-md-3" type="submit" id="button" name="button" value="検索">
+          </li>
+        </ul>
+      </form>
+        <div class="col-md-3">{{ page_obj.start_index }} - {{ page_obj.end_index }}/ {{ page_obj.paginator.count }} 件中 ({{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ)</div>
+
+          <div class="col-6 offset-3 justify-content-center">
+            {% if is_paginated %}
+                {% include 'pagination.html' %}
+            {% endif %}
+          </div>
+
+        <table class="table table-sm table-striped table-hover table-bordered">
+          <thead>
+            <tr class="text-secondary bg-warning small">
+              <th class="">Qoo10_ID</th>
+              <th class="">wowma_ID</th>
+              <th class="">注文者氏名</th>
+              <th class="">作成日</th>
+              <th class="">更新日</th>
+              <th class="">詳細</th>
+              <th class="">編集</th>
+              <th class="">削除</th>
+            </tr>
+          </thead>
+        {% if object_list|length == 0 %}
+            <p>検索結果が存在しません。</p>
+        {% else %}
+          <tbody>
+            {% for post in object_list %}
+              <tr class="small">
+                <td>{{ post.qoo_id }}</td>
+                <td>{{ post.wow_id }}</td>
+                {% if post.qoo_id  %}
+                    <td>{{ post.qoo_id.buyer }}</td>
+                {% elif post.wow_id %}
+                    <td>{{ post.wow_id.order_name }}</td>
+                {% else %}
+                    <td>-</td>
+                {% endif %}
+                <td>{{ post.create_date }}</td>
+                <td>{{ post.update_date }}</td>
+                {% if post.qoo_id  %}
+                    <td><a href="{% url 'yaget:qoo_order_detail' post.pk %}">詳細</a></td>
+                    <td><a href="{% url 'yaget:qoo_order_update' post.pk %}">編集</a></td>
+                    <td><a href="{% url 'yaget:qoo_order_delete' post.pk %}">削除</a></td>
+                {% elif post.wow_id %}
+                    <td><a href="{% url 'yaget:wow_order_detail' post.pk %}">詳細</a></td>
+                    <td><a href="{% url 'yaget:wow_order_update' post.pk %}">編集</a></td>
+                    <td><a href="{% url 'yaget:wow_order_delete' post.pk %}">削除</a></td>
+                {% else %}
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        {% endif %}
+        </table>
+    </section>
+    <!-- /.content -->
+    <div class="col-6 offset-3 justify-content-center">
+        {% if is_paginated %}
+            {% include 'pagination.html' %}
+        {% endif %}
+    </div>
+  </div>
+{% endblock content %}
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        // ajaxの前処理
+          $(document).ajaxSend(function() {
+            $("#overlay").fadeIn(300);　
+          });
+
+        // 送信ボタンで呼ばれる qoo10に商品情報更新
+        $('#ajax-qoo-get_order_info').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_get_order_info_ajax_res" %}',
+                'type': 'POST',
+                'data': {
+                    'shipping_stat': $('#id_shipping_stat').val(),  //
+                    'search_sdate': $('#id_search_sdate').val(),  //
+                    'search_edate': $('#id_search_edate').val(),  //
+                    'search_condition': $('#id_search_condition').val(),  // search_condition
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts_qoo_get_order_info').empty(); // 指定した子要素を削除
+                $('#posts_qoo_get_order_info').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts_qoo_get_order_info').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+    </script>
+{% endblock %}

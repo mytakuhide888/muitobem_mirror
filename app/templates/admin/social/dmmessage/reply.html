@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ title|default:"DMに返信" }}</title>
+  <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+</head>
+<body class="app-{{ opts.app_label }} model-dmmessage change-form">
+  <div id="content" class="colM">
+    <h1>{{ title|default:"DMに返信" }}</h1>
+
+    {% if messages %}
+      <ul class="messagelist">
+        {% for message in messages %}
+          <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if expired %}
+      <div class="messagelist"><ul class="errorlist"><li>
+        24時間ルール: ユーザーの最終メッセージから24時間を超えたため、返信できません。
+      </li></ul></div>
+    {% else %}
+      <div class="messagelist"><ul class="info"><li>
+        24時間ルール: 残り
+        {% with s=expire_seconds %}
+          {% firstof s "" %}{% comment %}秒→体裁下で任意に整形{% endcomment %}
+        {% endwith %} 秒以内に返信可能です。
+      </li></ul></div>
+    {% endif %}
+    <div class="module aligned">
+      <form method="post">
+        {% csrf_token %}
+        <fieldset class="module aligned">
+          <div class="form-row">
+            <label>相手 (sender.id)</label>
+            <div class="readonly">{{ recipient_user_id }}</div>
+          </div>
+          <div class="form-row">
+            <label>送信元（受信DMの recipient.id）</label>
+            <div class="readonly">{{ biz_ig_id }}</div>
+          </div>
+          <div class="form-row">
+            <label for="id_biz_pk">送信元Instagramビジネスアカウント</label>
+            <select name="biz_pk" id="id_biz_pk">
+              <option value="">（自動解決を優先して使用）</option>
+              {% for a in accounts %}
+                <option value="{{ a.id }}">{{ a.display_name|default:a.username }} ({{ a.ig_business_id }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="id_text">返信本文</label>
+            <textarea name="text" id="id_text" rows="6" style="width:100%;"></textarea>
+          </div>
+        </fieldset>
+        <div class="submit-row">
+          <a class="button cancel-link" href="{% url 'admin:social_dmmessage_change' object_id %}">キャンセル</a>
+          <input type="submit" value="送信" class="default">
+        </div>
+      </form>
+    </div>
+
+    {% if logs %}
+      <h2 style="margin-top:2rem">直近の送信履歴</h2>
+      <div class="module">
+        <table id="result_list">
+          <thead>
+            <tr>
+              <th>時刻</th><th>OK</th><th>HTTP</th><th>recipient_id</th><th>biz_ig_id</th><th>レスポンス</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lg in logs %}
+              <tr class="{% if lg.ok %}row1{% else %}row2{% endif %}">
+                <td>{{ lg.created_at }}</td>
+                <td>{{ lg.ok }}</td>
+                <td>{{ lg.http_status }}</td>
+                <td>{{ lg.recipient_id }}</td>
+                <td>{{ lg.biz_ig_id }}</td>
+                <td><pre style="white-space:pre-wrap;max-width:60ch">{{ lg.response|json_script:"resp"|safe }}</pre></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

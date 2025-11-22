@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrastyle %}
+  <style>
+    .cc-console { padding: 1rem; }
+    .cc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .cc-card { background:#fff; border-radius:8px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    .cc-card h3 { font-size:16px; margin:0 0 .25rem; }
+    .cc-mono { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:12px; }
+    .cc-actions { margin-top:.5rem; }
+    .cc-actions a.btn { display:inline-block; padding:.4rem .6rem; border-radius:6px; text-decoration:none; border:1px solid #ddd; }
+  </style>
+{% endblock %}
+{% block content %}
+<div id="main" class="cc-console">
+  {% block console_content %}{% endblock %}
+</div>
+{% endblock %}

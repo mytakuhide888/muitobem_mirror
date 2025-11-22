@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title">DMに返信</h3></div>
+  <div class="card-body">
+    <p>
+      <strong>相手:</strong> {{ object.user_id }} /
+      {% if ig_user_id %} ig_user_id={{ ig_user_id }}{% endif %}
+      {% if thread_key %} / thread_key={{ thread_key }}{% endif %}
+      {% if psid %} / psid={{ psid }}{% endif %}
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>送信元Instagramビジネスアカウント</label>
+        <select name="ig_account" class="form-control" required>
+          {% for a in ig_accounts %}
+            <option value="{{ a.pk }}" {% if a.pk == initial_ig_id %}selected{% endif %}>
+              {{ a.display_name }} ({{ a.username }}) [id={{ a.pk }}]
+            </option>
+          {% endfor %}
+        </select>
+        {% if not ig_accounts %}
+          <p class="text-danger mt-2">アクティブな Instagramビジネスアカウントが見つかりません。</p>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>返信本文</label>
+        <textarea name="text" rows="4" class="form-control" required></textarea>
+      </div>
+
+      <div class="mt-3">
+        <a href="{% url 'admin:social_dmmessage_changelist' %}" class="button btn btn-secondary">キャンセル</a>
+        <button type="submit" class="button btn btn-primary">送信</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

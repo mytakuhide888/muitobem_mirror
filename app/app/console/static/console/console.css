@@ -1,0 +1,4 @@
+.console-container { max-width: 1200px; }
+.card { border: 1px solid #e5e7eb; border-radius: 6px; margin: 12px 0; }
+.card-header { background: #f3f4f6; padding: 10px 14px; font-weight: 600; }
+.card-body { padding: 14px; }

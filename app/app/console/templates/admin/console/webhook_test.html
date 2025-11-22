@@ -1,0 +1,45 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}Webhook受信テスト{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> › Webhook受信テスト</div>{% endblock %}
+
+{% block content %}
+<h1>Webhook受信テスト</h1>
+<p>選択したWebhookエンドポイントに、以下のJSONをPOSTして疎通を確認します。</p>
+
+<form method="post" style="margin:12px 0;">
+  {% csrf_token %}
+  <label>送信先</label>
+  <select name="target">
+    <option value="instagram" {% if target == 'instagram' %}selected{% endif %}>Instagram Webhook (/webhook/instagram/)</option>
+    <option value="threads" {% if target == 'threads' %}selected{% endif %}>Threads Webhook (/webhook/threads/)</option>
+  </select>
+
+  <div style="margin-top:8px;">
+    <label>JSONペイロード</label>
+    <textarea name="payload" rows="14" style="width:100%;font-family:monospace;">{{ payload }}</textarea>
+  </div>
+
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="button" type="submit">送信する</button>
+    <button class="button default" type="submit" name="use_ig" value="1" onclick="document.querySelector('select[name=target]').value='instagram';document.querySelector('textarea[name=payload]').value=`{{ sample_instagram|escapejs }}`;">IGサンプルを読み込む</button>
+    <button class="button default" type="submit" name="use_th" value="1" onclick="document.querySelector('select[name=target]').value='threads';document.querySelector('textarea[name=payload]').value=`{{ sample_threads|escapejs }}`;">Threadsサンプルを読み込む</button>
+  </div>
+</form>
+
+{% if error %}
+  <div class="module" style="border-left:4px solid #f44336;">
+    <h2>エラー</h2>
+    <pre style="white-space:pre-wrap">{{ error }}</pre>
+  </div>
+{% endif %}
+
+{% if result %}
+  <div class="module" style="border-left:4px solid #4caf50;">
+    <h2>結果</h2>
+    <p><b>URL:</b> {{ result.url }} / <b>HTTP {{ result.status }}</b></p>
+    <pre style="white-space:pre-wrap">{{ result.body }}</pre>
+    <p style="opacity:.8;">※ 署名検証等により 4xx でもエンドポイント到達確認として扱えます。</p>
+  </div>
+{% endif %}
+{% endblock %}

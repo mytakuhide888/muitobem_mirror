@@ -1,0 +1,17 @@
+{% extends "admin/console/base.html" %}
+{% block title %}Webhook設定{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> › Webhook設定</div>
+{% endblock %}
+{% block content %}
+<h1>Webhook設定</h1>
+<p>Meta アプリに対して、次の URL で購読を作成/更新します。</p>
+<ul class="module">
+  <li><b>Callback URL:</b> {{ callback_url }}</li>
+  <li><b>Verify Token:</b> {{ verify_token }}</li>
+</ul>
+<form method="post">{% csrf_token %}
+  <button class="button default" type="submit">購読を作成/更新</button>
+  <a class="button" href="{% url 'console:webhook_test' %}">受信テストへ</a>
+</form>
+{% endblock %}

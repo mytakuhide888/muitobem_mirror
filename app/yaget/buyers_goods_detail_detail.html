@@ -1,0 +1,450 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+Buyers商品詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Buyers商品詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">Buyers商品詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">Buyers商品詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">{{ title }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr>
+                      <th class="text-secondary bg-warning">商品ID</th>
+                      <td>{{ object.gid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">商品リンク</th>
+                      <td>{{ object.glink }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">商品名</th>
+                      <td>{{ object.gname }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">商品詳細</th>
+                      <td>{{ object.gdetail }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">通常価格</th>
+                      <td>{{ object.gnormalprice }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">大量発注価格</th>
+                      <td>{{ object.gspprice }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">バイヤーズ商品コード</th>
+                      <td>{{ object.gcode }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">バイヤーズカテゴリID</th>
+                      <td>{{ object.bu_ctid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">在庫数</th>
+                      <td>{{ object.stock }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow掲載状況</th>
+                      <td>{{ object.wow_upd_status }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wowmaの出品ステータス</th>
+                      <td>{{ object.wow_on_flg }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wowロットナンバー</th>
+                      <td>{{ object.wow_lotnum }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow商品名</th>
+                      <td>{{ object.wow_gname }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow商品詳細</th>
+                      <td>{{ object.wow_gdetail }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow要注意キーワード</th>
+                      <td>{{ object.wow_worn_key }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow検索キーワード</th>
+                      <td>{{ object.wow_keyword }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow検索タグID</th>
+                      <td>{{ object.wow_tagid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow価格</th>
+                      <td>{{ object.wow_price }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow固定価格</th>
+                      <td>{{ object.wow_fixed_price }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow送料設定区分</th>
+                      <td>{{ object.wow_postage_segment }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow個別送料</th>
+                      <td>{{ object.wow_postage }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wow配送方法ID</th>
+                      <td>{{ object.wow_delivery_method_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">wowカテゴリID</th>
+                      <td>{{ object.wow_ctid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo掲載状況</th>
+                      <td>{{ object.qoo_upd_status }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo販売者コード</th>
+                      <td>{{ object.qoo_seller_code }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品コード</th>
+                      <td>{{ object.qoo_gdno }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qooの出品ステータス</th>
+                      <td>{{ object.qoo_on_flg }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品名</th>
+                      <td>{{ object.qoo_gname }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品詳細</th>
+                      <td>{{ object.qoo_gdetail }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo広告文</th>
+                      <td>{{ object.qoo_promotion_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qooモデル名</th>
+                      <td>{{ object.qoo_model_name }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo検索キーワード</th>
+                      <td>{{ object.qoo_keyword }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo要注意キーワード</th>
+                      <td>{{ object.qoo_worn_key }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qooアフターサービス情報</th>
+                      <td>{{ object.qoo_contact_info }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo価格</th>
+                      <td>{{ object.qoo_price }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo固定価格</th>
+                      <td>{{ object.qoo_fixed_price }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo送料コード</th>
+                      <td>{{ object.qoo_shipping_no }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo個別送料</th>
+                      <td>{{ object.qoo_postage }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品発送可能日タイプ</th>
+                      <td>{{ object.qoo_available_date_type }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品発送可能日タイプの詳細</th>
+                      <td>{{ object.qoo_available_date_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo配送方法ID</th>
+                      <td>{{ object.qoo_delivery_method_id }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品数量</th>
+                      <td>{{ object.qoo_item_qty }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qooカテゴリID</th>
+                      <td>{{ object.qoo_ctid }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品代表画像URL</th>
+                      <td><div><a href="{{ object.qoo_standard_img }}" target="_blank">
+                            <img src="{{ object.qoo_standard_img }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                          <div>{{ object.qoo_standard_img }}</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo追加オプション項目</th>
+                      <td>{{ object.qoo_additional_opt }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品タイプ</th>
+                      <td>{{ object.qoo_item_type }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qoo商品の販売終了日</th>
+                      <td>{{ object.qoo_expire_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">qooアダルトフラグ</th>
+                      <td>{{ object.qoo_adult_yn }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">作成日</th>
+                      <td>{{ object.create_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">更新日</th>
+                      <td>{{ object.update_date }}</td>
+                    </tr>
+                    <tr>
+                      <td><a href="{% url 'yaget:buyers_goods_detail_update' object.pk %}">編集</a></td>
+                    </tr>
+                </tbody>
+              </table>
+
+                <table>
+                    <tr>
+                        <th>
+                <span id="overlay">
+                    <span class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </span>
+                </span>
+                        </th>
+                        <td>
+                <span id="posts">送信結果がたぶんここ
+                </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">qoo10にアップロード(qoo10から検索するだけ)</div>
+                        <form id="ajax-add-get" action="{% url 'yaget:buyers_goods_detail_ajax_res' %}" method="POST">
+                            <input id="id_pk" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div></div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">qoo10に商品情報更新</div>
+                        <form id="ajax-qoo-upsert" action="{% url 'yaget:qoo_goods_upsert_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_upsert" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">qoo10から商品情報取得</div>
+                        <form id="ajax-qoo-goods-detail-info" action="{% url 'yaget:qoo_goods_detail_info_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_goods_detail_info" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">wowmaに商品情報更新</div>
+                        <form id="ajax-wow-upsert" action="{% url 'yaget:wow_goods_upsert_ajax' %}" method="POST">
+                            <input id="id_pk_wow_upsert" type="hidden" value={{ object.pk }}>
+                            <div>
+                                <select id="id_taglist_upd_flg" name="taglist_upd_flg" form="ajax-wow-upsert">
+                                    <option value="0" selected>0:タグ更新しない</option>
+                                    <option value="1">1：タグ最新化する</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:buyers_goods_detail_list' %}">Buyers商品一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        // ajaxの前処理
+          $(document).ajaxSend(function() {
+            $("#overlay").fadeIn(300);　
+          });
+
+        // 送信ボタンで呼ばれる qoo10情報確認
+        $('#ajax-add-get').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:buyers_goods_detail_ajax_res" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                // <p>はろー</p>のような要素を作成し、それを記事一覧エリアに追加し、入力欄をクリアする。
+                //res_text = {text: response.gid} + '_' + {text: response.gname}
+                res_text = {text: response.gid}
+                const p = $('<p>', res_text);
+                const p_name = $('<p>', {text: response.gname});
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                //const p = $('<p>', {text: response.gname});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').prepend(p); // 指定した要素の子の前に追加
+                $('#posts').append(p_name); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                //$('#posts').replaceWith(p); // 要素をまるごと置き換え。これやると消えてしまう
+                //$('#id_pk').val('');
+            });
+        });
+
+        // 送信ボタンで呼ばれる qoo10に商品情報更新
+        $('#ajax-qoo-upsert').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_goods_upsert_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_upsert').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+        // 送信ボタンで呼ばれる qoo10から商品情報取得
+        $('#ajax-qoo-goods-detail-info').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_goods_detail_info_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_goods_detail_info').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+        // 送信ボタンで呼ばれる wowmaに商品情報更新
+        $('#ajax-wow-upsert').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:wow_goods_upsert_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_wow_upsert').val(),  // プライマリキー
+                    'taglist_upd_flg': $('#id_taglist_upd_flg').val(),  // タグ更新するかどうかのフラグ
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+    </script>
+{% endblock %}

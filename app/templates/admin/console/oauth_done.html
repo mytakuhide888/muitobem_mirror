@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Facebook/Instagram 連携完了</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:24px; line-height:1.6}
+    .ok{color:#0a7d2a; font-weight:bold}
+    .warn{color:#b35a00}
+    .btn{display:inline-block; padding:8px 14px; border:1px solid #ccc; border-radius:8px; text-decoration:none}
+    .btnPrimary{background:#0d6efd; color:#fff; border-color:#0d6efd}
+    table{border-collapse:collapse; width:100%; margin-top:8px}
+    th,td{border:1px solid #e5e5e5; padding:6px 8px; text-align:left}
+    .small{font-size:12px; color:#666}
+    input[type=text]{padding:6px 8px; width:320px}
+  </style>
+</head>
+<body>
+  {% if ok %}
+    <p class="ok">Facebook ログインに成功しました。</p>
+    <p>ユーザーID: <b>{{ user_id }}</b>
+      {% if expires_at %}<span class="small">(token expires: {{ expires_at }})</span>{% endif %}
+    </p>
+
+    <h3>付与された権限</h3>
+    <p class="small">granted: {{ granted|join:", " }} / declined: {{ declined|join:", " }}</p>
+
+    <h3>ページ一覧（取込対象）</h3>
+    {% if pages and pages|length > 0 %}
+      <form id="importForm" onsubmit="return false;">
+        <table>
+          <thead><tr><th></th><th>ページ名</th><th>page_id</th><th>perms</th></tr></thead>
+          <tbody>
+            {% for p in pages %}
+              <tr>
+                <td><input type="radio" name="page_id" value="{{ p.id }}" {% if forloop.first %}checked{% endif %}></td>
+                <td>{{ p.name }}</td>
+                <td>{{ p.id }}</td>
+                <td class="small">{{ p.perms|default:"-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <p style="margin-top:12px">
+          Webhook Verify Token：
+          <input type="text" id="verify" placeholder="未入力なら .env の META_WEBHOOK_VERIFY_TOKEN を使用">
+          <button class="btn btnPrimary" onclick="doImport()">選択したページを取り込む</button>
+        </p>
+      </form>
+    {% else %}
+      <p class="warn">ページが取得できませんでした。Facebook上で「Facebookページ が存在し、そのページに Instagramビジネスアカウントがリンク」されているかご確認ください。</p>
+    {% endif %}
+  {% else %}
+    <p class="warn">OAuth エラー: {{ error }}</p>
+  {% endif %}
+
+  <p style="margin-top:20px"><a class="btn" href="/admin/">管理画面へ戻る</a></p>
+
+<script>
+function getCookie(name){
+  const m = document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');
+  return m ? m.pop() : '';
+}
+async function doImport(){
+  const form = document.getElementById('importForm');
+  const pageId = (new FormData(form)).get('page_id');
+  const verify = document.getElementById('verify').value || null;
+  const res = await fetch('/oauth/meta/import/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ page_id: pageId, verify_token: verify })
+  });
+  const j = await res.json().catch(()=>({}));
+  alert(res.ok ? '取込に成功しました' : '取込に失敗：' + (j.error || res.status));
+  if(res.ok){ location.href='/admin/'; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>メール配信テスト {{title}}</title>
+    <link rel="stylesheet" type="text/css" 
+        href="{% static 'yaget/css/base.css' %}" />
+</head>
+<body>
+    <h1>メール配信テスト {{title}}</h1>
+    <p>{{message|safe}}</p>
+    <table>
+        <tr>
+            <th>メール送信</th>
+            <th>bid</th>
+            <th>blink</th>
+            <th>gid</th>
+            <th>glink</th>
+            <th>g_img_src</th>
+            <th>g_img_src</th>
+            <th>create_date</th>
+        </tr>
+<form action="{% url 'yaget:send_my_mail' %}" method="post">
+{% csrf_token %}
+    {% for item in data %}
+        <tr>
+            <td>送信する<input type="submit" id="button_1" name="button_1" value={{item.bid}}></td>
+            <td>{{item.bid}}</td>
+            <td>{{item.blink}}</td>
+            <td>{{item.gid}}</td>
+            <td>{{item.glink}}</td>
+            <td>{{item.g_img_src}}</td>
+            <td>{{item.g_img_alt}}</td>
+            <td>{{item.create_date}}</td>
+        <tr>
+    {% endfor %}
+</form>
+    </table>
+    <div>
+        {% if data.has_previous %}
+            <a href="{% url 'index' %}">&laquo;first</a>
+            <a href="{% url 'index' %}{{data.previous_page_number}}">&laquo;prev</a>
+        {% endif %}
+        <span class="current">
+            [{{data.number}}/{{data.paginator.num_pages}}]
+        </span>
+        {% if data.has_next %}
+            <a href="{% url 'index' %}{{data.next_page_number }}">next&raquo;</a>
+            <a href="{% url 'index' %}{{data.paginator.num_pages}}">last&raquo;</a>
+        {% endif %}
+    </div>
+</body>
+</html>

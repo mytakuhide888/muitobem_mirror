@@ -1,0 +1,932 @@
+{% extends './base.html' %}
+{% load static %}
+
+{% block headertitle %}
+Qoo ASIN 商品詳細ページ
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Qoo ASIN 商品詳細ページ</h1>
+          </div><!-- /.col -->
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/yaget/top/">Home</a></li>
+              <li class="breadcrumb-item active">Qoo ASIN 商品詳細ページ です</li>
+            </ol>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <section class="content">
+      <div class="card-header">
+        <h3 class="card-title">Qoo ASIN 商品詳細ページです</h3>
+      </div>
+        <p>{{message|safe}}</p>
+      <div class="card-footer">
+        <div class="container-fluid" style="margin-top: 60px;">
+          <div class="row">
+            <div class="col-md-6 offset-md-3" >
+
+              <h4 class="alert-heading">{{ title }}</h4>
+              <table class="table table-sm table-striped small">
+                <tbody>
+                    <tr>
+                      <th class="text-secondary bg-warning">ASIN</th>
+                      <td>{{ object.asin }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">タイトル</th>
+                      <td>{{ object.title }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">url</th>
+                      <td>{{ object.url }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">在庫数</th>
+                      <td>{{ object.amount }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">binding</th>
+                      <td>{{ object.binding }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">brand</th>
+                      <td>{{ object.brand }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">color</th>
+                      <td>{{ object.color }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">department</th>
+                      <td>{{ object.department }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">is_adlt</th>
+                      <td>{{ object.is_adlt }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_height</th>
+                      <td>{{ object.i_height }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_height_unit</th>
+                      <td>{{ object.i_height_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_length</th>
+                      <td>{{ object.i_length }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_length_unit</th>
+                      <td>{{ object.i_length_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_width</th>
+                      <td>{{ object.i_width }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_width_unit</th>
+                      <td>{{ object.i_width_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_weight</th>
+                      <td>{{ object.i_weight }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">i_weight_unit</th>
+                      <td>{{ object.i_weight_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_height</th>
+                      <td>{{ object.p_height }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_height_unit</th>
+                      <td>{{ object.p_height_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_length</th>
+                      <td>{{ object.p_length }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_length_unit</th>
+                      <td>{{ object.p_length_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_width</th>
+                      <td>{{ object.p_width }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_width_unit</th>
+                      <td>{{ object.p_width_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_weight</th>
+                      <td>{{ object.p_weight }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">p_weight_unit</th>
+                      <td>{{ object.p_weight_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">shipping_size</th>
+                      <td>{{ object.shipping_size }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_cat_1</th>
+                      <td>{{ object.rank_cat_1 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_1</th>
+                      <td>{{ object.rank_1 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_cat_2</th>
+                      <td>{{ object.rank_cat_2 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_2</th>
+                      <td>{{ object.rank_2 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_cat_3</th>
+                      <td>{{ object.rank_cat_3 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">rank_3</th>
+                      <td>{{ object.rank_3 }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">actor</th>
+                      <td>{{ object.actor }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">aspectRatio</th>
+                      <td>{{ object.aspectRatio }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">audienceRating</th>
+                      <td>{{ object.audienceRating }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">author</th>
+                      <td>{{ object.author }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">backFinding</th>
+                      <td>{{ object.backFinding }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">bandMaterialType</th>
+                      <td>{{ object.bandMaterialType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">blurayRegion</th>
+                      <td>{{ object.blurayRegion }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">ceroAgeRating</th>
+                      <td>{{ object.ceroAgeRating }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">chainType</th>
+                      <td>{{ object.chainType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">claspType</th>
+                      <td>{{ object.claspType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">cpuManufacturer</th>
+                      <td>{{ object.cpuManufacturer }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">cpuSpeed_value</th>
+                      <td>{{ object.cpuSpeed_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">cpuSpeed_unit</th>
+                      <td>{{ object.cpuSpeed_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">cpuType</th>
+                      <td>{{ object.cpuType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">creator_value</th>
+                      <td>{{ object.creator_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">creator_unit</th>
+                      <td>{{ object.creator_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">director</th>
+                      <td>{{ object.director }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">displaySize_value</th>
+                      <td>{{ object.displaySize_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">displaySize_unit</th>
+                      <td>{{ object.displaySize_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">edition</th>
+                      <td>{{ object.edition }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">episodeSequence</th>
+                      <td>{{ object.episodeSequence }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">edition</th>
+                      <td>{{ object.edition }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">esrbAgeRating</th>
+                      <td>{{ object.esrbAgeRating }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">feature</th>
+                      <td>{{ object.feature }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">flavor</th>
+                      <td>{{ object.flavor }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">format_val</th>
+                      <td>{{ object.format_val }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">gemType</th>
+                      <td>{{ object.gemType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">genre</th>
+                      <td>{{ object.genre }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">golfClubFlex</th>
+                      <td>{{ object.golfClubFlex }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">golfClubLoft_value</th>
+                      <td>{{ object.golfClubLoft_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">golfClubLoft_unit</th>
+                      <td>{{ object.golfClubLoft_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">handOrientation</th>
+                      <td>{{ object.handOrientation }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">hardDiskInterface</th>
+                      <td>{{ object.hardDiskInterface }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">hardDiskSize_value</th>
+                      <td>{{ object.hardDiskSize_value }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">hardDiskSize_unit</th>
+                      <td>{{ object.hardDiskSize_unit }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">hardwarePlatform</th>
+                      <td>{{ object.hardwarePlatform }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">hazardousMaterialType</th>
+                      <td>{{ object.hazardousMaterialType }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">isAutographed</th>
+                      <td>{{ object.isAutographed }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">isEligibleForTradeIn</th>
+                      <td>{{ object.isEligibleForTradeIn }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">isMemorabilia</th>
+                      <td>{{ object.isMemorabilia }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">issuesPerYear</th>
+                      <td>{{ object.issuesPerYear }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">itemPartNumber</th>
+                      <td>{{ object.itemPartNumber }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">languages</th>
+                      <td>{{ object.languages }}</td>
+                    </tr>
+                    <tr><th class="text-secondary bg-warning">legalDisclaimer</th><td>{{ object.legalDisclaimer }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturerMaximumAge_value</th><td>{{ object.manufacturerMaximumAge_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturerMaximumAge_unit</th><td>{{ object.manufacturerMaximumAge_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturerMinimumAge_value</th><td>{{ object.manufacturerMinimumAge_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturerMinimumAge_unit</th><td>{{ object.manufacturerMinimumAge_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturerPartsWarrantyDescription</th><td>{{ object.manufacturerPartsWarrantyDescription }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">materialType</th><td>{{ object.materialType }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">maximumResolution_value</th><td>{{ object.maximumResolution_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">maximumResolution_unit</th><td>{{ object.maximumResolution_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">mediaType</th><td>{{ object.mediaType }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">metalStamp</th><td>{{ object.metalStamp }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">metalType</th><td>{{ object.metalType }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">model</th><td>{{ object.model }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">numberOfDiscs</th><td>{{ object.numberOfDiscs }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">numberOfIssues</th><td>{{ object.numberOfIssues }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">numberOfItems</th><td>{{ object.numberOfItems }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">numberOfPages</th><td>{{ object.numberOfPages }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">numberOfTracks</th><td>{{ object.numberOfTracks }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">operatingSystem</th><td>{{ object.operatingSystem }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">opticalZoom_value</th><td>{{ object.opticalZoom_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">opticalZoom_unit</th><td>{{ object.opticalZoom_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">pegiRating</th><td>{{ object.pegiRating }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">processorCount</th><td>{{ object.processorCount }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">productTypeSubcategory</th><td>{{ object.productTypeSubcategory }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">publicationDate</th><td>{{ object.publicationDate }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">regionCode</th><td>{{ object.regionCode }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">ringSize</th><td>{{ object.ringSize }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">runningTime_value</th><td>{{ object.runningTime_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">runningTime_unit</th><td>{{ object.runningTime_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">shaftMaterial</th><td>{{ object.shaftMaterial }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">scent</th><td>{{ object.scent }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">seasonSequence</th><td>{{ object.seasonSequence }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">seikodoProductCode</th><td>{{ object.seikodoProductCode }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">sizePerPearl</th><td>{{ object.sizePerPearl }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">label</th><td>{{ object.label }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">list_price_amount</th><td>{{ object.list_price_amount }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">list_price_currency_code</th><td>{{ object.list_price_currency_code }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">list_price_code</th><td>{{ object.list_price_code }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">manufacturer</th><td>{{ object.manufacturer }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">package_quantity</th><td>{{ object.package_quantity }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">part_number</th><td>{{ object.part_number }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">platform</th><td>{{ object.platform }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">product_group</th><td>{{ object.product_group }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">product_type_name</th><td>{{ object.product_type_name }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">release_date</th><td>{{ object.release_date }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">publisher</th><td>{{ object.publisher }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">size</th><td>{{ object.size }}</td></tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">small_image_url</th>
+                      <td><div><a href="{{ object.small_image_url }}" target="_blank">
+                            <img src="{{ object.small_image_url }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                          <div>{{ object.qoo_standard_img }}</div>
+                      </td>
+                    </tr>
+                    <tr><th class="text-secondary bg-warning">small_image_height_value</th><td>{{ object.small_image_height_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">small_image_height_units</th><td>{{ object.small_image_height_units }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">small_image_width_value</th><td>{{ object.small_image_width_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">small_image_width_units</th><td>{{ object.small_image_width_units }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">subscriptionLength_value</th><td>{{ object.subscriptionLength_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">subscriptionLength_unit</th><td>{{ object.subscriptionLength_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">systemMemorySize_value</th><td>{{ object.systemMemorySize_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">systemMemorySize_unit</th><td>{{ object.systemMemorySize_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">systemMemoryType</th><td>{{ object.systemMemoryType }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">theatricalReleaseDate</th><td>{{ object.theatricalReleaseDate }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">totalDiamondWeight_value</th><td>{{ object.totalDiamondWeight_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">totalDiamondWeight_unit</th><td>{{ object.totalDiamondWeight_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">totalGemWeight_value</th><td>{{ object.totalGemWeight_value }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">totalGemWeight_unit</th><td>{{ object.totalGemWeight_unit }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">warranty</th><td>{{ object.warranty }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">weeeTaxValue_amount</th><td>{{ object.weeeTaxValue_amount }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">weeeTaxValue_currency_code</th><td>{{ object.weeeTaxValue_currency_code }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">studio</th><td>{{ object.studio }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">relationships_asin_1</th><td>{{ object.relationships_asin_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">sales_rankings_cat_id</th><td>{{ object.sales_rankings_cat_id }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_id_0</th><td><a href="/yaget/ama_cat_list/?p_cat_id={{ object.p_cat_id_0 }}" target="_blank">{{ object.p_cat_id_0 }}</a></td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_id_1</th><td><a href="/yaget/ama_cat_list/?p_cat_id={{ object.p_cat_id_1 }}" target="_blank">{{ object.p_cat_id_1 }}</a></td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_id_2</th><td><a href="/yaget/ama_cat_list/?p_cat_id={{ object.p_cat_id_2 }}" target="_blank">{{ object.p_cat_id_2 }}</a></td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_name_0</th><td>{{ object.p_cat_name_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_name_1</th><td>{{ object.p_cat_name_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_cat_name_2</th><td>{{ object.p_cat_name_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">buybox_listing_price</th><td>{{ object.buybox_listing_price }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">buybox_currency_cd</th><td>{{ object.buybox_currency_cd }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">buybox_condition</th><td>{{ object.buybox_condition }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">buybox_shipping_price</th><td>{{ object.buybox_shipping_price }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">buybox_quantitytier</th><td>{{ object.buybox_quantitytier }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">shipfrom_country</th><td>{{ object.shipfrom_country }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">num_offers_amazon</th><td>{{ object.num_offers_amazon }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">num_offers_merchant</th><td>{{ object.num_offers_merchant }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">ok_seller_feedback_rate</th><td>{{ object.ok_seller_feedback_rate }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">ok_seller_id</th><td>{{ object.ok_seller_id }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">is_seller_ok</th><td>{{ object.is_seller_ok }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">product_title</th><td>{{ object.product_title }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">description</th><td>{{ object.description }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_0</th><td>{{ object.p_o_f_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_1</th><td>{{ object.p_o_f_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_2</th><td>{{ object.p_o_f_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_3</th><td>{{ object.p_o_f_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_4</th><td>{{ object.p_o_f_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_5</th><td>{{ object.p_o_f_5 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_6</th><td>{{ object.p_o_f_6 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_7</th><td>{{ object.p_o_f_7 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_8</th><td>{{ object.p_o_f_8 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_o_f_9</th><td>{{ object.p_o_f_9 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_0</th><td>{{ object.f_b_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_1</th><td>{{ object.f_b_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_2</th><td>{{ object.f_b_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_3</th><td>{{ object.f_b_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_4</th><td>{{ object.f_b_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_5</th><td>{{ object.f_b_5 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_6</th><td>{{ object.f_b_6 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_7</th><td>{{ object.f_b_7 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_8</th><td>{{ object.f_b_8 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">f_b_9</th><td>{{ object.f_b_9 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_0</th><td>{{ object.p_d_t_s_th_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_1</th><td>{{ object.p_d_t_s_th_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_2</th><td>{{ object.p_d_t_s_th_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_3</th><td>{{ object.p_d_t_s_th_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_4</th><td>{{ object.p_d_t_s_th_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_5</th><td>{{ object.p_d_t_s_th_5 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_6</th><td>{{ object.p_d_t_s_th_6 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_7</th><td>{{ object.p_d_t_s_th_7 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_8</th><td>{{ object.p_d_t_s_th_8 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_th_9</th><td>{{ object.p_d_t_s_th_9 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_0</th><td>{{ object.p_d_t_s_td_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_1</th><td>{{ object.p_d_t_s_td_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_2</th><td>{{ object.p_d_t_s_td_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_3</th><td>{{ object.p_d_t_s_td_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_4</th><td>{{ object.p_d_t_s_td_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_5</th><td>{{ object.p_d_t_s_td_5 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_6</th><td>{{ object.p_d_t_s_td_6 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_7</th><td>{{ object.p_d_t_s_td_7 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_8</th><td>{{ object.p_d_t_s_td_8 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_t_s_td_9</th><td>{{ object.p_d_t_s_td_9 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_0</th><td>{{ object.p_d_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_1</th><td>{{ object.p_d_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_2</th><td>{{ object.p_d_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_3</th><td>{{ object.p_d_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_4</th><td>{{ object.p_d_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_5</th><td>{{ object.p_d_5 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_6</th><td>{{ object.p_d_6 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_7</th><td>{{ object.p_d_7 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_8</th><td>{{ object.p_d_8 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_d_9</th><td>{{ object.p_d_9 }}</td></tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_0</th>
+                      <td><div><a href="{{ object.img_tag_0 }}" target="_blank">
+                            <img src="{{ object.img_tag_0 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_1</th>
+                      <td><div><a href="{{ object.img_tag_1 }}" target="_blank">
+                            <img src="{{ object.img_tag_1 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_2</th>
+                      <td><div><a href="{{ object.img_tag_2 }}" target="_blank">
+                            <img src="{{ object.img_tag_2 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_3</th>
+                      <td><div><a href="{{ object.img_tag_3 }}" target="_blank">
+                            <img src="{{ object.img_tag_3 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_4</th>
+                      <td><div><a href="{{ object.img_tag_4 }}" target="_blank">
+                            <img src="{{ object.img_tag_4 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_5</th>
+                      <td><div><a href="{{ object.img_tag_5 }}" target="_blank">
+                            <img src="{{ object.img_tag_5 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_6</th>
+                      <td><div><a href="{{ object.img_tag_6 }}" target="_blank">
+                            <img src="{{ object.img_tag_6 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_7</th>
+                      <td><div><a href="{{ object.img_tag_7 }}" target="_blank">
+                            <img src="{{ object.img_tag_7 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_8</th>
+                      <td><div><a href="{{ object.img_tag_8 }}" target="_blank">
+                            <img src="{{ object.img_tag_8 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_9</th>
+                      <td><div><a href="{{ object.img_tag_9 }}" target="_blank">
+                            <img src="{{ object.img_tag_9 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_10</th>
+                      <td><div><a href="{{ object.img_tag_10 }}" target="_blank">
+                            <img src="{{ object.img_tag_10 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_11</th>
+                      <td><div><a href="{{ object.img_tag_11 }}" target="_blank">
+                            <img src="{{ object.img_tag_11 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_12</th>
+                      <td><div><a href="{{ object.img_tag_12 }}" target="_blank">
+                            <img src="{{ object.img_tag_12 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_13</th>
+                      <td><div><a href="{{ object.img_tag_13 }}" target="_blank">
+                            <img src="{{ object.img_tag_13 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_14</th>
+                      <td><div><a href="{{ object.img_tag_14 }}" target="_blank">
+                            <img src="{{ object.img_tag_14 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_15</th>
+                      <td><div><a href="{{ object.img_tag_15 }}" target="_blank">
+                            <img src="{{ object.img_tag_15 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_16</th>
+                      <td><div><a href="{{ object.img_tag_16 }}" target="_blank">
+                            <img src="{{ object.img_tag_16 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_17</th>
+                      <td><div><a href="{{ object.img_tag_17 }}" target="_blank">
+                            <img src="{{ object.img_tag_17 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_18</th>
+                      <td><div><a href="{{ object.img_tag_18 }}" target="_blank">
+                            <img src="{{ object.img_tag_18 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_tag_19</th>
+                      <td><div><a href="{{ object.img_tag_19 }}" target="_blank">
+                            <img src="{{ object.img_tag_19 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_s_m_0</th>
+                      <td><div><a href="{{ object.img_a_s_m_0 }}" target="_blank">
+                            <img src="{{ object.img_a_s_m_0 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr><th class="text-secondary bg-warning">p_a_s_m_0</th><td>{{ object.p_a_s_m_0 }}</td></tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_m_w_0</th>
+                      <td><div><a href="{{ object.img_a_m_w_0 }}" target="_blank">
+                            <img src="{{ object.img_a_m_w_0 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_m_w_1</th>
+                      <td><div><a href="{{ object.img_a_m_w_1 }}" target="_blank">
+                            <img src="{{ object.img_a_m_w_1 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_m_w_2</th>
+                      <td><div><a href="{{ object.img_a_m_w_2 }}" target="_blank">
+                            <img src="{{ object.img_a_m_w_2 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_m_w_3</th>
+                      <td><div><a href="{{ object.img_a_m_w_3 }}" target="_blank">
+                            <img src="{{ object.img_a_m_w_3 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">img_a_m_w_4</th>
+                      <td><div><a href="{{ object.img_a_m_w_4 }}" target="_blank">
+                            <img src="{{ object.img_a_m_w_4 }}" width="150"  align="middle" border="0">
+                            </a>
+                            </div>
+                      </td>
+                    </tr>
+                    <tr><th class="text-secondary bg-warning">p_a_m_w_0</th><td>{{ object.p_a_m_w_0 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_a_m_w_1</th><td>{{ object.p_a_m_w_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_a_m_w_2</th><td>{{ object.p_a_m_w_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_a_m_w_3</th><td>{{ object.p_a_m_w_3 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">p_a_m_w_4</th><td>{{ object.p_a_m_w_4 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">is_blacklist_ok</th><td>{{ object.is_blacklist_ok }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">is_blacklist_ok_asin</th><td>{{ object.is_blacklist_ok_asin }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">is_blacklist_ok_img</th><td>{{ object.is_blacklist_ok_img }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">is_blacklist_ok_keyword</th><td>{{ object.is_blacklist_ok_keyword }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">blacklist_keyword_flg</th><td>{{ object.blacklist_keyword_flg }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">shopid</th><td>{{ object.shopid }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">gid</th><td>{{ object.gid }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">csv_no</th><td>{{ object.csv_no }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">y_cat_1</th><td>{{ object.y_cat_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">y_cat_2</th><td>{{ object.y_cat_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">myshop_cat_all</th><td>{{ object.myshop_cat_all }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">myshop_cat_1</th><td>{{ object.myshop_cat_1 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">myshop_cat_2</th><td>{{ object.myshop_cat_2 }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">wholesale_price</th><td>{{ object.wholesale_price }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">wholesale_name</th><td>{{ object.wholesale_name }}</td></tr>
+                    <tr><th class="text-secondary bg-warning">status</th><td>{{ object.status }}</td></tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">scraped_date</th>
+                      <td>{{ object.scraped_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">作成日</th>
+                      <td>{{ object.create_date }}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-secondary bg-warning">更新日</th>
+                      <td>{{ object.update_date }}</td>
+                    </tr>
+                    <tr>
+                      <td><a href="{% url 'yaget:qoo_asin_detail_update' object.pk %}">編集</a></td>
+                    </tr>
+                </tbody>
+              </table>
+
+                <table>
+                    <tr>
+                        <th>
+                <span id="overlay">
+                    <span class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </span>
+                </span>
+                        </th>
+                        <td>
+                <span id="posts">送信結果がたぶんここ
+                </span>
+                        </td>
+                    </tr>
+                </table>
+                <hr>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">★動いてないがQooにアップロード(qoo10から検索するだけ)</div>
+                        <form id="ajax-add-get" action="{% url 'yaget:buyers_goods_detail_ajax_res' %}" method="POST">
+                            <input id="id_pk" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div></div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">★動いてないがqoo10に商品情報更新</div>
+                        <form id="ajax-qoo-upsert" action="{% url 'yaget:qoo_goods_upsert_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_upsert" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">★動いてないがqoo10から商品情報取得</div>
+                        <form id="ajax-qoo-goods-detail-info" action="{% url 'yaget:qoo_goods_detail_info_ajax' %}" method="POST">
+                            <input id="id_pk_qoo_goods_detail_info" type="hidden" value={{ object.pk }}>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">★動いてないがwowmaに商品情報更新</div>
+                        <form id="ajax-wow-upsert" action="{% url 'yaget:wow_goods_upsert_ajax' %}" method="POST">
+                            <input id="id_pk_wow_upsert" type="hidden" value={{ object.pk }}>
+                            <div>
+                                <select id="id_taglist_upd_flg" name="taglist_upd_flg" form="ajax-wow-upsert">
+                                    <option value="0" selected>0:タグ更新しない</option>
+                                    <option value="1">1：タグ最新化する</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary">送信</button>
+                            {% csrf_token %}
+                        </form>
+                    </div>
+                </div>
+
+              <div><a class="btn btn-primary" href="javascript:void(0);" onclick="window.history.back();">戻る</a></div>
+              <div><a class="btn btn-primary" href="{% url 'yaget:qoo_asin_detail_list' %}">Qoo ASIN 商品一覧ページへ</a></div>
+
+            </div><!-- end col-md-6 offset-md-3 -->
+          </div><!-- end row -->
+        </div><!-- end container-fluid -->
+      </div>
+    </section>
+    <!-- /.content -->
+  </div>
+{% endblock content %}
+{% block extrajs %}
+    <script>
+        // スピナーは最初消しておく
+        $("#overlay").hide();
+        // ajaxの前処理
+          $(document).ajaxSend(function() {
+            $("#overlay").fadeIn(300);　
+          });
+
+        // 送信ボタンで呼ばれる qoo10情報確認
+        $('#ajax-add-get').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:buyers_goods_detail_ajax_res" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                // <p>はろー</p>のような要素を作成し、それを記事一覧エリアに追加し、入力欄をクリアする。
+                //res_text = {text: response.gid} + '_' + {text: response.gname}
+                res_text = {text: response.gid}
+                const p = $('<p>', res_text);
+                const p_name = $('<p>', {text: response.gname});
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                //const p = $('<p>', {text: response.gname});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').prepend(p); // 指定した要素の子の前に追加
+                $('#posts').append(p_name); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                //$('#posts').replaceWith(p); // 要素をまるごと置き換え。これやると消えてしまう
+                //$('#id_pk').val('');
+            });
+        });
+
+        // 送信ボタンで呼ばれる qoo10に商品情報更新
+        $('#ajax-qoo-upsert').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_goods_upsert_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_upsert').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+        // 送信ボタンで呼ばれる qoo10から商品情報取得
+        $('#ajax-qoo-goods-detail-info').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:qoo_goods_detail_info_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_qoo_goods_detail_info').val(),  // プライマリキー
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+        // 送信ボタンで呼ばれる wowmaに商品情報更新
+        $('#ajax-wow-upsert').on('submit', e => {
+            // デフォルトのイベントをキャンセルし、ページ遷移しないように!
+            e.preventDefault();
+
+            $.ajax({
+                'url': '{% url "yaget:wow_goods_upsert_ajax" %}',
+                'type': 'POST',
+                'data': {
+                    'pk': $('#id_pk_wow_upsert').val(),  // プライマリキー
+                    'taglist_upd_flg': $('#id_taglist_upd_flg').val(),  // タグ更新するかどうかのフラグ
+                },
+                'dataType': 'json'
+            }).done( response => {
+                // スピナーを消す
+                  setTimeout(function(){
+                    $("#overlay").fadeOut(300);
+                  },500);
+                const p_msg = $('<p>', {text: response.msg});
+                const p_ret_code = $('<p>', {text: response.ret_code});
+                $('#posts').empty(); // 指定した子要素を削除
+                $('#posts').append(p_ret_code); // 指定した要素の子の前に追加
+                $('#posts').append(p_msg); // 指定した要素の子の前に追加
+            });
+        });
+
+    </script>
+{% endblock %}

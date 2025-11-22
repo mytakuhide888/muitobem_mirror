@@ -1,0 +1,45 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}アカウント連携テスト{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> › アカウント連携テスト</div>{% endblock %}
+
+{% block content %}
+<h1>アカウント連携テスト</h1>
+<p>データベース接続・未適用マイグレーション・Webhook到達性・主要モデル参照・環境変数などを一括で診断します。</p>
+
+<div class="module" style="margin-top:12px;">
+  <h2>サマリー</h2>
+  <p>
+    <b>PASS:</b> {{ summary.PASS|default:0 }} /
+    <b>WARN:</b> {{ summary.WARN|default:0 }} /
+    <b>FAIL:</b> {{ summary.FAIL|default:0 }}
+  </p>
+  <p><a class="button" href="{% url 'console:connection_test' %}">再実行</a></p>
+</div>
+
+<div class="module" style="margin-top:12px;">
+  <h2>詳細</h2>
+  <table class="listtable" style="width:100%;table-layout:fixed;">
+    <thead>
+      <tr><th style="width:220px;">項目</th><th style="width:90px;">結果</th><th>詳細</th></tr>
+    </thead>
+    <tbody>
+      {% for c in checks %}
+      <tr>
+        <th>{{ c.name }}</th>
+        <td>
+          {% if c.status == 'PASS' %}
+            <span style="color:#2e7d32;font-weight:700;">PASS</span>
+          {% elif c.status == 'WARN' %}
+            <span style="color:#f57c00;font-weight:700;">WARN</span>
+          {% else %}
+            <span style="color:#c62828;font-weight:700;">FAIL</span>
+          {% endif %}
+        </td>
+        <td><pre style="white-space:pre-wrap;margin:0">{{ c.detail }}</pre></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

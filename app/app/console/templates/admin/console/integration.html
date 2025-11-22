@@ -1,0 +1,62 @@
+{% extends "admin/console/base.html" %}
+{% load static %}
+
+{% block title %}アカウント連携一覧{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> › アカウント連携一覧</div>{% endblock %}
+
+{% block content %}
+<h1>アカウント連携一覧</h1>
+<p class="help">連携済みの Instagram / Threads アカウントを表示します。詳細編集は管理画面に遷移してください。</p>
+
+<div class="card-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:12px;">
+
+  <section class="module">
+    <h2>Instagram ビジネスアカウント</h2>
+    {% if ig_err %}
+      <p style="color:#c00;">読み込みエラー: {{ ig_err }}</p>
+    {% endif %}
+    <p>件数: <strong>{{ ig_accounts|length }}</strong></p>
+    <div style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:6px;padding:8px;">
+      {% if ig_accounts %}
+        <ul style="margin:0;padding-left:18px;">
+          {% for obj in ig_accounts %}
+            <li>{{ obj }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p style="margin:0;color:#666;">連携はまだありません。</p>
+      {% endif %}
+    </div>
+    <p style="margin-top:8px;">
+      <a class="button" href="/admin/ig/instagrambusinessaccount/">管理画面で開く</a>
+    </p>
+  </section>
+
+  <section class="module">
+    <h2>Threads アカウント</h2>
+    {% if th_err %}
+      <p style="color:#c00;">読み込みエラー: {{ th_err }}</p>
+    {% endif %}
+    <p>件数: <strong>{{ th_accounts|length }}</strong></p>
+    <div style="max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:6px;padding:8px;">
+      {% if th_accounts %}
+        <ul style="margin:0;padding-left:18px;">
+          {% for obj in th_accounts %}
+            <li>{{ obj }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p style="margin:0;color:#666;">連携はまだありません。</p>
+      {% endif %}
+    </div>
+    <p style="margin-top:8px;">
+      <a class="button" href="/admin/th/threadsaccount/">管理画面で開く</a>
+    </p>
+  </section>
+
+</div>
+
+<p style="margin-top:16px;">
+  <a class="button" href="{% url 'console:index' %}">← ダッシュボードに戻る</a>
+</p>
+{% endblock %}
