@@ -9,3 +9,54 @@
 {% block nav-sidebar %}
   {% include "admin/partials/custom_sidebar.html" %}
 {% endblock %}
+
+{# Admin上部ナビ（トップメニュー）が1行に収まらないので、複数行のグリッドで折り返す #}
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    /* ヘッダーナビ全体を折り返し可能にする */
+    #jazzy-navbar {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      padding-bottom: 0.35rem;
+    }
+    /* 左側のUL（トグル + トップメニュー）をグリッド状にする */
+    #jazzy-navbar .navbar-nav:first-child {
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      row-gap: 10px;
+    }
+    /* トップメニューの各項目を3列程度で折り返す */
+    #jazzy-navbar .navbar-nav:first-child > .nav-item {
+      flex: 1 1 180px;
+      min-width: 140px;
+      max-width: 240px;
+    }
+    /* 左端のハンバーガーだけは幅を固定 */
+    #jazzy-navbar .navbar-nav:first-child > .nav-item:first-child {
+      flex: 0 0 auto;
+    }
+    /* テキストを2段以上に折り返せるようにする */
+    #jazzy-navbar .navbar-nav:first-child .nav-link {
+      white-space: normal;
+      line-height: 1.3;
+      padding: 6px 10px;
+      height: auto;
+      text-align: center;
+    }
+    #jazzy-navbar .navbar-nav:first-child .dropdown-menu {
+      min-width: 220px;
+    }
+    /* 画面幅が狭いときは2列→1列に落とす */
+    @media (max-width: 992px) {
+      #jazzy-navbar .navbar-nav:first-child > .nav-item {
+        flex: 1 1 45%;
+      }
+    }
+    @media (max-width: 576px) {
+      #jazzy-navbar .navbar-nav:first-child > .nav-item {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+{% endblock %}
