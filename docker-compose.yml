@@ -40,7 +40,26 @@ services:
     command:
       - bash
       - -lc
-      - >
+      - |
+        # DB が応答するまで待つ（再起動時に migrate が失敗しないように）
+        until python - <<'PY'
+import os, sys, time
+import MySQLdb
+
+host = os.getenv("MYSQL_HOST", "db")
+user = os.getenv("MYSQL_USER", "")
+pwd  = os.getenv("MYSQL_PASSWORD", "")
+db   = os.getenv("MYSQL_DATABASE", "")
+try:
+    MySQLdb.connect(host=host, user=user, passwd=pwd, db=db, connect_timeout=3)
+    sys.exit(0)
+except Exception as e:
+    sys.exit(1)
+PY
+        do
+          echo "DB not ready, retrying..." && sleep 2
+        done
+
         python manage.py migrate &&
         python manage.py collectstatic --noinput &&
         python manage.py runserver 0.0.0.0:8000
@@ -74,6 +93,24 @@ services:
       - static_volume:/app/deploy
     command: >
       bash -lc '
+        until python - <<'"'"'PY'"'"'
+import os, sys, time
+import MySQLdb
+
+host = os.getenv("MYSQL_HOST", "db")
+user = os.getenv("MYSQL_USER", "")
+pwd  = os.getenv("MYSQL_PASSWORD", "")
+db   = os.getenv("MYSQL_DATABASE", "")
+try:
+    MySQLdb.connect(host=host, user=user, passwd=pwd, db=db, connect_timeout=3)
+    sys.exit(0)
+except Exception as e:
+    sys.exit(1)
+PY
+        do
+          echo "DB not ready for scheduler, retrying..." && sleep 2
+        done
+
         while :; do
           flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
           sleep 60;
