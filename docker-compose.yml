@@ -23,7 +23,7 @@ services:
 
   django:
     build:
-      context: ./app          # ← ここを backend ではなく app に
+      context: ./app          # backend ではなく app を使う
       dockerfile: Dockerfile
     env_file: .env
     depends_on:
@@ -32,37 +32,31 @@ services:
     environment:
       MYSQL_HOST: db
     volumes:
-      - ./app:/app           # manage.py のある階層をマウント
+      - ./app:/app           # manage.py のある階層
       - ./app/deploy:/app/deploy
       - ./var/webhook_dumps:/app/var/webhook_dumps
     expose:
       - "8000"
-    command:
-      - bash
-      - -lc
-      - |
-        # DB が応答するまで待つ（再起動時に migrate が失敗しないように）
-        until python - <<'PY'
-import os, sys, time
-import MySQLdb
-
-host = os.getenv("MYSQL_HOST", "db")
-user = os.getenv("MYSQL_USER", "")
-pwd  = os.getenv("MYSQL_PASSWORD", "")
-db   = os.getenv("MYSQL_DATABASE", "")
-try:
-    MySQLdb.connect(host=host, user=user, passwd=pwd, db=db, connect_timeout=3)
-    sys.exit(0)
-except Exception as e:
-    sys.exit(1)
+    command: >
+      bash -lc '
+        until python - <<'"'"'PY'"'"'
+import os, MySQLdb
+MySQLdb.connect(
+    host=os.getenv("MYSQL_HOST", "db"),
+    user=os.getenv("MYSQL_USER", ""),
+    passwd=os.getenv("MYSQL_PASSWORD", ""),
+    db=os.getenv("MYSQL_DATABASE", ""),
+    connect_timeout=3,
+)
 PY
         do
           echo "DB not ready, retrying..." && sleep 2
-        done
+        done;
 
         python manage.py migrate &&
         python manage.py collectstatic --noinput &&
         python manage.py runserver 0.0.0.0:8000
+      '
 
   caddy:
     image: caddy:2-alpine
@@ -94,22 +88,18 @@ PY
     command: >
       bash -lc '
         until python - <<'"'"'PY'"'"'
-import os, sys, time
-import MySQLdb
-
-host = os.getenv("MYSQL_HOST", "db")
-user = os.getenv("MYSQL_USER", "")
-pwd  = os.getenv("MYSQL_PASSWORD", "")
-db   = os.getenv("MYSQL_DATABASE", "")
-try:
-    MySQLdb.connect(host=host, user=user, passwd=pwd, db=db, connect_timeout=3)
-    sys.exit(0)
-except Exception as e:
-    sys.exit(1)
+import os, MySQLdb
+MySQLdb.connect(
+    host=os.getenv("MYSQL_HOST", "db"),
+    user=os.getenv("MYSQL_USER", ""),
+    passwd=os.getenv("MYSQL_PASSWORD", ""),
+    db=os.getenv("MYSQL_DATABASE", ""),
+    connect_timeout=3,
+)
 PY
         do
           echo "DB not ready for scheduler, retrying..." && sleep 2
-        done
+        done;
 
         while :; do
           flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
