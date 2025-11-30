@@ -252,17 +252,28 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # === Instagram / Threads settings (envで上書き可能) ===
 INSTAGRAM_PROFESSIONAL_ID = os.getenv("INSTAGRAM_PROFESSIONAL_ID", "17841475861395637")
-THREADS_ACCESS_TOKEN = os.getenv("THREADS_ACCESS_TOKEN", "YOUR_THREADS_ACCESS_TOKEN")
 
+# Threads API
+THREADS_API_BASE_URL = os.getenv("THREADS_API_BASE_URL", "https://graph.threads.net/v1.0")
+THREADS_APP_ID = os.getenv("META_THREADS_APP_ID", os.getenv("TH_APP_ID", ""))
+THREADS_APP_SECRET = os.getenv("META_THREADS_APP_SECRET", os.getenv("TH_APP_SECRET", ""))
+THREADS_USER_ACCESS_TOKEN = os.getenv("META_THREADS_ACCESS_TOKEN", os.getenv("THREADS_ACCESS_TOKEN", ""))
+THREADS_WEBHOOK_VERIFY_TOKEN = os.getenv("THREADS_WEBHOOK_VERIFY_TOKEN",
+                                         os.getenv("META_THREADS_WEBHOOK_VERIFY_TOKEN", ""))
+THREADS_WEBHOOK_SECRET = os.getenv("THREADS_WEBHOOK_SECRET", THREADS_APP_SECRET)
+
+# Facebook/Instagram
 FACEBOOK_APP_ID = os.getenv("FACEBOOK_APP_ID", "")
 FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
-IG_APP_ID = os.getenv("IG_APP_ID", "")
-IG_APP_SECRET = os.getenv("IG_APP_SECRET", "")
-IG_REDIRECT_URI = os.getenv("IG_REDIRECT_URI", "")
+IG_APP_ID = os.getenv("META_IG_APP_ID", "")
+IG_APP_SECRET = os.getenv("META_IG_APP_SECRET", "")
+IG_REDIRECT_URI = os.getenv("META_IG_REDIRECT_URI", "")
 VERIFY_TOKEN_IG = os.getenv("VERIFY_TOKEN_IG", "test_token_ig")
 VERIFY_TOKEN_TH = os.getenv("VERIFY_TOKEN_TH", "test_token_th")
-TH_APP_ID = os.getenv("TH_APP_ID", "")
-TH_APP_SECRET = os.getenv("TH_APP_SECRET", "")
+# 互換用（既存コードが参照している可能性があるので Threads と合わせる）
+TH_APP_ID = THREADS_APP_ID
+TH_APP_SECRET = THREADS_APP_SECRET
+
 DEFAULT_API_VERSION = os.getenv("DEFAULT_API_VERSION", "v23.0")
 WORKER_INTERVAL_SEC = int(os.getenv("WORKER_INTERVAL_SEC", "5"))
 

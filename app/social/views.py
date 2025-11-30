@@ -10,6 +10,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from django.conf import settings
+import hashlib
+import hmac
+from django.views.decorators.http import require_http_methods
+from social.services.threads_api import verify_signature
 
 from .models import (
     ScheduledPost, WebhookEvent, DMMessage, AutoReplyRule, Job, Platform
@@ -134,10 +138,17 @@ def webhook_threads(request):
     if request.method == 'GET':
         token = request.GET.get('hub.verify_token')
         challenge = request.GET.get('hub.challenge')
-        if token == settings.VERIFY_TOKEN_TH:
+        expected = getattr(settings, "THREADS_WEBHOOK_VERIFY_TOKEN", "") or getattr(settings, "VERIFY_TOKEN_TH", "")
+        if token and token == expected:
             return HttpResponse(challenge or '')
         return HttpResponse('forbidden', status=403)
 
-    payload = json.loads(request.body.decode('utf-8') or '{}')
+    raw = request.body or b""
+    sig_header = request.headers.get("X-Hub-Signature-256", "")
+    secret = getattr(settings, "THREADS_WEBHOOK_SECRET", "") or getattr(settings, "THREADS_APP_SECRET", "")
+    if secret and not verify_signature(raw, sig_header, secret):
+        return HttpResponse(status=401)
+
+    payload = json.loads(raw.decode('utf-8') or '{}')
     WebhookEvent.objects.create(platform=Platform.THREADS, field='', payload=payload)
     return JsonResponse({'status': 'ok'})

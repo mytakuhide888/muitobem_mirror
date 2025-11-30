@@ -1,8 +1,15 @@
-from django.core.management.base import BaseCommand
-from django.utils import timezone
-from django.db import transaction
+import logging
 
-from th.models import THScheduledPost  # ← ここが大事（以前の ScheduledPost ではない）
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.utils import timezone
+
+from social.services.threads_api import ThreadsApiClient, ThreadsCredentials, ThreadsApiError
+from th.models import THScheduledPost
+
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = "Threads 予約投稿の実行（--dry-run で送信せずログだけ）"
@@ -30,27 +37,31 @@ class Command(BaseCommand):
                 self.stdout.write("DRY-RUN: " + msg)
                 continue
 
-            # --- 実投稿（Threads API 呼び出し部） ---
             ok, err = self._post_to_threads(post)
-            # -------------------------------------
 
             with transaction.atomic():
-                if ok:
-                    post.status = THScheduledPost.Status.SENT
-                else:
-                    post.status = THScheduledPost.Status.FAILED
+                post.status = THScheduledPost.Status.SENT if ok else THScheduledPost.Status.FAILED
                 post.save(update_fields=["status"])
                 self.stdout.write(("SENT: " if ok else "FAILED: ") + msg + ("" if ok else f" :: {err}"))
 
     def _post_to_threads(self, post):
         """
-        実際の Threads 投稿処理をここに実装。
-        ひとまず成功した体で True を返す。エラー時は (False, '理由') を返す。
+        実際の Threads 投稿処理。成功で (True, id)、失敗で (False, error) を返す。
         """
         try:
-            # 例：
-            # token = post.account.access_token など取得し API 呼び出し
-            # ...
-            return True, None
+            account = post.account
+            user_id = getattr(account, "threads_user_id", "") or getattr(account, "external_id", "")
+            token = getattr(account, "access_token", "") or getattr(settings, "THREADS_USER_ACCESS_TOKEN", "")
+            if not user_id or not token:
+                return False, "missing user_id or access_token"
+
+            client = ThreadsApiClient(ThreadsCredentials(user_id=user_id, access_token=token))
+            creation_id = client.create_text_container(text=post.body or "")
+            published_id = client.publish_container(creation_id=creation_id)
+            return True, published_id
+        except ThreadsApiError as e:
+            logger.warning("Threads API error: %s", e)
+            return False, str(e)
         except Exception as e:
+            logger.exception("Unexpected error posting to Threads")
             return False, str(e)

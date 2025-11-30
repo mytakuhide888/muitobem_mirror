@@ -1,64 +1,148 @@
-"""Threads API クライアントのスタブ"""
-"""Threads API wrapper stubs.
+"""Threads Graph API client."""
 
-The real Threads API is not publicly documented, so these functions act
-as placeholders that mirror the behaviour expected by the rest of the
-application.  They perform no persistence and simply return dictionaries
-that resemble successful API responses.
-"""
+from __future__ import annotations
 
-from datetime import datetime
-from typing import Dict, List, Optional
+import dataclasses
+import hashlib
+import hmac
+import logging
+from typing import Any, Dict, Optional
 
+import requests
+from django.conf import settings
 
-def fetch_posts(access_token: str, user_id: str, since: datetime | None = None) -> List[Dict]:
-    """Fetch public posts for a user (stub)."""
-    dummy = {
-        "id": "thr1",
-        "content": "Threadsテスト投稿",
-        "like_count": 1,
-        "view_count": 10,
-        "posted_at": datetime.now().isoformat(),
-    }
-    return [dummy]
+logger = logging.getLogger(__name__)
 
 
-def post_thread(access_token: str, user_id: str, text: str) -> Dict:
-    """Create a text post (stub)."""
-    return {"id": "posted", "text": text}
+class ThreadsApiError(Exception):
+    """Raised when Threads API returns non-2xx or malformed response."""
 
 
-# ---- Additional helper functions required by the tasks ----
+@dataclasses.dataclass
+class ThreadsCredentials:
+    user_id: str
+    access_token: str
 
 
-def create_post(account_token: str, kind: str, payload: Dict) -> Dict:
-    """Create a Threads post.
-
-    Parameters mirror the expected API: ``kind`` can be ``text``,
-    ``image`` or ``video``.  ``payload`` contains the media details.
-    """
-    return {"kind": kind, "payload": payload, "access_token": account_token}
-
-
-def fetch_replies(post_id: str, account_token: str, since_ts: Optional[int] = None) -> Dict:
-    return {"post_id": post_id, "since": since_ts, "access_token": account_token}
+def verify_signature(raw_body: bytes, signature_header: str | None, secret: str) -> bool:
+    """Verify X-Hub-Signature-256 header with given secret."""
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    received = signature_header.split("=", 1)[1]
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(received, expected)
 
 
-def reply_to_post(post_id: str, account_token: str, text: str) -> Dict:
-    return {"post_id": post_id, "text": text, "access_token": account_token}
+class ThreadsApiClient:
+    def __init__(self, credentials: ThreadsCredentials):
+        self.base_url = getattr(settings, "THREADS_API_BASE_URL", "https://graph.threads.net/v1.0").rstrip("/")
+        self.credentials = credentials
 
+    # -------- internal --------
+    def _request(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        params = dict(params or {})
+        params.setdefault("access_token", self.credentials.access_token)
 
-def hide_reply(reply_id: str, account_token: str, hide: bool) -> Dict:
-    return {"reply_id": reply_id, "hidden": hide, "access_token": account_token}
+        resp = requests.request(method, url, params=params, json=json, timeout=10)
+        try:
+            data = resp.json()
+        except ValueError:
+            data = {"raw": resp.text}
 
+        if not resp.ok:
+            # 不用意にトークンをログに出さない
+            redacted = {k: ("***" if "token" in k else v) for k, v in data.items()} if isinstance(data, dict) else data
+            logger.warning("Threads API error %s %s -> %s", method, url, redacted)
+            raise ThreadsApiError(f"{resp.status_code}: {redacted}")
+        return data if isinstance(data, dict) else {"data": data}
 
-def fetch_public_profile(identifier: str) -> Dict:
-    return {"user": identifier}
+    # -------- publish --------
+    def create_text_container(
+        self,
+        text: str,
+        reply_to_id: Optional[str] = None,
+        quote_post_id: Optional[str] = None,
+        link_attachment: Optional[str] = None,
+    ) -> str:
+        payload: Dict[str, Any] = {"media_type": "TEXT", "text": text}
+        if reply_to_id:
+            payload["reply_to_id"] = reply_to_id
+        if quote_post_id:
+            payload["quote_post_id"] = quote_post_id
+        if link_attachment:
+            payload["link_attachment"] = link_attachment
+        data = self._request("POST", f"{self.credentials.user_id}/threads", json=payload)
+        return str(data.get("id", ""))
 
+    def publish_container(self, creation_id: str) -> str:
+        data = self._request(
+            "POST",
+            f"{self.credentials.user_id}/threads_publish",
+            json={"creation_id": creation_id},
+        )
+        return str(data.get("id", ""))
 
-def fetch_public_posts(user_id: str, since_ts: Optional[int] = None) -> Dict:
-    return {"user_id": user_id, "since": since_ts}
+    def post_text(self, text: str) -> str:
+        cid = self.create_text_container(text=text)
+        return self.publish_container(creation_id=cid)
 
+    def post_reply(self, reply_to_id: str, text: str) -> str:
+        cid = self.create_text_container(text=text, reply_to_id=reply_to_id)
+        return self.publish_container(creation_id=cid)
 
-def fetch_insights_media(media_id: str, account_token: str, metrics: List[str]) -> Dict:
-    return {"media_id": media_id, "metrics": metrics, "access_token": account_token}
+    # -------- fetch --------
+    def get_profile(
+        self,
+        fields: str = "id,username,threads_biography,threads_profile_picture_url",
+    ) -> Dict[str, Any]:
+        return self._request("GET", self.credentials.user_id, params={"fields": fields})
+
+    def get_threads(
+        self,
+        limit: int = 25,
+        after: Optional[str] = None,
+        before: Optional[str] = None,
+        fields: str = "id,username,text,timestamp,children,has_replies,is_reply,root_post,replied_to",
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {"limit": limit, "fields": fields}
+        if after:
+            params["after"] = after
+        if before:
+            params["before"] = before
+        return self._request("GET", f"{self.credentials.user_id}/threads", params=params)
+
+    def get_replies(
+        self,
+        media_id: str,
+        limit: int = 50,
+        after: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {
+            "limit": limit,
+            "reverse": True,
+            "fields": "id,username,text,timestamp,is_reply,root_post,replied_to,hide_status",
+        }
+        if after:
+            params["after"] = after
+        return self._request("GET", f"{media_id}/replies", params=params)
+
+    def get_media(self, media_id: str, fields: str) -> Dict[str, Any]:
+        return self._request("GET", f"{media_id}", params={"fields": fields})
+
+    def get_media_insights(self, media_id: str, metrics: str) -> Dict[str, Any]:
+        return self._request("GET", f"{media_id}/insights", params={"metric": metrics})
+
+    def get_user_insights(self, metrics: str, since: Optional[int] = None, until: Optional[int] = None) -> Dict[str, Any]:
+        params: Dict[str, Any] = {"metric": metrics}
+        if since:
+            params["since"] = since
+        if until:
+            params["until"] = until
+        return self._request("GET", f"{self.credentials.user_id}/threads_insights", params=params)

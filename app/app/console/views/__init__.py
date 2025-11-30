@@ -26,7 +26,7 @@ from ..forms import MessageTemplateForm
 logger = logging.getLogger(__name__)
 
 REQUIRED_ENV = [
-    "IG_APP_ID", "IG_APP_SECRET", "WEBHOOK_VERIFY_TOKEN",
+    "META_IG_APP_ID", "META_IG_APP_SECRET", "WEBHOOK_VERIFY_TOKEN",
 ]
 RECOMMENDED_ENV = [
     "GRAPH_API_TOKEN", "FB_APP_ID", "FB_APP_SECRET",
@@ -70,7 +70,7 @@ def _sig_headers(service: str, body: bytes):
     h = {}
     app_secret = None
     if service == "ig":
-        app_secret = os.environ.get("IG_APP_SECRET") or os.environ.get("FB_APP_SECRET") or os.environ.get("META_APP_SECRET")
+        app_secret = os.environ.get("META_IG_APP_SECRET") or os.environ.get("FB_APP_SECRET") or os.environ.get("META_APP_SECRET")
     elif service == "th":
         # Threads 用に決め打ち Secret があればここで読む（無ければ IG と同じ候補を流用）
         app_secret = os.environ.get("META_APP_SECRET") or os.environ.get("FB_APP_SECRET")
@@ -279,7 +279,7 @@ def connection_test(request):
     # 5) 環境変数（存在のみ。値はマスク）
     env_keys = [
         # Meta/IG
-        "IG_APP_ID", "IG_APP_SECRET", "GRAPH_API_TOKEN", "FB_APP_ID", "FB_APP_SECRET",
+        "META_IG_APP_ID", "META_IG_APP_SECRET", "GRAPH_API_TOKEN", "FB_APP_ID", "FB_APP_SECRET",
         # Threads 側（例）
         "THREADS_USERNAME", "THREADS_PASSWORD",
         # 汎用
