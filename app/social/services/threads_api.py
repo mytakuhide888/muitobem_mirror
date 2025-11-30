@@ -146,3 +146,55 @@ class ThreadsApiClient:
         if until:
             params["until"] = until
         return self._request("GET", f"{self.credentials.user_id}/threads_insights", params=params)
+
+
+# ---- Backward compatibility stubs (old signatures) ----
+def _resolve_creds(access_token: str, user_id: str) -> ThreadsCredentials:
+    token = access_token or getattr(settings, "THREADS_USER_ACCESS_TOKEN", "")
+    uid = user_id or getattr(settings, "INSTAGRAM_PROFESSIONAL_ID", "")  # best-effort fallback
+    return ThreadsCredentials(user_id=uid, access_token=token)
+
+
+def fetch_posts(access_token: str, user_id: str, since=None):
+    """
+    Old stub signature used by post_importer. Returns a list of dicts.
+    """
+    creds = _resolve_creds(access_token, user_id)
+    if not creds.user_id or not creds.access_token:
+        logger.warning("fetch_posts: missing user_id or access_token")
+        return []
+    try:
+        client = ThreadsApiClient(creds)
+        data = client.get_threads(limit=25)
+        items = data.get("data") or []
+        results = []
+        for it in items:
+            results.append({
+                "id": str(it.get("id", "")),
+                "content": it.get("text", ""),
+                "like_count": it.get("like_count", 0) or 0,
+                "view_count": it.get("view_count"),
+                "posted_at": it.get("timestamp") or "",
+                "raw": it,
+            })
+        return results
+    except Exception as e:
+        logger.warning("fetch_posts failed: %s", e)
+        return []
+
+
+def post_thread(access_token: str, user_id: str, text: str):
+    """
+    Old stub signature used by scheduler. Returns dict with id/text.
+    """
+    creds = _resolve_creds(access_token, user_id)
+    if not creds.user_id or not creds.access_token:
+        logger.warning("post_thread: missing user_id or access_token")
+        return {"error": "missing credentials"}
+    try:
+        client = ThreadsApiClient(creds)
+        pid = client.post_text(text)
+        return {"id": pid, "text": text}
+    except Exception as e:
+        logger.warning("post_thread failed: %s", e)
+        return {"error": str(e)}
