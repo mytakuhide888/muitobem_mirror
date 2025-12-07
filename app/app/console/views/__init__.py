@@ -1,5 +1,6 @@
 import json, os, hmac, hashlib, re
 import logging
+from django.conf import settings
 from django.db.models import Q
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -141,6 +142,12 @@ def logs(request):
         "/app/logs/django.log",
         "/var/log/app/django.log",
     ]
+    # settings.LOG_FILE があれば優先的に確認
+    try:
+        if hasattr(settings, "LOG_FILE"):
+            log_path_candidates.insert(0, str(settings.LOG_FILE))
+    except Exception:
+        pass
     lines = []
     used_path = None
     for p in log_path_candidates:
