@@ -37,21 +37,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **opts):
-        # Playwright sync API は async コンテキスト内で動作しないため、
-        # イベントループが存在する場合は別スレッドで実行する
-        import asyncio
-        try:
-            asyncio.get_running_loop()
-            from concurrent.futures import ThreadPoolExecutor
-            logger.info("[CMD] async コンテキスト検出 → 別スレッドで実行")
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                pool.submit(self._handle_impl, *args, **opts).result()
-            return
-        except RuntimeError:
-            pass
-        self._handle_impl(*args, **opts)
+        # Playwright sync API が内部でイベントループを作成するため、
+        # Django ORM の async safety チェックを無効化する
+        import os
+        os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
-    def _handle_impl(self, *args, **opts):
         job = None
         keywords = opts.get('keywords') or []
 
