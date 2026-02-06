@@ -390,6 +390,8 @@ class ThreadsBuzzScraper:
         self._browser = None
         self._context = None
         self._page = None
+        self._response_handler = None
+        self._captured_thread_data: List[str] = []
 
     def _ensure_browser(self):
         if self._page is None:
@@ -403,7 +405,53 @@ class ThreadsBuzzScraper:
                 logger.error("[DEBUG] ブラウザ起動失敗: %s", e, exc_info=True)
                 raise
 
+    # ─── API レスポンス傍受 ───
+
+    def _start_response_capture(self):
+        """スクロール時の GraphQL API レスポンスを傍受開始"""
+        self._captured_thread_data = []
+
+        def _on_response(response):
+            try:
+                url = response.url
+                if '/api/' not in url:
+                    return
+                content_type = response.headers.get('content-type', '')
+                if 'json' not in content_type:
+                    return
+                body = response.text()
+                if '"thread_items"' in body:
+                    self._captured_thread_data.append(body)
+                    logger.info("[DEBUG] API レスポンス傍受: URL=%s, body長=%d",
+                                url[:120], len(body))
+            except Exception as e:
+                logger.debug("[DEBUG] レスポンス傍受エラー: %s", e)
+
+        self._response_handler = _on_response
+        self._page.on('response', self._response_handler)
+        logger.info("[DEBUG] API レスポンス傍受を開始")
+
+    def _stop_response_capture(self):
+        """API レスポンス傍受を停止"""
+        if self._response_handler:
+            self._page.remove_listener('response', self._response_handler)
+            self._response_handler = None
+            logger.info("[DEBUG] API レスポンス傍受を停止")
+
+    def _collect_captured_posts(self) -> List[Dict]:
+        """傍受したレスポンスから投稿データを抽出してバッファをクリア"""
+        posts = []
+        for body in self._captured_thread_data:
+            extracted = _extract_thread_items_from_html(body)
+            posts.extend(extracted)
+        resp_count = len(self._captured_thread_data)
+        self._captured_thread_data.clear()
+        if resp_count > 0:
+            logger.info("[DEBUG] 傍受レスポンス %d件から %d投稿を抽出", resp_count, len(posts))
+        return posts
+
     def close(self):
+        self._stop_response_capture()
         if self._browser:
             self._browser.close()
         if self._pw:
@@ -480,7 +528,10 @@ class ThreadsBuzzScraper:
 
         logger.info("初回抽出: %d件", len(posts))
 
-        # スクロールして追加データを取得
+        # API レスポンス傍受を開始してスクロール
+        self._start_response_capture()
+        no_new_count = 0
+
         for i in range(ScraperConfig.MAX_SCROLL_COUNT):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
@@ -491,10 +542,16 @@ class ThreadsBuzzScraper:
             time.sleep(random.uniform(3, 6))
             new_height = self._page.evaluate('document.body.scrollHeight')
 
+            # 傍受した API レスポンスから投稿を抽出
+            api_posts = self._collect_captured_posts()
+
+            # SSR HTML からも抽出（フォールバック）
             html = self._page.content()
-            new_posts = _extract_thread_items_from_html(html)
+            html_posts = _extract_thread_items_from_html(html)
+
+            all_new = api_posts + html_posts
             added = 0
-            for p in new_posts:
+            for p in all_new:
                 key = p.get('post_url') or p.get('text_content', '')[:100]
                 if key not in seen_urls:
                     seen_urls.add(key)
@@ -502,10 +559,17 @@ class ThreadsBuzzScraper:
                     posts.append(p)
                     added += 1
 
-            logger.info("スクロール #%d: 新規 %d件 (累計 %d件)", i + 1, added, len(posts))
-            if new_height == prev_height and added == 0:
-                break
+            logger.info("スクロール #%d: 新規 %d件 (API=%d, HTML=%d) 累計 %d件",
+                        i + 1, added, len(api_posts), len(html_posts), len(posts))
 
+            if added == 0:
+                no_new_count += 1
+                if no_new_count >= 2 and new_height == prev_height:
+                    break
+            else:
+                no_new_count = 0
+
+        self._stop_response_capture()
         logger.info("検索完了: %s → %d件取得", keyword, len(posts))
         return posts
 
@@ -538,7 +602,94 @@ class ThreadsBuzzScraper:
         profile = _extract_profile_from_html(html, username)
         logger.info("[DEBUG] プロフィール抽出結果: display_name=%s, followers=%s, following=%s",
                     profile.get('display_name'), profile.get('followers_count'), profile.get('following_count'))
+
+        # 参加日を取得（モーダル経由）
+        joined_at = self._extract_join_date()
+        if joined_at:
+            profile['joined_at'] = joined_at
+
         return profile
+
+    # ─── 参加日取得 ───
+
+    def _extract_join_date(self) -> Optional[str]:
+        """
+        プロフィールページの「...」→「このプロフィールについて」モーダルから
+        参加日テキスト（例: "2025年2月"）を取得する。
+        """
+        try:
+            # 「...」ボタン（3点リーダー）を探してクリック
+            more_button = None
+            for selector in [
+                '[aria-label="その他"]',
+                '[aria-label="More options"]',
+                '[aria-label="More"]',
+            ]:
+                try:
+                    el = self._page.locator(selector).first
+                    if el.is_visible(timeout=2000):
+                        more_button = el
+                        break
+                except Exception:
+                    continue
+
+            if not more_button:
+                logger.warning("[DEBUG] 参加日: '...'ボタンが見つかりません")
+                return None
+
+            more_button.click()
+            time.sleep(1)
+
+            # 「このプロフィールについて」をクリック
+            try:
+                about_btn = self._page.get_by_text('このプロフィールについて')
+                about_btn.click(timeout=5000)
+            except Exception:
+                try:
+                    about_btn = self._page.get_by_text('About this profile')
+                    about_btn.click(timeout=3000)
+                except Exception:
+                    logger.warning("[DEBUG] 参加日: 'このプロフィールについて'が見つかりません")
+                    self._page.keyboard.press('Escape')
+                    time.sleep(0.5)
+                    return None
+
+            time.sleep(2)
+
+            # モーダルからテキストを取得
+            page_html = self._page.content()
+
+            # 「参加日」の後の日付を抽出（例: "2025年2月"）
+            match = re.search(r'参加日.*?(\d{4}年\d{1,2}月)', page_html)
+            if match:
+                joined_at = match.group(1)
+                logger.info("[DEBUG] 参加日抽出成功: %s", joined_at)
+                self._page.keyboard.press('Escape')
+                time.sleep(0.5)
+                return joined_at
+
+            # 英語フォールバック（"Joined February 2025"）
+            match = re.search(r'Joined\s+(\w+\s+\d{4})', page_html)
+            if match:
+                joined_at = match.group(1)
+                logger.info("[DEBUG] 参加日抽出成功(EN): %s", joined_at)
+                self._page.keyboard.press('Escape')
+                time.sleep(0.5)
+                return joined_at
+
+            logger.warning("[DEBUG] 参加日テキストがモーダル内に見つかりません")
+            self._page.keyboard.press('Escape')
+            time.sleep(0.5)
+
+        except Exception as e:
+            logger.warning("[DEBUG] 参加日取得エラー: %s", e)
+            try:
+                self._page.keyboard.press('Escape')
+                time.sleep(0.5)
+            except Exception:
+                pass
+
+        return None
 
     # ─── 投稿者の過去投稿取得 ───
 
@@ -589,6 +740,10 @@ class ThreadsBuzzScraper:
                 seen_urls.add(key)
                 posts.append(p)
 
+        # API レスポンス傍受を開始してスクロール
+        self._start_response_capture()
+        no_new_count = 0
+
         for i in range(max_scrolls):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
@@ -599,10 +754,16 @@ class ThreadsBuzzScraper:
             time.sleep(random.uniform(3, 6))
             new_height = self._page.evaluate('document.body.scrollHeight')
 
+            # 傍受した API レスポンスから投稿を抽出
+            api_posts = self._collect_captured_posts()
+
+            # SSR HTML からも抽出（フォールバック）
             html = self._page.content()
-            new_posts = _extract_thread_items_from_html(html)
+            html_posts = _extract_thread_items_from_html(html)
+
+            all_new = api_posts + html_posts
             added = 0
-            for p in new_posts:
+            for p in all_new:
                 p['username'] = username
                 key = p.get('post_url') or p.get('text_content', '')[:100]
                 if key not in seen_urls:
@@ -610,10 +771,17 @@ class ThreadsBuzzScraper:
                     posts.append(p)
                     added += 1
 
-            logger.info("投稿履歴スクロール #%d: 新規 %d件 (累計 %d件)", i + 1, added, len(posts))
-            if new_height == prev_height and added == 0:
-                break
+            logger.info("投稿履歴スクロール #%d: 新規 %d件 (API=%d, HTML=%d) 累計 %d件",
+                        i + 1, added, len(api_posts), len(html_posts), len(posts))
 
+            if added == 0:
+                no_new_count += 1
+                if no_new_count >= 2 and new_height == prev_height:
+                    break
+            else:
+                no_new_count = 0
+
+        self._stop_response_capture()
         logger.info("投稿履歴取得完了: @%s → %d件", username, len(posts))
         return posts
 

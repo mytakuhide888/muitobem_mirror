@@ -69,6 +69,12 @@
       <span class="stat-value">{{ author.buzz_posts.count }}</span>
       <span class="stat-label">取得済み投稿</span>
     </div>
+    {% if author.raw_json.joined_at %}
+    <div class="stat">
+      <span class="stat-value">{{ author.raw_json.joined_at }}</span>
+      <span class="stat-label">参加日</span>
+    </div>
+    {% endif %}
   </div>
 
   {% if author.bio %}
