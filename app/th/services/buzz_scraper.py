@@ -2,21 +2,24 @@
 """
 Threads バズ投稿スクレイパー
 Playwright (stealth) を使用して Threads 検索結果をスクレイピングする。
+ページソースに埋め込まれた SSR JSON データを抽出する方式。
 Docker 環境では既にインストール済みの Chromium を使用する。
 """
 import json
 import logging
-import os
 import random
 import re
 import shutil
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+THREADS_BASE = "https://www.threads.com"
 
 
 # ─── 設定 ───
@@ -180,6 +183,172 @@ def _create_playwright_browser(headless: bool = True):
     return pw, browser, context, page
 
 
+# ─── SSR JSON 抽出 ───
+
+def _extract_thread_items_from_html(html: str) -> List[Dict]:
+    """ページ HTML から SSR 埋め込み JSON の thread_items を抽出して投稿データ一覧を返す"""
+    posts = []
+
+    # thread_items ブロックを全て探す
+    # 各ブロック: "thread_items":[{"post":{...}}]
+    for m in re.finditer(r'"thread_items":\[\{', html):
+        start = m.start()
+        # thread_items の配列全体を抽出（ネストされた括弧を追跡）
+        arr_start = html.index('[', start)
+        depth = 0
+        pos = arr_start
+        end = min(len(html), arr_start + 20000)  # 安全上限
+        while pos < end:
+            ch = html[pos]
+            if ch == '[':
+                depth += 1
+            elif ch == ']':
+                depth -= 1
+                if depth == 0:
+                    break
+            elif ch == '\\':
+                pos += 1  # エスケープ文字をスキップ
+            pos += 1
+
+        raw = html[arr_start:pos + 1]
+        try:
+            items = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            logger.debug("thread_items JSON パース失敗 (pos=%d)", start)
+            continue
+
+        for item in items:
+            post_obj = item.get('post')
+            if not post_obj:
+                continue
+            parsed = _parse_ssr_post(post_obj)
+            if parsed and parsed.get('text_content'):
+                posts.append(parsed)
+
+    return posts
+
+
+def _parse_ssr_post(post: Dict) -> Optional[Dict]:
+    """SSR JSON の post オブジェクトから必要なフィールドを抽出"""
+    # テキスト取得: caption.text を優先、なければ text_fragments
+    text = ''
+    caption = post.get('caption')
+    if caption and isinstance(caption, dict):
+        text = caption.get('text', '')
+
+    if not text:
+        tpai = post.get('text_post_app_info', {})
+        frags = tpai.get('text_fragments', {}).get('fragments', [])
+        for f in frags:
+            pt = f.get('plaintext', '')
+            if pt:
+                text += pt
+
+    if not text:
+        return None
+
+    # ユーザー情報
+    user = post.get('user', {})
+    username = user.get('username', '')
+    display_name = user.get('full_name', '')
+    is_verified = user.get('is_verified', False)
+
+    # エンゲージメント
+    like_count = post.get('like_count', 0) or 0
+    tpai = post.get('text_post_app_info', {})
+    reply_count = tpai.get('direct_reply_count', 0) or 0
+    repost_count = tpai.get('repost_count', 0) or 0
+
+    # 投稿URL
+    code = post.get('code', '')
+    post_url = f"{THREADS_BASE}/post/{code}" if code else ''
+
+    # 投稿日時
+    taken_at = post.get('taken_at')
+    posted_at = None
+    if taken_at:
+        try:
+            posted_at = datetime.fromtimestamp(int(taken_at), tz=timezone.utc)
+        except (ValueError, OSError):
+            pass
+
+    return {
+        'text_content': text,
+        'username': username,
+        'display_name': display_name,
+        'is_verified': is_verified,
+        'like_count': like_count,
+        'reply_count': reply_count,
+        'repost_count': repost_count,
+        'post_url': post_url,
+        'posted_at': posted_at,
+    }
+
+
+def _extract_profile_from_html(html: str, username: str) -> Dict:
+    """ページ HTML からプロフィール情報を抽出"""
+    profile = {
+        'username': username,
+        'display_name': '',
+        'bio': '',
+        'followers_count': None,
+        'following_count': None,
+        'is_verified': False,
+        'profile_url': f"{THREADS_BASE}/@{username}",
+    }
+
+    # SSR JSON からユーザー情報を探す
+    # "username":"<target>" の前後にプロフィールデータがある
+    pattern = rf'"username":"{re.escape(username)}"'
+    match = re.search(pattern, html)
+    if not match:
+        return profile
+
+    # ユーザーオブジェクトを囲むブロックを広めに取得
+    start = max(0, match.start() - 2000)
+    end = min(len(html), match.end() + 5000)
+    chunk = html[start:end]
+
+    # full_name
+    fn = re.search(r'"full_name":"((?:[^"\\]|\\.)*)"', chunk)
+    if fn:
+        try:
+            profile['display_name'] = fn.group(1).encode('utf-8').decode('unicode_escape')
+        except (UnicodeDecodeError, ValueError):
+            profile['display_name'] = fn.group(1)
+
+    # bio (biography)
+    bio = re.search(r'"biography":"((?:[^"\\]|\\.)*)"', chunk)
+    if bio:
+        try:
+            profile['bio'] = bio.group(1).encode('utf-8').decode('unicode_escape')
+        except (UnicodeDecodeError, ValueError):
+            profile['bio'] = bio.group(1)
+
+    # follower_count
+    fc = re.search(r'"follower_count":(\d+)', chunk)
+    if fc:
+        profile['followers_count'] = int(fc.group(1))
+
+    # following_count
+    fgc = re.search(r'"following_count":(\d+)', chunk)
+    if fgc:
+        profile['following_count'] = int(fgc.group(1))
+
+    # is_verified
+    iv = re.search(r'"is_verified":(true|false)', chunk)
+    if iv:
+        profile['is_verified'] = iv.group(1) == 'true'
+
+    # meta description からの bio 取得（フォールバック）
+    if not profile['bio']:
+        meta = re.search(r'<meta\s+name="description"\s+content="((?:[^"\\]|\\.)*)"', html)
+        if meta:
+            profile['bio'] = meta.group(1)
+
+    return profile
+
+
 # ─── メインスクレイパー ───
 
 class ThreadsBuzzScraper:
@@ -219,7 +388,8 @@ class ThreadsBuzzScraper:
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
 
-        search_url = f"https://www.threads.net/search?q={keyword}&serp_type=default"
+        encoded = quote(keyword)
+        search_url = f"{THREADS_BASE}/search?q={encoded}&serp_type=default"
         logger.info("検索開始: %s → %s", keyword, search_url)
 
         try:
@@ -227,140 +397,45 @@ class ThreadsBuzzScraper:
         except Exception as e:
             logger.warning("ページ読み込みタイムアウト: %s (続行)", e)
 
-        # スクロールして結果を追加読み込み
+        # 初回のページソースから SSR JSON を抽出
+        html = self._page.content()
+        seen_urls = set()
         posts = []
-        for i in range(ScraperConfig.MAX_SCROLL_COUNT):
-            new_posts = self._extract_posts_from_page(keyword)
-            for p in new_posts:
-                if p not in posts:
-                    posts.append(p)
 
+        initial = _extract_thread_items_from_html(html)
+        for p in initial:
+            key = p.get('post_url') or p.get('text_content', '')[:100]
+            if key not in seen_urls:
+                seen_urls.add(key)
+                p['search_keyword'] = keyword
+                posts.append(p)
+
+        logger.info("初回抽出: %d件", len(posts))
+
+        # スクロールして追加データを取得
+        for i in range(ScraperConfig.MAX_SCROLL_COUNT):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-            time.sleep(random.uniform(1.5, 3.5))
+            time.sleep(random.uniform(2, 4))
             new_height = self._page.evaluate('document.body.scrollHeight')
-            if new_height == prev_height:
+
+            html = self._page.content()
+            new_posts = _extract_thread_items_from_html(html)
+            added = 0
+            for p in new_posts:
+                key = p.get('post_url') or p.get('text_content', '')[:100]
+                if key not in seen_urls:
+                    seen_urls.add(key)
+                    p['search_keyword'] = keyword
+                    posts.append(p)
+                    added += 1
+
+            logger.debug("スクロール #%d: 新規 %d件", i + 1, added)
+            if new_height == prev_height and added == 0:
                 break
 
         logger.info("検索完了: %s → %d件取得", keyword, len(posts))
         return posts
-
-    def _extract_posts_from_page(self, keyword: str) -> List[Dict]:
-        """ページ上の投稿要素からデータを抽出"""
-        posts = []
-        try:
-            # Threads の投稿コンテナを取得
-            # セレクタは Threads の DOM 構造に依存するため、変更される可能性あり
-            post_elements = self._page.query_selector_all('[data-pressable-container="true"]')
-            if not post_elements:
-                # フォールバック: article タグ
-                post_elements = self._page.query_selector_all('article')
-            if not post_elements:
-                # フォールバック: div[role="article"]
-                post_elements = self._page.query_selector_all('div[role="article"]')
-
-            for el in post_elements:
-                try:
-                    post = self._parse_post_element(el, keyword)
-                    if post and post.get('text_content'):
-                        posts.append(post)
-                except Exception as e:
-                    logger.debug("投稿解析スキップ: %s", e)
-
-        except Exception as e:
-            logger.warning("投稿抽出エラー: %s", e)
-
-        return posts
-
-    def _parse_post_element(self, el, keyword: str) -> Optional[Dict]:
-        """個別の投稿要素を解析"""
-        text = ''
-        username = ''
-        display_name = ''
-        like_count = 0
-        reply_count = 0
-        repost_count = 0
-        post_url = ''
-
-        # テキスト抽出
-        text_el = el.query_selector('[dir="auto"]')
-        if text_el:
-            text = text_el.inner_text().strip()
-
-        if not text:
-            return None
-
-        # ユーザー名抽出（@付きリンク）
-        link_els = el.query_selector_all('a[href*="/@"]')
-        for link in link_els:
-            href = link.get_attribute('href') or ''
-            match = re.search(r'/@([^/?]+)', href)
-            if match:
-                username = match.group(1)
-                display_name = link.inner_text().strip()
-                break
-
-        # 投稿URLの抽出
-        time_link = el.query_selector('a[href*="/post/"]')
-        if time_link:
-            href = time_link.get_attribute('href') or ''
-            if href.startswith('/'):
-                post_url = f"https://www.threads.net{href}"
-            elif href.startswith('http'):
-                post_url = href
-
-        # エンゲージメント数の抽出
-        like_count = self._extract_count(el, 'like')
-        reply_count = self._extract_count(el, 'reply')
-        repost_count = self._extract_count(el, 'repost')
-
-        return {
-            'text_content': text,
-            'username': username,
-            'display_name': display_name,
-            'like_count': like_count,
-            'reply_count': reply_count,
-            'repost_count': repost_count,
-            'post_url': post_url,
-            'search_keyword': keyword,
-        }
-
-    def _extract_count(self, el, action_type: str) -> int:
-        """いいね/リプライ/リポスト数を抽出"""
-        try:
-            # aria-label からの取得を試みる
-            buttons = el.query_selector_all('div[role="button"]')
-            for btn in buttons:
-                label = btn.get_attribute('aria-label') or ''
-                label_lower = label.lower()
-                if action_type == 'like' and ('like' in label_lower or 'いいね' in label_lower):
-                    return self._parse_count_text(label)
-                elif action_type == 'reply' and ('reply' in label_lower or 'repl' in label_lower or '返信' in label_lower):
-                    return self._parse_count_text(label)
-                elif action_type == 'repost' and ('repost' in label_lower or 'リポスト' in label_lower):
-                    return self._parse_count_text(label)
-        except Exception:
-            pass
-        return 0
-
-    @staticmethod
-    def _parse_count_text(text: str) -> int:
-        """テキストから数値を抽出 (例: '1.2K', '500', '1万')"""
-        numbers = re.findall(r'[\d,.]+[KkMm万]?', text)
-        for n in numbers:
-            n = n.replace(',', '')
-            if n.endswith(('K', 'k')):
-                return int(float(n[:-1]) * 1000)
-            elif n.endswith(('M', 'm')):
-                return int(float(n[:-1]) * 1000000)
-            elif n.endswith('万'):
-                return int(float(n[:-1]) * 10000)
-            else:
-                try:
-                    return int(float(n))
-                except ValueError:
-                    pass
-        return 0
 
     # ─── プロフィール取得 ───
 
@@ -369,7 +444,7 @@ class ThreadsBuzzScraper:
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
 
-        profile_url = f"https://www.threads.net/@{username}"
+        profile_url = f"{THREADS_BASE}/@{username}"
         logger.info("プロフィール取得: @%s", username)
 
         try:
@@ -377,41 +452,8 @@ class ThreadsBuzzScraper:
         except Exception as e:
             logger.warning("プロフィール読み込みタイムアウト: %s (続行)", e)
 
-        profile = {
-            'username': username,
-            'display_name': '',
-            'bio': '',
-            'followers_count': None,
-            'following_count': None,
-            'is_verified': False,
-            'profile_url': profile_url,
-        }
-
-        try:
-            # 表示名
-            title_el = self._page.query_selector('h1, h2, [data-testid="user-name"]')
-            if title_el:
-                profile['display_name'] = title_el.inner_text().strip()
-
-            # 自己紹介
-            bio_el = self._page.query_selector('meta[name="description"]')
-            if bio_el:
-                profile['bio'] = bio_el.get_attribute('content') or ''
-
-            # フォロワー数
-            page_text = self._page.content()
-            followers_match = re.search(r'([\d,.]+[KkMm万]?)\s*(?:followers|フォロワー)', page_text)
-            if followers_match:
-                profile['followers_count'] = self._parse_count_text(followers_match.group(1))
-
-            # 認証バッジ
-            verified_el = self._page.query_selector('[data-testid="verified-badge"], svg[aria-label*="認証"]')
-            if verified_el:
-                profile['is_verified'] = True
-
-        except Exception as e:
-            logger.warning("プロフィール解析エラー @%s: %s", username, e)
-
+        html = self._page.content()
+        profile = _extract_profile_from_html(html, username)
         return profile
 
     # ─── 投稿者の過去投稿取得 ───
@@ -421,7 +463,7 @@ class ThreadsBuzzScraper:
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
 
-        profile_url = f"https://www.threads.net/@{username}"
+        profile_url = f"{THREADS_BASE}/@{username}"
         logger.info("投稿履歴取得開始: @%s", username)
 
         try:
@@ -429,19 +471,36 @@ class ThreadsBuzzScraper:
         except Exception as e:
             logger.warning("ページ読み込みタイムアウト: %s (続行)", e)
 
+        html = self._page.content()
+        seen_urls = set()
         posts = []
-        for i in range(max_scrolls):
-            new_posts = self._extract_posts_from_page(keyword='')
-            for p in new_posts:
-                p['username'] = username
-                if p not in posts:
-                    posts.append(p)
 
+        initial = _extract_thread_items_from_html(html)
+        for p in initial:
+            p['username'] = username
+            key = p.get('post_url') or p.get('text_content', '')[:100]
+            if key not in seen_urls:
+                seen_urls.add(key)
+                posts.append(p)
+
+        for i in range(max_scrolls):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
             time.sleep(random.uniform(2, 5))
             new_height = self._page.evaluate('document.body.scrollHeight')
-            if new_height == prev_height:
+
+            html = self._page.content()
+            new_posts = _extract_thread_items_from_html(html)
+            added = 0
+            for p in new_posts:
+                p['username'] = username
+                key = p.get('post_url') or p.get('text_content', '')[:100]
+                if key not in seen_urls:
+                    seen_urls.add(key)
+                    posts.append(p)
+                    added += 1
+
+            if new_height == prev_height and added == 0:
                 break
 
         logger.info("投稿履歴取得完了: @%s → %d件", username, len(posts))

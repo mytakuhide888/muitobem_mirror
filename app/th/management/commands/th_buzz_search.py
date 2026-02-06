@@ -76,7 +76,7 @@ class Command(BaseCommand):
                             username=username,
                             defaults={
                                 'display_name': post_data.get('display_name', ''),
-                                'profile_url': f"https://www.threads.net/@{username}",
+                                'profile_url': f"https://www.threads.com/@{username}",
                             },
                         )
 

@@ -48,7 +48,7 @@ class Command(BaseCommand):
         elif username:
             author, _ = THBuzzAuthor.objects.get_or_create(
                 username=username,
-                defaults={'profile_url': f"https://www.threads.net/@{username}"},
+                defaults={'profile_url': f"https://www.threads.com/@{username}"},
             )
         else:
             self.stderr.write("--username または --author-id を指定してください")
