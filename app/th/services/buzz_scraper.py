@@ -12,7 +12,7 @@ import random
 import re
 import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from typing import Dict, List, Optional
 from urllib.parse import quote
 
@@ -291,7 +291,7 @@ def _parse_ssr_post(post: Dict) -> Optional[Dict]:
     posted_at = None
     if taken_at:
         try:
-            posted_at = datetime.fromtimestamp(int(taken_at), tz=timezone.utc)
+            posted_at = datetime.fromtimestamp(int(taken_at), tz=dt_timezone.utc)
         except (ValueError, OSError):
             pass
 
