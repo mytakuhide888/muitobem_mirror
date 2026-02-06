@@ -9,12 +9,14 @@ import sys
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from th.models import THBuzzAuthor, THBuzzPost, THBuzzSearchJob
+from th.services.buzz_scraper import check_session_validity
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,11 @@ def buzz_search(request):
         qs = qs.filter(scraped_at__date__lte=date_to)
 
     qs = qs.order_by(sort_by)
-    posts = qs[:500]  # 上限500件
+
+    # ─── ページネーション ───
+    paginator = Paginator(qs, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
 
     # ─── 検索キーワード一覧（フィルタ用） ───
     keywords_list = (
@@ -73,11 +79,23 @@ def buzz_search(request):
     # ─── 最近のジョブ ───
     recent_jobs = THBuzzSearchJob.objects.order_by('-created_at')[:10]
 
+    # ─── Cookie 有効期限チェック ───
+    session_info = check_session_validity()
+    session_warning = None
+    if not session_info['valid']:
+        session_warning = session_info['message']
+    elif session_info['expires_at']:
+        from datetime import datetime, timezone as dt_timezone
+        remaining = session_info['expires_at'] - datetime.now(tz=dt_timezone.utc)
+        if remaining.days <= 3:
+            session_warning = session_info['message']
+
     ctx = {
         'title': 'バズ投稿取得',
-        'posts': posts,
+        'page_obj': page_obj,
         'recent_jobs': recent_jobs,
         'keywords_list': keywords_list,
+        'session_warning': session_warning,
         # 現在のフィルタ値
         'current_sort': sort_by,
         'current_author': author_filter,
@@ -95,10 +113,22 @@ def buzz_author_detail(request, pk):
     author = get_object_or_404(THBuzzAuthor, pk=pk)
     posts = author.buzz_posts.order_by('-scraped_at')
 
+    # Cookie 有効期限チェック
+    session_info = check_session_validity()
+    session_warning = None
+    if not session_info['valid']:
+        session_warning = session_info['message']
+    elif session_info['expires_at']:
+        from datetime import datetime, timezone as dt_timezone
+        remaining = session_info['expires_at'] - datetime.now(tz=dt_timezone.utc)
+        if remaining.days <= 3:
+            session_warning = session_info['message']
+
     ctx = {
         'title': f'投稿者: @{author.username}',
         'author': author,
         'posts': posts,
+        'session_warning': session_warning,
     }
     return render(request, 'admin/console/buzz_author_detail.html', ctx)
 

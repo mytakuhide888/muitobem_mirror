@@ -116,9 +116,18 @@ class Command(BaseCommand):
                             existing.engagement_rate = virality['engagement_rate']
                             existing.engagement_score = virality['engagement_score']
                             existing.is_viral = virality['is_viral']
+                            if post_data.get('posted_at') and not existing.posted_at:
+                                existing.posted_at = post_data['posted_at']
+                            if post_data.get('post_url') and not existing.post_url:
+                                existing.post_url = post_data['post_url']
+                            # is_pinned を raw_json に保存
+                            raw = existing.raw_json or {}
+                            raw['is_pinned'] = post_data.get('is_pinned', False)
+                            existing.raw_json = raw
                             existing.save()
                             self.stdout.write(f"  更新: @{username} - {text[:30]}")
                         else:
+                            raw_json = {'is_pinned': post_data.get('is_pinned', False)}
                             THBuzzPost.objects.create(
                                 author=author,
                                 post_url=post_url,
@@ -130,6 +139,8 @@ class Command(BaseCommand):
                                 engagement_score=virality['engagement_score'],
                                 is_viral=virality['is_viral'],
                                 search_keyword=kw,
+                                posted_at=post_data.get('posted_at'),
+                                raw_json=raw_json,
                             )
                             total_count += 1
                             self.stdout.write(f"  保存: @{username} - {text[:30]}")

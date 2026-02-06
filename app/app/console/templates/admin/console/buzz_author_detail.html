@@ -31,7 +31,15 @@
   .post-item .post-meta span { white-space:nowrap; }
   .post-item .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
   .post-item .viral-yes { background:#ffd43b; color:#333; }
+  .post-item .pinned-badge { display:inline-block; background:#e3f2fd; color:#1565c0; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
 </style>
+
+<!-- Cookie 警告 -->
+{% if session_warning %}
+<div style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px;">
+  ⚠ {{ session_warning }}
+</div>
+{% endif %}
 
 <!-- パンくず -->
 <p style="font-size:13px; margin-bottom:12px;">
@@ -85,8 +93,12 @@
 
   {% for post in posts %}
   <div class="post-item">
-    <div class="post-text">{{ post.text_content }}</div>
+    <div class="post-text">
+      {% if post.raw_json.is_pinned %}<span class="pinned-badge">📌固定</span> {% endif %}
+      {{ post.text_content }}
+    </div>
     <div class="post-meta">
+      {% if post.posted_at %}<span>投稿日: {{ post.posted_at|date:"Y/m/d H:i" }}</span>{% endif %}
       <span>いいね: {{ post.like_count }}</span>
       <span>リプライ: {{ post.reply_count }}</span>
       <span>リポスト: {{ post.repost_count }}</span>

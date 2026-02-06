@@ -34,7 +34,7 @@ class ScraperConfig:
     MIN_DELAY = 3          # 最小待機秒数
     MAX_DELAY = 8          # 最大待機秒数
     REQUESTS_PER_HOUR = 60 # 1時間あたりの最大リクエスト数
-    MAX_SCROLL_COUNT = 5   # 検索結果ページのスクロール回数
+    MAX_SCROLL_COUNT = 10  # 検索結果ページのスクロール回数
     HEADLESS = True        # ヘッドレスモード（Docker環境用）
 
     USER_AGENTS = [
@@ -241,7 +241,7 @@ def _extract_thread_items_from_html(html: str) -> List[Dict]:
             if not post_obj:
                 logger.info("[DEBUG] _extract: post キーなし (keys=%s)", list(item.keys())[:5])
                 continue
-            parsed = _parse_ssr_post(post_obj)
+            parsed = _parse_ssr_post(post_obj, item=item)
             if parsed and parsed.get('text_content'):
                 posts.append(parsed)
             else:
@@ -251,7 +251,7 @@ def _extract_thread_items_from_html(html: str) -> List[Dict]:
     return posts
 
 
-def _parse_ssr_post(post: Dict) -> Optional[Dict]:
+def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
     """SSR JSON の post オブジェクトから必要なフィールドを抽出"""
     # テキスト取得: caption.text を優先、なければ text_fragments
     text = ''
@@ -295,6 +295,11 @@ def _parse_ssr_post(post: Dict) -> Optional[Dict]:
         except (ValueError, OSError):
             pass
 
+    # 固定ポスト判定
+    is_pinned = False
+    if item and isinstance(item, dict):
+        is_pinned = bool(item.get('pinned') or item.get('is_pinned'))
+
     return {
         'text_content': text,
         'username': username,
@@ -305,6 +310,7 @@ def _parse_ssr_post(post: Dict) -> Optional[Dict]:
         'repost_count': repost_count,
         'post_url': post_url,
         'posted_at': posted_at,
+        'is_pinned': is_pinned,
     }
 
 
@@ -478,7 +484,11 @@ class ThreadsBuzzScraper:
         for i in range(ScraperConfig.MAX_SCROLL_COUNT):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-            time.sleep(random.uniform(2, 4))
+            try:
+                self._page.wait_for_load_state('networkidle', timeout=10000)
+            except Exception:
+                pass
+            time.sleep(random.uniform(3, 6))
             new_height = self._page.evaluate('document.body.scrollHeight')
 
             html = self._page.content()
@@ -492,7 +502,7 @@ class ThreadsBuzzScraper:
                     posts.append(p)
                     added += 1
 
-            logger.debug("スクロール #%d: 新規 %d件", i + 1, added)
+            logger.info("スクロール #%d: 新規 %d件 (累計 %d件)", i + 1, added, len(posts))
             if new_height == prev_height and added == 0:
                 break
 
@@ -582,7 +592,11 @@ class ThreadsBuzzScraper:
         for i in range(max_scrolls):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-            time.sleep(random.uniform(2, 5))
+            try:
+                self._page.wait_for_load_state('networkidle', timeout=10000)
+            except Exception:
+                pass
+            time.sleep(random.uniform(3, 6))
             new_height = self._page.evaluate('document.body.scrollHeight')
 
             html = self._page.content()
@@ -596,8 +610,81 @@ class ThreadsBuzzScraper:
                     posts.append(p)
                     added += 1
 
+            logger.info("投稿履歴スクロール #%d: 新規 %d件 (累計 %d件)", i + 1, added, len(posts))
             if new_height == prev_height and added == 0:
                 break
 
         logger.info("投稿履歴取得完了: @%s → %d件", username, len(posts))
         return posts
+
+
+# ─── Cookie 有効期限チェック ───
+
+def check_session_validity() -> Dict:
+    """
+    保存済みセッション (threads_session.json) の Cookie 有効期限を確認する。
+    戻り値: {'valid': bool, 'message': str, 'expires_at': datetime|None}
+    """
+    if not os.path.exists(STORAGE_STATE_PATH):
+        return {
+            'valid': False,
+            'message': 'セッションファイルが見つかりません',
+            'expires_at': None,
+        }
+
+    try:
+        with open(STORAGE_STATE_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        return {
+            'valid': False,
+            'message': f'セッションファイルの読み込みに失敗: {e}',
+            'expires_at': None,
+        }
+
+    cookies = data.get('cookies', [])
+    target_names = {'sessionid', 'ds_user_id'}
+    earliest_expires = None
+
+    for cookie in cookies:
+        name = cookie.get('name', '')
+        if name not in target_names:
+            continue
+        expires = cookie.get('expires')
+        if expires and expires > 0:
+            try:
+                exp_dt = datetime.fromtimestamp(expires, tz=dt_timezone.utc)
+                if earliest_expires is None or exp_dt < earliest_expires:
+                    earliest_expires = exp_dt
+            except (ValueError, OSError):
+                pass
+
+    if earliest_expires is None:
+        return {
+            'valid': False,
+            'message': 'セッション Cookie (sessionid/ds_user_id) が見つかりません',
+            'expires_at': None,
+        }
+
+    now = datetime.now(tz=dt_timezone.utc)
+    if earliest_expires <= now:
+        return {
+            'valid': False,
+            'message': f'セッション Cookie の有効期限が切れています ({earliest_expires.strftime("%Y/%m/%d %H:%M")} UTC)',
+            'expires_at': earliest_expires,
+        }
+
+    remaining = earliest_expires - now
+    days = remaining.days
+    if days <= 3:
+        return {
+            'valid': True,
+            'message': f'セッション Cookie の有効期限が残り{days}日です ({earliest_expires.strftime("%Y/%m/%d %H:%M")} UTC)',
+            'expires_at': earliest_expires,
+        }
+
+    return {
+        'valid': True,
+        'message': f'セッション有効 (期限: {earliest_expires.strftime("%Y/%m/%d %H:%M")} UTC, 残り{days}日)',
+        'expires_at': earliest_expires,
+    }

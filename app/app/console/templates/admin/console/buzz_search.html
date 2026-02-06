@@ -5,9 +5,14 @@
 
 {% block content %}
 <style>
-  .buzz-form { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
-  .buzz-form h3 { margin:0 0 12px; font-size:16px; }
-  .buzz-form textarea { width:100%; min-height:60px; font-size:14px; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical; }
+  .buzz-header { font-size:18px; font-weight:bold; margin:0 0 12px; }
+
+  .buzz-top-row { display:flex; gap:16px; margin-bottom:16px; }
+  .buzz-top-row > * { flex:1; min-width:0; }
+
+  .buzz-form { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .buzz-form h3 { margin:0 0 12px; font-size:15px; }
+  .buzz-form textarea { width:100%; min-height:60px; font-size:14px; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical; box-sizing:border-box; }
   .buzz-form .row { display:flex; gap:12px; align-items:flex-end; margin-top:8px; }
   .buzz-form .row label { font-size:13px; display:block; margin-bottom:4px; }
   .buzz-form .row input[type="datetime-local"] { padding:6px 8px; border:1px solid #ccc; border-radius:4px; }
@@ -38,52 +43,73 @@
   .buzz-table .viral-yes { background:#ffd43b; color:#333; }
   .buzz-table .viral-no { background:#e9ecef; color:#666; }
 
-  .buzz-jobs { background:#fff; border-radius:8px; padding:12px 16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .buzz-jobs { background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .buzz-jobs h4 { margin:0 0 8px; font-size:14px; }
+  .buzz-jobs .jobs-scroll { max-height:300px; overflow-y:auto; }
   .buzz-jobs table { width:100%; font-size:12px; }
   .buzz-jobs td, .buzz-jobs th { padding:4px 8px; }
   .status-PENDING { color:#6c757d; }
   .status-RUNNING { color:#007bff; font-weight:bold; }
   .status-COMPLETED { color:#28a745; }
   .status-FAILED { color:#dc3545; }
+
+  .buzz-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
+  .buzz-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
+  .buzz-pagination a:hover { background:#e9ecef; }
+  .buzz-pagination .current { padding:4px 10px; border:1px solid #007bff; border-radius:4px; background:#007bff; color:#fff; }
+  .buzz-pagination .disabled { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#999; }
+
+  .session-warning { background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px; }
 </style>
 
-<h2>バズ投稿取得</h2>
+<div class="buzz-header">バズ投稿取得</div>
 
-<!-- 検索フォーム -->
-<div class="buzz-form">
-  <h3>キーワード検索</h3>
-  <textarea id="buzz-keywords" placeholder="検索キーワードを入力（カンマ区切りで複数指定可）&#10;例: AI, 副業, プログラミング"></textarea>
-  <div class="row">
-    <div>
-      <label>予約実行（任意）</label>
-      <input type="datetime-local" id="buzz-scheduled-at">
-    </div>
-    <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
-    <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
-  </div>
-  <div id="buzz-message" class="buzz-msg"></div>
-</div>
-
-<!-- 最近のジョブ -->
-{% if recent_jobs %}
-<div class="buzz-jobs">
-  <h4>最近の検索ジョブ</h4>
-  <table>
-    <tr><th>ID</th><th>キーワード</th><th>ステータス</th><th>件数</th><th>開始</th><th>完了</th></tr>
-    {% for job in recent_jobs %}
-    <tr>
-      <td>{{ job.id }}</td>
-      <td>{{ job.keywords|truncatechars:40 }}</td>
-      <td class="status-{{ job.status }}">{{ job.get_status_display }}</td>
-      <td>{{ job.result_count }}</td>
-      <td>{{ job.started_at|date:"m/d H:i"|default:"-" }}</td>
-      <td>{{ job.completed_at|date:"m/d H:i"|default:"-" }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-</div>
+<!-- Cookie 警告 -->
+{% if session_warning %}
+<div class="session-warning">⚠ {{ session_warning }}</div>
 {% endif %}
+
+<!-- 上段: 検索フォーム + ジョブ枠を横並び -->
+<div class="buzz-top-row">
+  <!-- 検索フォーム -->
+  <div class="buzz-form">
+    <h3>キーワード検索</h3>
+    <textarea id="buzz-keywords" placeholder="検索キーワードを入力（カンマ区切りで複数指定可）&#10;例: AI, 副業, プログラミング"></textarea>
+    <div class="row">
+      <div>
+        <label>予約実行（任意）</label>
+        <input type="datetime-local" id="buzz-scheduled-at">
+      </div>
+      <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
+      <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
+    </div>
+    <div id="buzz-message" class="buzz-msg"></div>
+  </div>
+
+  <!-- 最近のジョブ -->
+  <div class="buzz-jobs">
+    <h4>最近の検索ジョブ</h4>
+    <div class="jobs-scroll">
+    {% if recent_jobs %}
+      <table>
+        <tr><th>ID</th><th>キーワード</th><th>ステータス</th><th>件数</th><th>開始</th><th>完了</th></tr>
+        {% for job in recent_jobs %}
+        <tr>
+          <td>{{ job.id }}</td>
+          <td>{{ job.keywords|truncatechars:40 }}</td>
+          <td class="status-{{ job.status }}">{{ job.get_status_display }}</td>
+          <td>{{ job.result_count }}</td>
+          <td>{{ job.started_at|date:"m/d H:i"|default:"-" }}</td>
+          <td>{{ job.completed_at|date:"m/d H:i"|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p style="color:#999; font-size:13px; margin:0;">ジョブはまだありません</p>
+    {% endif %}
+    </div>
+  </div>
+</div>
 
 <!-- フィルタ -->
 <div class="buzz-filters">
@@ -147,14 +173,18 @@
       <th>ER(%)</th>
       <th>バズ</th>
       <th>キーワード</th>
+      <th>投稿日</th>
       <th>取得日時</th>
     </tr>
   </thead>
   <tbody>
-    {% for post in posts %}
+    {% for post in page_obj %}
     <tr>
       <td><a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
-      <td class="text-col" title="{{ post.text_content }}">{{ post.text_content|truncatechars:50 }}</td>
+      <td class="text-col" title="{{ post.text_content }}">
+        {% if post.raw_json.is_pinned %}📌{% endif %}
+        {{ post.text_content|truncatechars:50 }}
+      </td>
       <td class="num">{{ post.like_count|default:0 }}</td>
       <td class="num">{{ post.reply_count|default:0 }}</td>
       <td class="num">{{ post.repost_count|default:0 }}</td>
@@ -169,14 +199,39 @@
         {% endif %}
       </td>
       <td>{{ post.search_keyword }}</td>
+      <td style="white-space:nowrap;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
       <td style="white-space:nowrap;">{{ post.scraped_at|date:"m/d H:i" }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="11" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
+    <tr><td colspan="12" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
     {% endfor %}
   </tbody>
 </table>
-<p style="font-size:12px;color:#999;margin-top:8px;">表示件数: {{ posts|length }}件（上限500件）</p>
+
+<!-- ページネーション -->
+{% if page_obj.has_other_pages %}
+<div class="buzz-pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">&laquo; 最初</a>
+    <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">&lsaquo; 前へ</a>
+  {% else %}
+    <span class="disabled">&laquo; 最初</span>
+    <span class="disabled">&lsaquo; 前へ</span>
+  {% endif %}
+
+  <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ（全{{ page_obj.paginator.count }}件）</span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">次へ &rsaquo;</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">最後 &raquo;</a>
+  {% else %}
+    <span class="disabled">次へ &rsaquo;</span>
+    <span class="disabled">最後 &raquo;</span>
+  {% endif %}
+</div>
+{% else %}
+<p style="font-size:12px;color:#999;margin-top:8px;">全{{ page_obj.paginator.count }}件</p>
+{% endif %}
 
 <script>
 function runSearch(scheduled) {
@@ -243,4 +298,3 @@ function pollJobStatus(jobId) {
 }
 </script>
 {% endblock %}
-
