@@ -7,6 +7,7 @@ Docker 環境では既にインストール済みの Chromium を使用する。
 """
 import json
 import logging
+import os
 import random
 import re
 import shutil
@@ -20,6 +21,10 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 THREADS_BASE = "https://www.threads.com"
+STORAGE_STATE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    'deploy', 'threads_session.json',
+)
 
 
 # ─── 設定 ───
@@ -167,11 +172,21 @@ def _create_playwright_browser(headless: bool = True):
             '--no-sandbox',
         ],
     )
+
+    # 保存済みセッションがあれば読み込む
+    storage_state = None
+    if os.path.exists(STORAGE_STATE_PATH):
+        storage_state = STORAGE_STATE_PATH
+        logger.info("セッションファイル読み込み: %s", STORAGE_STATE_PATH)
+    else:
+        logger.warning("セッションファイルなし: %s（未認証でアクセスします）", STORAGE_STATE_PATH)
+
     context = browser.new_context(
         viewport={'width': random.randint(1366, 1920), 'height': random.randint(768, 1080)},
         user_agent=random.choice(ScraperConfig.USER_AGENTS),
         locale='ja-JP',
         timezone_id='Asia/Tokyo',
+        storage_state=storage_state,
     )
     page = context.new_page()
 
