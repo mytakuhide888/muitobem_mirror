@@ -7,53 +7,53 @@
 <h1>運用コンソール</h1>
 <p>ここから各種メンテナンス／確認ツールにアクセスできます。</p>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:12px;">
-  <section class="module">
-    <h2>アカウント連携テスト</h2>
+<div class="cc-cards" style="margin-top:12px;">
+  <div class="cc-card">
+    <h3>アカウント連携テスト</h3>
     <p>DB疎通や主要モデルの存在をチェックします。</p>
     <p><a class="button" href="{% url 'console:connection_test' %}">テストを実行</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>直近ログの確認</h2>
+  <div class="cc-card">
+    <h3>直近ログの確認</h3>
     <p>コンテナ標準出力 or ログファイルから末尾を表示します。</p>
     <p><a class="button" href="{% url 'console:logs' %}">ログを見る</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>アカウント連携一覧</h2>
+  <div class="cc-card">
+    <h3>アカウント連携一覧</h3>
     <p>連携済みの Instagram / Threads アカウントを確認できます。</p>
     <p><a class="button" href="{% url 'console:integration' %}">一覧を開く</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>返信テンプレート管理</h2>
+  <div class="cc-card">
+    <h3>返信テンプレート管理</h3>
     <p>差し込み変数つきテンプレを作成・編集できます。</p>
     <p><a class="button" href="{% url 'console:tpl_list' %}">テンプレート一覧へ</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>Webhookイベント確認</h2>
+  <div class="cc-card">
+    <h3>Webhookイベント確認</h3>
     <p>最近の受信イベントの一覧と詳細(JSON)を確認できます。</p>
     <p><a class="button" href="{% url 'console:webhook_events' %}">一覧を開く</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>Webhook受信テスト</h2>
+  <div class="cc-card">
+    <h3>Webhook受信テスト</h3>
     <p>サンプルJSONを送って受信処理の疎通を確認します。</p>
     <p><a class="button" href="{% url 'console:webhook_test' %}">テストを開く</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>設定ウィザード</h2>
+  <div class="cc-card">
+    <h3>設定ウィザード</h3>
     <p>初回セットアップを3ステップで完了します。</p>
     <p><a class="button" href="{% url 'console:setup_env' %}">ウィザードを開始</a></p>
-  </section>
+  </div>
 
-  <section class="module">
-    <h2>連携ガイド</h2>
+  <div class="cc-card">
+    <h3>連携ガイド</h3>
     <p>初回セットアップの手順と動作確認の流れをまとめています。</p>
     <p><a class="button" href="{% url 'console:help' %}">ガイドを開く</a></p>
-  </section>
+  </div>
 </div>
 {% endblock %}

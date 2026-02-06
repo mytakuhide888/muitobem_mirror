@@ -1,5 +1,9 @@
 {% extends "admin/console/base.html" %}
-{% block console_content %}
+
+{% block title %}バズ投稿取得{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs">バズ投稿取得</div>{% endblock %}
+
+{% block content %}
 <style>
   .buzz-form { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
   .buzz-form h3 { margin:0 0 12px; font-size:16px; }
@@ -239,3 +243,4 @@ function pollJobStatus(jobId) {
 }
 </script>
 {% endblock %}
+

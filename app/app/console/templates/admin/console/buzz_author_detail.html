@@ -1,5 +1,9 @@
 {% extends "admin/console/base.html" %}
-{% block console_content %}
+
+{% block title %}投稿者詳細{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細</div>{% endblock %}
+
+{% block content %}
 <style>
   .author-profile { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
   .author-profile h2 { margin:0 0 4px; font-size:20px; }
