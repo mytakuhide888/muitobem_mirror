@@ -577,7 +577,8 @@ class ThreadsBuzzScraper:
 
             if added == 0:
                 no_new_count += 1
-                if no_new_count >= 2 and new_height == prev_height:
+                if no_new_count >= 3 or (no_new_count >= 2 and new_height == prev_height):
+                    logger.info("スクロール終了: 新規0が %d回連続 (height変化=%s)", no_new_count, new_height != prev_height)
                     break
             else:
                 no_new_count = 0
@@ -627,45 +628,106 @@ class ThreadsBuzzScraper:
 
     def _extract_join_date(self) -> Optional[str]:
         """
-        プロフィールページの「...」→「このプロフィールについて」モーダルから
-        参加日テキスト（例: "2025年2月"）を取得する。
+        プロフィールページから参加日を取得する。
+        方法1: SSR JSON 内の date_joined / created_at フィールド
+        方法2: 「...」→「このプロフィールについて」モーダル
         """
+        # ── 方法1: SSR JSON から参加日フィールドを検索 ──
+        try:
+            html = _sanitize(self._page.content())
+            for field in ['date_joined', 'created_at', 'joined']:
+                pattern = rf'"{field}"\s*:\s*"([^"]+)"'
+                m = re.search(pattern, html)
+                if m:
+                    logger.info("[DEBUG] 参加日: SSR JSON の %s から取得: %s", field, m.group(1))
+                    return m.group(1)
+        except Exception as e:
+            logger.warning("[DEBUG] 参加日: SSR JSON 検索エラー: %s", e)
+
+        # ── 方法2: モーダルから取得 ──
         try:
             # 「...」ボタン（3点リーダー）を探してクリック
             more_button = None
-            for selector in [
-                '[aria-label="その他"]',
-                '[aria-label="More options"]',
-                '[aria-label="More"]',
-            ]:
+
+            # aria-label の候補を網羅的に試す
+            aria_labels = [
+                'その他', 'More options', 'More', 'もっと見る',
+                'その他のオプション', 'Menu', 'Options',
+            ]
+            for label in aria_labels:
                 try:
-                    el = self._page.locator(selector).first
-                    if el.is_visible(timeout=2000):
+                    el = self._page.locator(f'[aria-label="{label}"]').first
+                    if el.is_visible(timeout=1000):
                         more_button = el
+                        logger.info("[DEBUG] 参加日: aria-label='%s' でボタン発見", label)
                         break
                 except Exception:
                     continue
 
+            # aria-label で見つからない場合: SVG 3点アイコンを持つ clickable 要素を探す
             if not more_button:
-                logger.warning("[DEBUG] 参加日: '...'ボタンが見つかりません")
+                # role="button" で SVG を含む要素（プロフィールヘッダ付近）
+                for selector in [
+                    'header [role="button"]:has(svg)',
+                    '[role="button"]:has(svg circle)',
+                    'div[role="button"] svg',
+                ]:
+                    try:
+                        els = self._page.locator(selector)
+                        count = els.count()
+                        for idx in range(min(count, 5)):
+                            el = els.nth(idx)
+                            if el.is_visible(timeout=500):
+                                # 小さいボタン（アイコン系）を優先
+                                box = el.bounding_box()
+                                if box and box['width'] < 60 and box['height'] < 60:
+                                    more_button = el
+                                    logger.info("[DEBUG] 参加日: CSS '%s' (#%d) でボタン発見", selector, idx)
+                                    break
+                        if more_button:
+                            break
+                    except Exception:
+                        continue
+
+            if not more_button:
+                # デバッグ: ページ上の role="button" 要素一覧をログ
+                try:
+                    buttons_info = self._page.evaluate("""() => {
+                        const btns = document.querySelectorAll('[role="button"]');
+                        return Array.from(btns).slice(0, 15).map(b => ({
+                            tag: b.tagName,
+                            aria: b.getAttribute('aria-label') || '',
+                            text: (b.textContent || '').slice(0, 40).trim(),
+                            hasSvg: !!b.querySelector('svg'),
+                        }));
+                    }""")
+                    logger.warning("[DEBUG] 参加日: '...'ボタン見つからず。role=button一覧: %s",
+                                   json.dumps(buttons_info, ensure_ascii=False)[:500])
+                except Exception:
+                    logger.warning("[DEBUG] 参加日: '...'ボタンが見つかりません（デバッグ情報取得も失敗）")
                 return None
 
             more_button.click()
-            time.sleep(1)
+            time.sleep(1.5)
 
             # 「このプロフィールについて」をクリック
-            try:
-                about_btn = self._page.get_by_text('このプロフィールについて')
-                about_btn.click(timeout=5000)
-            except Exception:
+            about_found = False
+            for text in ['このプロフィールについて', 'About this profile', 'About this account']:
                 try:
-                    about_btn = self._page.get_by_text('About this profile')
-                    about_btn.click(timeout=3000)
+                    about_btn = self._page.get_by_text(text, exact=False)
+                    if about_btn.is_visible(timeout=2000):
+                        about_btn.click()
+                        about_found = True
+                        logger.info("[DEBUG] 参加日: '%s' をクリック", text)
+                        break
                 except Exception:
-                    logger.warning("[DEBUG] 参加日: 'このプロフィールについて'が見つかりません")
-                    self._page.keyboard.press('Escape')
-                    time.sleep(0.5)
-                    return None
+                    continue
+
+            if not about_found:
+                logger.warning("[DEBUG] 参加日: 'このプロフィールについて'が見つかりません")
+                self._page.keyboard.press('Escape')
+                time.sleep(0.5)
+                return None
 
             time.sleep(2)
 
@@ -789,7 +851,8 @@ class ThreadsBuzzScraper:
 
             if added == 0:
                 no_new_count += 1
-                if no_new_count >= 2 and new_height == prev_height:
+                if no_new_count >= 3 or (no_new_count >= 2 and new_height == prev_height):
+                    logger.info("スクロール終了: 新規0が %d回連続 (height変化=%s)", no_new_count, new_height != prev_height)
                     break
             else:
                 no_new_count = 0
