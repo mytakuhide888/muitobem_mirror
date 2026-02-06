@@ -21,6 +21,15 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 THREADS_BASE = "https://www.threads.com"
+
+
+def _sanitize(text: str) -> str:
+    """サロゲート文字を除去して安全な UTF-8 文字列を返す。
+    Playwright が返す文字列に JavaScript の lone surrogate が含まれる場合がある。
+    """
+    if not isinstance(text, str):
+        return str(text)
+    return text.encode('utf-8', errors='replace').decode('utf-8')
 STORAGE_STATE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     'deploy', 'threads_session.json',
@@ -414,18 +423,23 @@ class ThreadsBuzzScraper:
         def _on_response(response):
             try:
                 url = response.url
-                if '/api/' not in url:
+                if '/api/' not in url and '/graphql' not in url:
                     return
                 content_type = response.headers.get('content-type', '')
-                if 'json' not in content_type:
+                if 'json' not in content_type and 'text' not in content_type:
                     return
-                body = response.text()
+                # response.text() はサロゲート文字でクラッシュするため body() から手動デコード
+                try:
+                    raw = response.body()
+                    body = raw.decode('utf-8', errors='replace')
+                except Exception:
+                    return
                 if '"thread_items"' in body:
                     self._captured_thread_data.append(body)
                     logger.info("[DEBUG] API レスポンス傍受: URL=%s, body長=%d",
-                                url[:120], len(body))
+                                _sanitize(url[:120]), len(body))
             except Exception as e:
-                logger.debug("[DEBUG] レスポンス傍受エラー: %s", e)
+                logger.warning("[DEBUG] レスポンス傍受エラー: %s", e)
 
         self._response_handler = _on_response
         self._page.on('response', self._response_handler)
@@ -483,12 +497,11 @@ class ThreadsBuzzScraper:
 
         # デバッグ: ページの状態を詳細記録
         current_url = self._page.url
-        html = self._page.content()
-        title = self._page.title()
+        html = _sanitize(self._page.content())
+        title = _sanitize(self._page.title())
         logger.info("[DEBUG] 現在のURL: %s", current_url)
         logger.info("[DEBUG] ページタイトル: %s", title)
         logger.info("[DEBUG] HTML長: %d文字", len(html))
-        logger.info("[DEBUG] HTML先頭500文字: %s", html[:500].replace('\n', ' '))
 
         # thread_items の存在チェック
         ti_count = html.count('"thread_items"')
@@ -503,13 +516,13 @@ class ThreadsBuzzScraper:
         # デバッグ用: HTML を一時ファイルに保存
         try:
             debug_path = '/app/deploy/debug_scraper_html.txt'
-            with open(debug_path, 'w', encoding='utf-8') as f:
+            with open(debug_path, 'w', encoding='utf-8', errors='replace') as f:
                 f.write(f"URL: {current_url}\n")
                 f.write(f"Title: {title}\n")
                 f.write(f"HTML Length: {len(html)}\n")
                 f.write(f"thread_items count: {ti_count}\n")
                 f.write("=" * 80 + "\n")
-                f.write(html[:50000])  # 先頭50KB
+                f.write(html[:50000])
             logger.info("[DEBUG] HTML を %s に保存しました", debug_path)
         except Exception as e:
             logger.warning("[DEBUG] HTML 保存失敗: %s", e)
@@ -546,7 +559,7 @@ class ThreadsBuzzScraper:
             api_posts = self._collect_captured_posts()
 
             # SSR HTML からも抽出（フォールバック）
-            html = self._page.content()
+            html = _sanitize(self._page.content())
             html_posts = _extract_thread_items_from_html(html)
 
             all_new = api_posts + html_posts
@@ -588,9 +601,9 @@ class ThreadsBuzzScraper:
         except Exception as e:
             logger.warning("[DEBUG] プロフィール読み込みタイムアウト: %s (続行)", e)
 
-        html = self._page.content()
+        html = _sanitize(self._page.content())
         current_url = self._page.url
-        title = self._page.title()
+        title = _sanitize(self._page.title())
         logger.info("[DEBUG] プロフィールページ URL: %s", current_url)
         logger.info("[DEBUG] プロフィールページ タイトル: %s", title)
         logger.info("[DEBUG] プロフィールページ HTML長: %d文字", len(html))
@@ -657,7 +670,7 @@ class ThreadsBuzzScraper:
             time.sleep(2)
 
             # モーダルからテキストを取得
-            page_html = self._page.content()
+            page_html = _sanitize(self._page.content())
 
             # 「参加日」の後の日付を抽出（例: "2025年2月"）
             match = re.search(r'参加日.*?(\d{4}年\d{1,2}月)', page_html)
@@ -706,9 +719,9 @@ class ThreadsBuzzScraper:
         except Exception as e:
             logger.warning("[DEBUG] 投稿履歴ページ読み込みタイムアウト: %s (続行)", e)
 
-        html = self._page.content()
+        html = _sanitize(self._page.content())
         current_url = self._page.url
-        title = self._page.title()
+        title = _sanitize(self._page.title())
         logger.info("[DEBUG] 投稿履歴ページ URL: %s", current_url)
         logger.info("[DEBUG] 投稿履歴ページ タイトル: %s", title)
         logger.info("[DEBUG] 投稿履歴ページ HTML長: %d文字", len(html))
@@ -719,7 +732,7 @@ class ThreadsBuzzScraper:
         # デバッグ用: HTML を一時ファイルに保存
         try:
             debug_path = '/app/deploy/debug_author_html.txt'
-            with open(debug_path, 'w', encoding='utf-8') as f:
+            with open(debug_path, 'w', encoding='utf-8', errors='replace') as f:
                 f.write(f"URL: {current_url}\nTitle: {title}\nHTML Length: {len(html)}\n")
                 f.write(f"thread_items count: {ti_count}\n")
                 f.write("=" * 80 + "\n")
@@ -758,7 +771,7 @@ class ThreadsBuzzScraper:
             api_posts = self._collect_captured_posts()
 
             # SSR HTML からも抽出（フォールバック）
-            html = self._page.content()
+            html = _sanitize(self._page.content())
             html_posts = _extract_thread_items_from_html(html)
 
             all_new = api_posts + html_posts
