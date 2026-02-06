@@ -60,6 +60,7 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(f"投稿取得開始: @{username} (max_scrolls={max_scrolls})")
+        logger.info("[CMD] th_buzz_fetch_author 開始: username=%s, author_id=%s", username, author_id)
 
         try:
             with ThreadsBuzzScraper() as scraper:
@@ -106,8 +107,9 @@ class Command(BaseCommand):
                     new_count += 1
 
         except Exception as e:
-            logger.exception("投稿取得エラー @%s", username)
+            logger.exception("[CMD] 投稿取得エラー @%s", username)
             self.stderr.write(f"エラー: {e}")
             return
 
+        logger.info("[CMD] th_buzz_fetch_author 完了: username=%s, new_count=%d", username, new_count)
         self.stdout.write(f"完了: @{username} 新規 {new_count} 件保存")

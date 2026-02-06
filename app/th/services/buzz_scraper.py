@@ -507,15 +507,27 @@ class ThreadsBuzzScraper:
         self.rate_limiter.wait_if_needed()
 
         profile_url = f"{THREADS_BASE}/@{username}"
-        logger.info("プロフィール取得: @%s", username)
+        logger.info("[DEBUG] プロフィール取得開始: @%s → %s", username, profile_url)
 
         try:
             self._page.goto(profile_url, wait_until='networkidle', timeout=30000)
         except Exception as e:
-            logger.warning("プロフィール読み込みタイムアウト: %s (続行)", e)
+            logger.warning("[DEBUG] プロフィール読み込みタイムアウト: %s (続行)", e)
 
         html = self._page.content()
+        current_url = self._page.url
+        title = self._page.title()
+        logger.info("[DEBUG] プロフィールページ URL: %s", current_url)
+        logger.info("[DEBUG] プロフィールページ タイトル: %s", title)
+        logger.info("[DEBUG] プロフィールページ HTML長: %d文字", len(html))
+
+        # ログインウォール/リダイレクトチェック
+        if 'login' in current_url.lower() or 'login' in html[:3000].lower():
+            logger.warning("[DEBUG] プロフィールページ: ログインウォールの可能性")
+
         profile = _extract_profile_from_html(html, username)
+        logger.info("[DEBUG] プロフィール抽出結果: display_name=%s, followers=%s, following=%s",
+                    profile.get('display_name'), profile.get('followers_count'), profile.get('following_count'))
         return profile
 
     # ─── 投稿者の過去投稿取得 ───
@@ -526,18 +538,40 @@ class ThreadsBuzzScraper:
         self.rate_limiter.wait_if_needed()
 
         profile_url = f"{THREADS_BASE}/@{username}"
-        logger.info("投稿履歴取得開始: @%s", username)
+        logger.info("[DEBUG] 投稿履歴取得開始: @%s → %s", username, profile_url)
 
         try:
             self._page.goto(profile_url, wait_until='networkidle', timeout=30000)
         except Exception as e:
-            logger.warning("ページ読み込みタイムアウト: %s (続行)", e)
+            logger.warning("[DEBUG] 投稿履歴ページ読み込みタイムアウト: %s (続行)", e)
 
         html = self._page.content()
+        current_url = self._page.url
+        title = self._page.title()
+        logger.info("[DEBUG] 投稿履歴ページ URL: %s", current_url)
+        logger.info("[DEBUG] 投稿履歴ページ タイトル: %s", title)
+        logger.info("[DEBUG] 投稿履歴ページ HTML長: %d文字", len(html))
+
+        ti_count = html.count('"thread_items"')
+        logger.info("[DEBUG] 投稿履歴ページ thread_items 出現回数: %d", ti_count)
+
+        # デバッグ用: HTML を一時ファイルに保存
+        try:
+            debug_path = '/app/deploy/debug_author_html.txt'
+            with open(debug_path, 'w', encoding='utf-8') as f:
+                f.write(f"URL: {current_url}\nTitle: {title}\nHTML Length: {len(html)}\n")
+                f.write(f"thread_items count: {ti_count}\n")
+                f.write("=" * 80 + "\n")
+                f.write(html[:50000])
+            logger.info("[DEBUG] 投稿履歴 HTML を %s に保存", debug_path)
+        except Exception as e:
+            logger.warning("[DEBUG] HTML 保存失敗: %s", e)
+
         seen_urls = set()
         posts = []
 
         initial = _extract_thread_items_from_html(html)
+        logger.info("[DEBUG] 投稿履歴 初回抽出: %d件", len(initial))
         for p in initial:
             p['username'] = username
             key = p.get('post_url') or p.get('text_content', '')[:100]
