@@ -336,16 +336,16 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
     fn = re.search(r'"full_name":"((?:[^"\\]|\\.)*)"', chunk)
     if fn:
         try:
-            profile['display_name'] = fn.group(1).encode('utf-8').decode('unicode_escape')
-        except (UnicodeDecodeError, ValueError):
+            profile['display_name'] = json.loads('"' + fn.group(1) + '"')
+        except (json.JSONDecodeError, ValueError):
             profile['display_name'] = fn.group(1)
 
     # bio (biography)
     bio = re.search(r'"biography":"((?:[^"\\]|\\.)*)"', chunk)
     if bio:
         try:
-            profile['bio'] = bio.group(1).encode('utf-8').decode('unicode_escape')
-        except (UnicodeDecodeError, ValueError):
+            profile['bio'] = json.loads('"' + bio.group(1) + '"')
+        except (json.JSONDecodeError, ValueError):
             profile['bio'] = bio.group(1)
 
     # follower_count
