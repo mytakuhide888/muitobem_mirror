@@ -189,15 +189,15 @@ def _extract_thread_items_from_html(html: str) -> List[Dict]:
     """ページ HTML から SSR 埋め込み JSON の thread_items を抽出して投稿データ一覧を返す"""
     posts = []
 
-    # thread_items ブロックを全て探す
-    # 各ブロック: "thread_items":[{"post":{...}}]
-    for m in re.finditer(r'"thread_items":\[\{', html):
+    matches = list(re.finditer(r'"thread_items":\[\{', html))
+    logger.info("[DEBUG] _extract: thread_items 正規表現マッチ数: %d", len(matches))
+
+    for idx, m in enumerate(matches):
         start = m.start()
-        # thread_items の配列全体を抽出（ネストされた括弧を追跡）
         arr_start = html.index('[', start)
         depth = 0
         pos = arr_start
-        end = min(len(html), arr_start + 20000)  # 安全上限
+        end = min(len(html), arr_start + 20000)
         while pos < end:
             ch = html[pos]
             if ch == '[':
@@ -207,24 +207,32 @@ def _extract_thread_items_from_html(html: str) -> List[Dict]:
                 if depth == 0:
                     break
             elif ch == '\\':
-                pos += 1  # エスケープ文字をスキップ
+                pos += 1
             pos += 1
 
         raw = html[arr_start:pos + 1]
+        logger.info("[DEBUG] _extract: ブロック#%d raw長=%d", idx, len(raw))
+
         try:
             items = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
-            logger.debug("thread_items JSON パース失敗 (pos=%d)", start)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning("[DEBUG] _extract: ブロック#%d JSON パース失敗: %s (先頭200文字: %s)", idx, e, raw[:200])
             continue
+
+        logger.info("[DEBUG] _extract: ブロック#%d items数=%d", idx, len(items))
 
         for item in items:
             post_obj = item.get('post')
             if not post_obj:
+                logger.info("[DEBUG] _extract: post キーなし (keys=%s)", list(item.keys())[:5])
                 continue
             parsed = _parse_ssr_post(post_obj)
             if parsed and parsed.get('text_content'):
                 posts.append(parsed)
+            else:
+                logger.info("[DEBUG] _extract: テキストなしでスキップ (username=%s)", post_obj.get('user', {}).get('username', '?'))
 
+    logger.info("[DEBUG] _extract: 最終結果 %d件", len(posts))
     return posts
 
 
@@ -364,9 +372,15 @@ class ThreadsBuzzScraper:
 
     def _ensure_browser(self):
         if self._page is None:
-            self._pw, self._browser, self._context, self._page = (
-                _create_playwright_browser(self.headless)
-            )
+            logger.info("[DEBUG] ブラウザ起動開始 (headless=%s)", self.headless)
+            try:
+                self._pw, self._browser, self._context, self._page = (
+                    _create_playwright_browser(self.headless)
+                )
+                logger.info("[DEBUG] ブラウザ起動成功")
+            except Exception as e:
+                logger.error("[DEBUG] ブラウザ起動失敗: %s", e, exc_info=True)
+                raise
 
     def close(self):
         if self._browser:
@@ -394,11 +408,44 @@ class ThreadsBuzzScraper:
 
         try:
             self._page.goto(search_url, wait_until='networkidle', timeout=30000)
+            logger.info("ページ読み込み完了: %s", self._page.url)
         except Exception as e:
             logger.warning("ページ読み込みタイムアウト: %s (続行)", e)
 
-        # 初回のページソースから SSR JSON を抽出
+        # デバッグ: ページの状態を詳細記録
+        current_url = self._page.url
         html = self._page.content()
+        title = self._page.title()
+        logger.info("[DEBUG] 現在のURL: %s", current_url)
+        logger.info("[DEBUG] ページタイトル: %s", title)
+        logger.info("[DEBUG] HTML長: %d文字", len(html))
+        logger.info("[DEBUG] HTML先頭500文字: %s", html[:500].replace('\n', ' '))
+
+        # thread_items の存在チェック
+        ti_count = html.count('"thread_items"')
+        logger.info("[DEBUG] thread_items 出現回数: %d", ti_count)
+
+        # ログインウォール/ボット検出チェック
+        if 'login' in html[:3000].lower() or 'log in' in html[:3000].lower():
+            logger.warning("[DEBUG] ログインウォールの可能性あり")
+        if 'challenge' in html[:5000].lower():
+            logger.warning("[DEBUG] チャレンジ/CAPTCHA の可能性あり")
+
+        # デバッグ用: HTML を一時ファイルに保存
+        try:
+            debug_path = '/app/deploy/debug_scraper_html.txt'
+            with open(debug_path, 'w', encoding='utf-8') as f:
+                f.write(f"URL: {current_url}\n")
+                f.write(f"Title: {title}\n")
+                f.write(f"HTML Length: {len(html)}\n")
+                f.write(f"thread_items count: {ti_count}\n")
+                f.write("=" * 80 + "\n")
+                f.write(html[:50000])  # 先頭50KB
+            logger.info("[DEBUG] HTML を %s に保存しました", debug_path)
+        except Exception as e:
+            logger.warning("[DEBUG] HTML 保存失敗: %s", e)
+
+        # 初回のページソースから SSR JSON を抽出
         seen_urls = set()
         posts = []
 

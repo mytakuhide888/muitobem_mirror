@@ -57,14 +57,17 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(f"検索キーワード: {keywords}")
+        logger.info("[CMD] th_buzz_search 開始: keywords=%s, job_id=%s", keywords, opts.get('job_id'))
         total_count = 0
 
         try:
             with ThreadsBuzzScraper() as scraper:
                 for kw in keywords:
                     self.stdout.write(f"\n--- 検索中: {kw} ---")
+                    logger.info("[CMD] 検索実行: keyword=%s", kw)
                     posts = scraper.search_keyword(kw)
                     self.stdout.write(f"  取得件数: {len(posts)}")
+                    logger.info("[CMD] 取得結果: keyword=%s, count=%d", kw, len(posts))
 
                     for post_data in posts:
                         username = post_data.get('username', '')

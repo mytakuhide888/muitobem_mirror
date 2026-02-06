@@ -136,11 +136,15 @@ def buzz_run_search(request):
 
         # 即時実行: バックグラウンドプロセスで起動
         cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_search_stderr.log', 'a')
         subprocess.Popen(
             cmd,
             cwd=str(settings.BASE_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_out,
+            stderr=log_err,
         )
 
         job.status = 'RUNNING'
@@ -174,11 +178,15 @@ def buzz_fetch_author_posts(request):
             sys.executable, 'manage.py', 'th_buzz_fetch_author',
             '--author-id', str(author.id),
         ]
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_fetch_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_fetch_stderr.log', 'a')
         subprocess.Popen(
             cmd,
             cwd=str(settings.BASE_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_out,
+            stderr=log_err,
         )
 
         return JsonResponse({
