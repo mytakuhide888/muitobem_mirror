@@ -27,7 +27,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 ENV PIP_INDEX_URL=https://pypi.org/simple
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip setuptools wheel \
- && pip install --no-cache-dir -r /app/requirements.txt
+ && pip install --no-cache-dir -r /app/requirements.txt \
+ && playwright install --with-deps chromium
 
 # アプリ本体
 COPY . /app

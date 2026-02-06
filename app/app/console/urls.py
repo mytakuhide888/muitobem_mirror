@@ -3,13 +3,14 @@ from django.urls import path
 from . import views
 from .views import api_ig
 from .views import accounts as acc, permissions as perm
+from .views import buzz as buzz_views
 
 app_name = "console"
 
 urlpatterns = [
     path("", views.dashboard, name="index"),
     path("connection-test/", views.connection_test, name="connection_test"),
-    path("logs/", views.logs, name="logs"), 
+    path("logs/", views.logs, name="logs"),
     path("integration/", views.integration, name="integration"),
     path("webhook-test/", views.webhook_test, name="webhook_test"),
     path("webhook-events/", views.webhook_events, name="webhook_events"),
@@ -30,4 +31,11 @@ urlpatterns = [
     path("permissions/", perm.permissions_check, name="permissions"),
     path("api/ig/comment-reply/", api_ig.ig_comment_reply, name="api_ig_comment_reply"),
     path("api/ig/dm-reply/",      api_ig.ig_dm_reply,      name="api_ig_dm_reply"),
+
+    # バズ投稿取得
+    path("buzz-search/",                      buzz_views.buzz_search,            name="buzz_search"),
+    path("buzz-author/<int:pk>/",             buzz_views.buzz_author_detail,     name="buzz_author_detail"),
+    path("api/buzz/run-search/",              buzz_views.buzz_run_search,        name="buzz_run_search"),
+    path("api/buzz/fetch-author-posts/",      buzz_views.buzz_fetch_author_posts, name="buzz_fetch_author_posts"),
+    path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
 ]

@@ -23,6 +23,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from ..models import MessageTemplate
 from ..forms import MessageTemplateForm
+from . import buzz as buzz_views
 
 logger = logging.getLogger(__name__)
 

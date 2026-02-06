@@ -78,6 +78,7 @@ services:
       - >
         while :; do
           flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
+          flock -n /tmp/th_buzz_scheduler.lock -c "python manage.py th_buzz_run_scheduled -v 2" || true;
           sleep 60;
         done
     logging:

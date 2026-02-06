@@ -151,6 +151,9 @@ JAZZMIN_SETTINGS = {
         "th.THPost": "fa fa-comment",
         "th.THScheduledPost": "fa fa-calendar-alt",
         "th.THWebhookEvent": "fa fa-bell",
+        "th.THBuzzAuthor": "fa fa-user-circle",
+        "th.THBuzzPost": "fa fa-fire",
+        "th.THBuzzSearchJob": "fa fa-search",
     },
 
     # 左ナビでのアプリ表示順
@@ -191,6 +194,9 @@ JAZZMIN_SETTINGS = {
         {"name": "テンプレ新規",          "url": "console:tpl_new",          "permissions": ["auth.view_user"]},
         {"name": "テンプレ書出し",        "url": "console:tpl_export",       "permissions": ["auth.view_user"]},
         {"name": "テンプレ読込",          "url": "console:tpl_import",       "permissions": ["auth.view_user"]},
+
+        # バズ投稿取得
+        {"name": "バズ投稿取得",          "url": "console:buzz_search",      "permissions": ["auth.view_user"]},
 
         # ヘルプ/ログ
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},

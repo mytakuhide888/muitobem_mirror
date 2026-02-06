@@ -20,3 +20,6 @@ var/
 .vscode/
 .idea/
 *.swp
+
+# image
+tmp_img/

@@ -1,0 +1,108 @@
+# -*- coding: utf-8 -*-
+"""
+Threads 投稿者の過去投稿を取得するコマンド
+
+使用例:
+  python manage.py th_buzz_fetch_author --username "example_user"
+  python manage.py th_buzz_fetch_author --author-id 3
+"""
+import logging
+
+from django.core.management.base import BaseCommand
+
+from th.models import THBuzzAuthor, THBuzzPost
+from th.services.buzz_scraper import ThreadsBuzzScraper, ViralityDetector
+
+logger = logging.getLogger(__name__)
+
+
+class Command(BaseCommand):
+    help = "Threads 投稿者の過去投稿を取得して DB に保存"
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--username', type=str, default=None,
+            help='Threads アカウント名（@なし）',
+        )
+        parser.add_argument(
+            '--author-id', type=int, default=None,
+            help='THBuzzAuthor の DB ID を指定',
+        )
+        parser.add_argument(
+            '--max-scrolls', type=int, default=10,
+            help='最大スクロール回数（デフォルト: 10）',
+        )
+
+    def handle(self, *args, **opts):
+        username = opts.get('username')
+        author_id = opts.get('author_id')
+        max_scrolls = opts['max_scrolls']
+
+        if author_id:
+            try:
+                author = THBuzzAuthor.objects.get(pk=author_id)
+                username = author.username
+            except THBuzzAuthor.DoesNotExist:
+                self.stderr.write(f"投稿者 ID {author_id} が見つかりません")
+                return
+        elif username:
+            author, _ = THBuzzAuthor.objects.get_or_create(
+                username=username,
+                defaults={'profile_url': f"https://www.threads.net/@{username}"},
+            )
+        else:
+            self.stderr.write("--username または --author-id を指定してください")
+            return
+
+        self.stdout.write(f"投稿取得開始: @{username} (max_scrolls={max_scrolls})")
+
+        try:
+            with ThreadsBuzzScraper() as scraper:
+                # プロフィール更新
+                profile = scraper.fetch_author_profile(username)
+                author.display_name = profile.get('display_name') or author.display_name
+                author.bio = profile.get('bio', '')
+                author.followers_count = profile.get('followers_count')
+                author.following_count = profile.get('following_count')
+                author.is_verified = profile.get('is_verified', False)
+                author.raw_json = profile
+                author.save()
+                self.stdout.write(f"プロフィール更新完了: @{username}")
+
+                # 過去投稿取得
+                posts = scraper.fetch_author_posts(username, max_scrolls=max_scrolls)
+                self.stdout.write(f"取得件数: {len(posts)}")
+
+                new_count = 0
+                for post_data in posts:
+                    text = post_data.get('text_content', '')
+                    if not text:
+                        continue
+
+                    # 重複チェック
+                    if THBuzzPost.objects.filter(author=author, text_content=text).exists():
+                        continue
+
+                    followers = author.followers_count or 0
+                    virality = ViralityDetector.is_viral(post_data, followers)
+
+                    THBuzzPost.objects.create(
+                        author=author,
+                        post_url=post_data.get('post_url', ''),
+                        text_content=text,
+                        like_count=post_data.get('like_count', 0),
+                        reply_count=post_data.get('reply_count', 0),
+                        repost_count=post_data.get('repost_count', 0),
+                        engagement_rate=virality['engagement_rate'],
+                        engagement_score=virality['engagement_score'],
+                        is_viral=virality['is_viral'],
+                        search_keyword='',
+                    )
+                    new_count += 1
+
+        except Exception as e:
+            logger.exception("投稿取得エラー @%s", username)
+            self.stderr.write(f"エラー: {e}")
+            return
+
+        self.stdout.write(f"完了: @{username} 新規 {new_count} 件保存")

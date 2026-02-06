@@ -4,6 +4,7 @@ from .models import (
     ThreadsAccount, THPost, THScheduledPost,
     THBroadcast, THDMThread, THDMMessage,
     THAutoReplyTemplate, THAutoReplyRule, THWebhookEvent,
+    THBuzzAuthor, THBuzzPost, THBuzzSearchJob,
 )
 
 
@@ -30,3 +31,34 @@ class THScheduledPostAdmin(TimeStampedAdminMixin):
 class THWebhookEventAdmin(TimeStampedAdminMixin):
     list_display = ('event_type', 'account', 'received_at', 'processed')
     list_filter = ('processed',)
+
+
+@admin.register(THBuzzAuthor)
+class THBuzzAuthorAdmin(admin.ModelAdmin):
+    list_display = ('username', 'display_name', 'followers_count', 'is_verified', 'updated_at')
+    search_fields = ('username', 'display_name')
+    list_filter = ('is_verified',)
+    readonly_fields = ('first_scraped_at', 'updated_at')
+
+
+@admin.register(THBuzzPost)
+class THBuzzPostAdmin(admin.ModelAdmin):
+    list_display = ('author', 'text_content_short', 'like_count', 'reply_count', 'engagement_score', 'is_viral', 'scraped_at')
+    search_fields = ('text_content', 'author__username', 'search_keyword')
+    list_filter = ('is_viral', 'search_keyword', 'scraped_at')
+    readonly_fields = ('scraped_at',)
+
+    @admin.display(description='投稿文(抜粋)')
+    def text_content_short(self, obj):
+        return obj.text_content[:50] + '...' if len(obj.text_content) > 50 else obj.text_content
+
+
+@admin.register(THBuzzSearchJob)
+class THBuzzSearchJobAdmin(admin.ModelAdmin):
+    list_display = ('keywords_short', 'status', 'result_count', 'scheduled_at', 'started_at', 'completed_at')
+    list_filter = ('status',)
+    readonly_fields = ('created_at',)
+
+    @admin.display(description='キーワード')
+    def keywords_short(self, obj):
+        return obj.keywords[:50] + '...' if len(obj.keywords) > 50 else obj.keywords

@@ -1,0 +1,129 @@
+{% extends "admin/console/base.html" %}
+{% block console_content %}
+<style>
+  .author-profile { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
+  .author-profile h2 { margin:0 0 4px; font-size:20px; }
+  .author-profile .username { color:#007bff; font-size:16px; margin-bottom:12px; }
+  .author-profile .verified { display:inline-block; background:#1da1f2; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:8px; }
+  .author-stats { display:flex; gap:24px; margin:12px 0; }
+  .author-stats .stat { text-align:center; }
+  .author-stats .stat-value { font-size:20px; font-weight:bold; display:block; }
+  .author-stats .stat-label { font-size:12px; color:#666; }
+  .author-bio { margin:12px 0; padding:12px; background:#f8f9fa; border-radius:6px; font-size:14px; line-height:1.6; white-space:pre-wrap; }
+  .author-actions { margin-top:16px; }
+  .author-actions .buzz-btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+  .author-actions .buzz-btn-primary { background:#007bff; color:#fff; }
+  .author-actions .buzz-btn-primary:hover { background:#0069d9; }
+  .author-actions .buzz-btn-secondary { background:#6c757d; color:#fff; text-decoration:none; display:inline-block; }
+  .author-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
+  .author-msg.ok { background:#d4edda; color:#155724; display:block; }
+  .author-msg.err { background:#f8d7da; color:#721c24; display:block; }
+
+  .posts-list { margin-top:16px; }
+  .posts-list h3 { font-size:16px; margin-bottom:12px; }
+  .post-item { background:#fff; border-radius:8px; padding:14px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .post-item .post-text { font-size:14px; line-height:1.6; margin-bottom:8px; white-space:pre-wrap; }
+  .post-item .post-meta { font-size:12px; color:#666; display:flex; gap:16px; flex-wrap:wrap; }
+  .post-item .post-meta span { white-space:nowrap; }
+  .post-item .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
+  .post-item .viral-yes { background:#ffd43b; color:#333; }
+</style>
+
+<!-- パンくず -->
+<p style="font-size:13px; margin-bottom:12px;">
+  <a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細
+</p>
+
+<!-- プロフィール -->
+<div class="author-profile">
+  <h2>
+    {{ author.display_name|default:author.username }}
+    {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+  </h2>
+  <div class="username">
+    <a href="https://www.threads.net/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+  </div>
+
+  <div class="author-stats">
+    <div class="stat">
+      <span class="stat-value">{{ author.followers_count|default:"-" }}</span>
+      <span class="stat-label">フォロワー</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{ author.following_count|default:"-" }}</span>
+      <span class="stat-label">フォロー</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{ author.buzz_posts.count }}</span>
+      <span class="stat-label">取得済み投稿</span>
+    </div>
+  </div>
+
+  {% if author.bio %}
+  <div class="author-bio">{{ author.bio }}</div>
+  {% endif %}
+
+  <div class="author-actions">
+    <button class="buzz-btn buzz-btn-primary" onclick="fetchAuthorPosts()">投稿文を取得</button>
+    <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn buzz-btn-secondary">この投稿者で検索結果を絞り込み</a>
+  </div>
+  <div id="author-message" class="author-msg"></div>
+
+  <p style="font-size:11px; color:#999; margin-top:12px;">
+    初回取得: {{ author.first_scraped_at|date:"Y/m/d H:i" }} /
+    最終更新: {{ author.updated_at|date:"Y/m/d H:i" }}
+  </p>
+</div>
+
+<!-- 投稿一覧 -->
+<div class="posts-list">
+  <h3>投稿一覧（{{ posts|length }}件）</h3>
+
+  {% for post in posts %}
+  <div class="post-item">
+    <div class="post-text">{{ post.text_content }}</div>
+    <div class="post-meta">
+      <span>いいね: {{ post.like_count }}</span>
+      <span>リプライ: {{ post.reply_count }}</span>
+      <span>リポスト: {{ post.repost_count }}</span>
+      {% if post.impressions %}<span>インプレッション: {{ post.impressions }}</span>{% endif %}
+      {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
+      {% if post.engagement_rate %}<span>ER: {{ post.engagement_rate|floatformat:1 }}%</span>{% endif %}
+      {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
+      {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener">元投稿</a></span>{% endif %}
+      <span>取得: {{ post.scraped_at|date:"m/d H:i" }}</span>
+    </div>
+  </div>
+  {% empty %}
+  <p style="color:#999; padding:24px; text-align:center;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</p>
+  {% endfor %}
+</div>
+
+<script>
+function fetchAuthorPosts() {
+  const msgEl = document.getElementById('author-message');
+  msgEl.className = 'author-msg ok';
+  msgEl.textContent = '投稿取得を開始しています...';
+
+  const fd = new FormData();
+  fd.append('author_id', '{{ author.pk }}');
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch('{% url "console:buzz_fetch_author_posts" %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        msgEl.className = 'author-msg ok';
+        msgEl.textContent = data.message + ' バックグラウンドで処理中です。しばらくしてからページを更新してください。';
+      } else {
+        msgEl.className = 'author-msg err';
+        msgEl.textContent = data.error || 'エラーが発生しました';
+      }
+    })
+    .catch(err => {
+      msgEl.className = 'author-msg err';
+      msgEl.textContent = 'リクエストエラー: ' + err;
+    });
+}
+</script>
+{% endblock %}
