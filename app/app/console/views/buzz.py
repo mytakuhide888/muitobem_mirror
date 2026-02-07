@@ -6,6 +6,7 @@ import json
 import logging
 import subprocess
 import sys
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
@@ -128,6 +129,19 @@ def buzz_search(request):
         .order_by('search_keyword')
     )
 
+    # ─── stale ジョブ検出: 30分以上 RUNNING のジョブを FAILED に ───
+    stale_cutoff = timezone.now() - timedelta(minutes=30)
+    stale_jobs = THBuzzSearchJob.objects.filter(
+        status='RUNNING', started_at__lt=stale_cutoff,
+    )
+    stale_count = stale_jobs.update(
+        status='FAILED',
+        completed_at=timezone.now(),
+        error_message='タイムアウト: 30分以上実行中のため自動終了',
+    )
+    if stale_count:
+        logger.warning("stale ジョブ %d件を FAILED に更新", stale_count)
+
     # ─── 最近のジョブ ───
     recent_jobs = THBuzzSearchJob.objects.order_by('-created_at')[:10]
 
@@ -224,7 +238,11 @@ def buzz_run_search(request):
                 'job_id': job.id,
             })
 
-        # 即時実行: バックグラウンドプロセスで起動
+        # 即時実行: ステータスを先に RUNNING に設定してからプロセスを起動
+        job.status = 'RUNNING'
+        job.started_at = timezone.now()
+        job.save(update_fields=['status', 'started_at'])
+
         cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
         if not request.POST.get('exclude_replies'):
             cmd.append('--include-replies')
@@ -238,10 +256,6 @@ def buzz_run_search(request):
             stdout=log_out,
             stderr=log_err,
         )
-
-        job.status = 'RUNNING'
-        job.started_at = timezone.now()
-        job.save(update_fields=['status', 'started_at'])
 
         return JsonResponse({
             'ok': True,

@@ -68,6 +68,7 @@ class Command(BaseCommand):
         self.stdout.write(f"検索キーワード: {keywords}")
         logger.info("[CMD] th_buzz_search 開始: keywords=%s, job_id=%s", keywords, opts.get('job_id'))
         total_count = 0
+        error_occurred = None
 
         try:
             with ThreadsBuzzScraper() as scraper:
@@ -164,21 +165,30 @@ class Command(BaseCommand):
                             except Exception as e:
                                 logger.warning("プロフィール取得失敗 @%s: %s", username, e)
 
-            # ジョブ完了
-            if job:
-                job.status = 'COMPLETED'
-                job.completed_at = timezone.now()
-                job.result_count = total_count
-                job.save(update_fields=['status', 'completed_at', 'result_count'])
-
         except Exception as e:
             logger.exception("バズ検索エラー")
             self.stderr.write(f"エラー: {e}")
+            error_occurred = e
+
+        finally:
+            # ジョブステータスを確実に更新
             if job:
-                job.status = 'FAILED'
-                job.completed_at = timezone.now()
-                job.error_message = str(e)
-                job.save(update_fields=['status', 'completed_at', 'error_message'])
+                try:
+                    job.refresh_from_db()
+                    if error_occurred:
+                        job.status = 'FAILED'
+                        job.completed_at = timezone.now()
+                        job.error_message = str(error_occurred)
+                        job.save(update_fields=['status', 'completed_at', 'error_message'])
+                    elif job.status == 'RUNNING':
+                        job.status = 'COMPLETED'
+                        job.completed_at = timezone.now()
+                        job.result_count = total_count
+                        job.save(update_fields=['status', 'completed_at', 'result_count'])
+                except Exception as e:
+                    logger.error("ジョブステータス更新失敗 (job_id=%s): %s", job.id, e)
+
+        if error_occurred:
             return
 
         self.stdout.write(f"\n完了: 新規 {total_count} 件保存")
