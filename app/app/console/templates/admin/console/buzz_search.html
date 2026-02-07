@@ -30,6 +30,9 @@
   .buzz-filters label { font-size:12px; display:block; margin-bottom:2px; color:#666; }
   .buzz-filters input, .buzz-filters select { padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px; }
   .buzz-filters .filter-btn { padding:4px 12px; font-size:13px; }
+  .buzz-filters .range-group { display:flex; align-items:center; gap:2px; }
+  .buzz-filters .range-group input[type="number"] { width:70px; }
+  .buzz-filters .range-sep { font-size:12px; color:#999; padding:0 1px; }
 
   .buzz-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .buzz-table th { background:#f1f3f5; padding:8px 10px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:2px solid #dee2e6; }
@@ -143,6 +146,38 @@
       <input type="date" name="date_to" value="{{ current_date_to }}">
     </div>
     <div>
+      <label>いいね数</label>
+      <div class="range-group">
+        <input type="number" name="like_min" value="{{ current_like_min }}" placeholder="min" min="0">
+        <span class="range-sep">〜</span>
+        <input type="number" name="like_max" value="{{ current_like_max }}" placeholder="max" min="0">
+      </div>
+    </div>
+    <div>
+      <label>リプライ数</label>
+      <div class="range-group">
+        <input type="number" name="reply_min" value="{{ current_reply_min }}" placeholder="min" min="0">
+        <span class="range-sep">〜</span>
+        <input type="number" name="reply_max" value="{{ current_reply_max }}" placeholder="max" min="0">
+      </div>
+    </div>
+    <div>
+      <label>スコア</label>
+      <div class="range-group">
+        <input type="number" name="score_min" value="{{ current_score_min }}" placeholder="min" min="0" step="0.1">
+        <span class="range-sep">〜</span>
+        <input type="number" name="score_max" value="{{ current_score_max }}" placeholder="max" min="0" step="0.1">
+      </div>
+    </div>
+    <div>
+      <label>ER(%)</label>
+      <div class="range-group">
+        <input type="number" name="er_min" value="{{ current_er_min }}" placeholder="min" min="0" step="0.1">
+        <span class="range-sep">〜</span>
+        <input type="number" name="er_max" value="{{ current_er_max }}" placeholder="max" min="0" step="0.1">
+      </div>
+    </div>
+    <div>
       <label>ソート</label>
       <select name="sort">
         <option value="-scraped_at" {% if current_sort == "-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
@@ -210,10 +245,11 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
+{% with fp="&sort="|add:current_sort|add:"&author="|add:current_author|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
 <div class="buzz-pagination">
   {% if page_obj.has_previous %}
-    <a href="?page=1&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">&laquo; 最初</a>
-    <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">&lsaquo; 前へ</a>
+    <a href="?page=1{{ fp }}">&laquo; 最初</a>
+    <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
   {% else %}
     <span class="disabled">&laquo; 最初</span>
     <span class="disabled">&lsaquo; 前へ</span>
@@ -222,13 +258,14 @@
   <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }} ページ（全{{ page_obj.paginator.count }}件）</span>
 
   {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">次へ &rsaquo;</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}&sort={{ current_sort }}&author={{ current_author }}&keyword={{ current_keyword }}&viral={{ current_viral }}&date_from={{ current_date_from }}&date_to={{ current_date_to }}">最後 &raquo;</a>
+    <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
   {% else %}
     <span class="disabled">次へ &rsaquo;</span>
     <span class="disabled">最後 &raquo;</span>
   {% endif %}
 </div>
+{% endwith %}
 {% else %}
 <p style="font-size:12px;color:#999;margin-top:8px;">全{{ page_obj.paginator.count }}件</p>
 {% endif %}

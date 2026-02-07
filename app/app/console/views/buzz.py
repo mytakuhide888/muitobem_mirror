@@ -33,6 +33,16 @@ def buzz_search(request):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
+    # 数値範囲フィルタ
+    like_min = request.GET.get('like_min', '')
+    like_max = request.GET.get('like_max', '')
+    reply_min = request.GET.get('reply_min', '')
+    reply_max = request.GET.get('reply_max', '')
+    score_min = request.GET.get('score_min', '')
+    score_max = request.GET.get('score_max', '')
+    er_min = request.GET.get('er_min', '')
+    er_max = request.GET.get('er_max', '')
+
     # 許可されたソートフィールド
     allowed_sorts = {
         'scraped_at', '-scraped_at',
@@ -59,6 +69,48 @@ def buzz_search(request):
         qs = qs.filter(scraped_at__date__gte=date_from)
     if date_to:
         qs = qs.filter(scraped_at__date__lte=date_to)
+
+    # 数値範囲フィルタ適用
+    if like_min:
+        try:
+            qs = qs.filter(like_count__gte=int(like_min))
+        except (ValueError, TypeError):
+            pass
+    if like_max:
+        try:
+            qs = qs.filter(like_count__lte=int(like_max))
+        except (ValueError, TypeError):
+            pass
+    if reply_min:
+        try:
+            qs = qs.filter(reply_count__gte=int(reply_min))
+        except (ValueError, TypeError):
+            pass
+    if reply_max:
+        try:
+            qs = qs.filter(reply_count__lte=int(reply_max))
+        except (ValueError, TypeError):
+            pass
+    if score_min:
+        try:
+            qs = qs.filter(engagement_score__gte=float(score_min))
+        except (ValueError, TypeError):
+            pass
+    if score_max:
+        try:
+            qs = qs.filter(engagement_score__lte=float(score_max))
+        except (ValueError, TypeError):
+            pass
+    if er_min:
+        try:
+            qs = qs.filter(engagement_rate__gte=float(er_min))
+        except (ValueError, TypeError):
+            pass
+    if er_max:
+        try:
+            qs = qs.filter(engagement_rate__lte=float(er_max))
+        except (ValueError, TypeError):
+            pass
 
     qs = qs.order_by(sort_by)
 
@@ -103,6 +155,14 @@ def buzz_search(request):
         'current_viral': viral_only,
         'current_date_from': date_from,
         'current_date_to': date_to,
+        'current_like_min': like_min,
+        'current_like_max': like_max,
+        'current_reply_min': reply_min,
+        'current_reply_max': reply_max,
+        'current_score_min': score_min,
+        'current_score_max': score_max,
+        'current_er_min': er_min,
+        'current_er_max': er_max,
     }
     return render(request, 'admin/console/buzz_search.html', ctx)
 
