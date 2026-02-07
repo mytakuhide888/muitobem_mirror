@@ -646,63 +646,60 @@ class ThreadsBuzzScraper:
 
         # ── 方法2: モーダルから取得 ──
         try:
-            # 「...」ボタン（3点リーダー）を探してクリック
+            # プロフィール付近の「...」ボタンを探す
+            # 注意: aria-label='もっと見る' はナビメニューなので除外
             more_button = None
 
-            # aria-label の候補を網羅的に試す
-            aria_labels = [
-                'その他', 'More options', 'More', 'もっと見る',
-                'その他のオプション', 'Menu', 'Options',
-            ]
-            for label in aria_labels:
-                try:
-                    el = self._page.locator(f'[aria-label="{label}"]').first
-                    if el.is_visible(timeout=1000):
-                        more_button = el
-                        logger.info("[DEBUG] 参加日: aria-label='%s' でボタン発見", label)
-                        break
-                except Exception:
-                    continue
-
-            # aria-label で見つからない場合: SVG 3点アイコンを持つ clickable 要素を探す
-            if not more_button:
-                # role="button" で SVG を含む要素（プロフィールヘッダ付近）
-                for selector in [
-                    'header [role="button"]:has(svg)',
-                    '[role="button"]:has(svg circle)',
-                    'div[role="button"] svg',
-                ]:
-                    try:
-                        els = self._page.locator(selector)
-                        count = els.count()
-                        for idx in range(min(count, 5)):
-                            el = els.nth(idx)
-                            if el.is_visible(timeout=500):
-                                # 小さいボタン（アイコン系）を優先
-                                box = el.bounding_box()
-                                if box and box['width'] < 60 and box['height'] < 60:
-                                    more_button = el
-                                    logger.info("[DEBUG] 参加日: CSS '%s' (#%d) でボタン発見", selector, idx)
-                                    break
-                        if more_button:
-                            break
-                    except Exception:
-                        continue
+            # JavaScript でプロフィールエリア内の SVG アイコンボタンを特定
+            try:
+                btn_index = self._page.evaluate("""() => {
+                    // ページ上の全 role="button" + SVG 要素を取得
+                    const btns = document.querySelectorAll('[role="button"]');
+                    for (let i = 0; i < btns.length; i++) {
+                        const b = btns[i];
+                        if (!b.querySelector('svg')) continue;
+                        const rect = b.getBoundingClientRect();
+                        // 小さいアイコンボタン（三点リーダー系）
+                        if (rect.width > 50 || rect.height > 50) continue;
+                        if (rect.width < 10 || rect.height < 10) continue;
+                        // ナビメニュー除外: aria-label='もっと見る' は除外
+                        const aria = b.getAttribute('aria-label') || '';
+                        if (aria === 'もっと見る' || aria === 'More') continue;
+                        // テキストが空 or 非常に短い（アイコンのみ）
+                        const text = (b.textContent || '').trim();
+                        if (text.length > 5) continue;
+                        // 画面上部にある（プロフィールエリア: y < 600）
+                        if (rect.top > 600) continue;
+                        return i;
+                    }
+                    return -1;
+                }""")
+                if btn_index >= 0:
+                    more_button = self._page.locator('[role="button"]').nth(btn_index)
+                    logger.info("[DEBUG] 参加日: プロフィール付近の SVG ボタン発見 (index=%d)", btn_index)
+            except Exception as e:
+                logger.warning("[DEBUG] 参加日: JS ボタン検索エラー: %s", e)
 
             if not more_button:
-                # デバッグ: ページ上の role="button" 要素一覧をログ
+                # デバッグ: プロフィール付近のボタン一覧をログ
                 try:
                     buttons_info = self._page.evaluate("""() => {
                         const btns = document.querySelectorAll('[role="button"]');
-                        return Array.from(btns).slice(0, 15).map(b => ({
-                            tag: b.tagName,
-                            aria: b.getAttribute('aria-label') || '',
-                            text: (b.textContent || '').slice(0, 40).trim(),
-                            hasSvg: !!b.querySelector('svg'),
-                        }));
+                        return Array.from(btns).slice(0, 20).map((b, i) => {
+                            const rect = b.getBoundingClientRect();
+                            return {
+                                idx: i,
+                                aria: b.getAttribute('aria-label') || '',
+                                text: (b.textContent || '').slice(0, 30).trim(),
+                                hasSvg: !!b.querySelector('svg'),
+                                w: Math.round(rect.width),
+                                h: Math.round(rect.height),
+                                y: Math.round(rect.top),
+                            };
+                        });
                     }""")
                     logger.warning("[DEBUG] 参加日: '...'ボタン見つからず。role=button一覧: %s",
-                                   json.dumps(buttons_info, ensure_ascii=False)[:500])
+                                   json.dumps(buttons_info, ensure_ascii=False)[:800])
                 except Exception:
                     logger.warning("[DEBUG] 参加日: '...'ボタンが見つかりません（デバッグ情報取得も失敗）")
                 return None
