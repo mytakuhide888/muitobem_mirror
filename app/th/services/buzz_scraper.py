@@ -156,6 +156,42 @@ class ViralityDetector:
         }
 
 
+# ─── 低品質リプライ判定 ───
+
+# 絵文字判定用パターン（Emoji + 記号 + 空白のみ）
+_EMOJI_ONLY_RE = re.compile(
+    r'^[\s\u2600-\u27BF\U0001F300-\U0001FAFF\U0001F600-\U0001F64F'
+    r'\U0001F680-\U0001F6FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F'
+    r'\U0001FA70-\U0001FAFF\u2702-\u27B0\uFE0F\u200D\u20E3'
+    r'\u2934\u2935\u25AA-\u25FE\u2B05-\u2B07\u2B1B\u2B1C\u2B50\u2B55'
+    r'\u3030\u303D\u3297\u3299\U000E0020-\U000E007F!\?\.\,\s]+$'
+)
+
+
+def _is_low_quality_reply(post_data: Dict) -> bool:
+    """低品質リプライ判定。
+    条件: いいね0 かつ リポスト0 かつ (テキスト50文字以下 or 絵文字のみ)
+    """
+    like_count = post_data.get('like_count', 0) or 0
+    repost_count = post_data.get('repost_count', 0) or 0
+
+    # エンゲージメントがあるなら除外しない
+    if like_count > 0 or repost_count > 0:
+        return False
+
+    text = (post_data.get('text_content', '') or '').strip()
+
+    # 絵文字のみ
+    if _EMOJI_ONLY_RE.match(text):
+        return True
+
+    # 50文字以下の短文
+    if len(text) <= 50:
+        return True
+
+    return False
+
+
 # ─── ブラウザ管理 ───
 
 def _find_chromium() -> str:
@@ -480,7 +516,7 @@ class ThreadsBuzzScraper:
 
     # ─── 検索 ───
 
-    def search_keyword(self, keyword: str) -> List[Dict]:
+    def search_keyword(self, keyword: str, exclude_replies: bool = True) -> List[Dict]:
         """キーワードで Threads を検索し、投稿を取得"""
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
@@ -584,6 +620,14 @@ class ThreadsBuzzScraper:
                 no_new_count = 0
 
         self._stop_response_capture()
+
+        if exclude_replies:
+            before = len(posts)
+            posts = [p for p in posts if not _is_low_quality_reply(p)]
+            filtered = before - len(posts)
+            if filtered > 0:
+                logger.info("低品質リプライ除外: %d件除外 → %d件残", filtered, len(posts))
+
         logger.info("検索完了: %s → %d件取得", keyword, len(posts))
         return posts
 
@@ -790,7 +834,7 @@ class ThreadsBuzzScraper:
 
     # ─── 投稿者の過去投稿取得 ───
 
-    def fetch_author_posts(self, username: str, max_scrolls: int = 10) -> List[Dict]:
+    def fetch_author_posts(self, username: str, max_scrolls: int = 10, exclude_replies: bool = True) -> List[Dict]:
         """投稿者の過去投稿をスクレイピングして取得"""
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
@@ -880,6 +924,14 @@ class ThreadsBuzzScraper:
                 no_new_count = 0
 
         self._stop_response_capture()
+
+        if exclude_replies:
+            before = len(posts)
+            posts = [p for p in posts if not _is_low_quality_reply(p)]
+            filtered = before - len(posts)
+            if filtered > 0:
+                logger.info("低品質リプライ除外: %d件除外 → %d件残", filtered, len(posts))
+
         logger.info("投稿履歴取得完了: @%s → %d件", username, len(posts))
         return posts
 

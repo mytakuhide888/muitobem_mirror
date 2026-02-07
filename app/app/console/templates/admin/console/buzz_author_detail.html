@@ -83,7 +83,10 @@
 
   <div class="author-actions">
     <button class="buzz-btn buzz-btn-primary" onclick="fetchAuthorPosts()">投稿文を取得</button>
-    <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn buzz-btn-secondary">この投稿者で検索結果を絞り込み</a>
+    <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px; margin-left:8px;">
+      <input type="checkbox" id="exclude-replies" checked> リプライを除外
+    </label>
+    <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn buzz-btn-secondary" style="margin-left:8px;">この投稿者で検索結果を絞り込み</a>
   </div>
   <div id="author-message" class="author-msg"></div>
 
@@ -130,6 +133,9 @@ function fetchAuthorPosts() {
   const fd = new FormData();
   fd.append('author_id', '{{ author.pk }}');
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  if (document.getElementById('exclude-replies').checked) {
+    fd.append('exclude_replies', '1');
+  }
 
   fetch('{% url "console:buzz_fetch_author_posts" %}', { method: 'POST', body: fd })
     .then(r => r.json())

@@ -83,6 +83,11 @@
         <label>予約実行（任意）</label>
         <input type="datetime-local" id="buzz-scheduled-at">
       </div>
+      <div>
+        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
+          <input type="checkbox" id="buzz-exclude-replies" checked> リプライを除外
+        </label>
+      </div>
       <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
       <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
     </div>
@@ -287,6 +292,9 @@ function runSearch(scheduled) {
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   if (scheduled && scheduledAt) {
     fd.append('scheduled_at', scheduledAt);
+  }
+  if (document.getElementById('buzz-exclude-replies').checked) {
+    fd.append('exclude_replies', '1');
   }
 
   msgEl.className = 'buzz-msg ok';

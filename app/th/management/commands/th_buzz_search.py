@@ -35,6 +35,10 @@ class Command(BaseCommand):
             '--dry-run', action='store_true',
             help='DB保存せずに結果を表示のみ',
         )
+        parser.add_argument(
+            '--include-replies', action='store_true',
+            help='低品質リプライも含めて取得する',
+        )
 
     def handle(self, *args, **opts):
         # Playwright sync API が内部でイベントループを作成するため、
@@ -70,7 +74,8 @@ class Command(BaseCommand):
                 for kw in keywords:
                     self.stdout.write(f"\n--- 検索中: {kw} ---")
                     logger.info("[CMD] 検索実行: keyword=%s", kw)
-                    posts = scraper.search_keyword(kw)
+                    exclude_replies = not opts.get('include_replies', False)
+                    posts = scraper.search_keyword(kw, exclude_replies=exclude_replies)
                     self.stdout.write(f"  取得件数: {len(posts)}")
                     logger.info("[CMD] 取得結果: keyword=%s, count=%d", kw, len(posts))
 

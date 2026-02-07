@@ -32,6 +32,10 @@ class Command(BaseCommand):
             '--max-scrolls', type=int, default=10,
             help='最大スクロール回数（デフォルト: 10）',
         )
+        parser.add_argument(
+            '--include-replies', action='store_true',
+            help='低品質リプライも含めて取得する',
+        )
 
     def handle(self, *args, **opts):
         # Playwright sync API が内部でイベントループを作成するため、
@@ -76,7 +80,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"プロフィール更新完了: @{username}")
 
                 # 過去投稿取得
-                posts = scraper.fetch_author_posts(username, max_scrolls=max_scrolls)
+                exclude_replies = not opts.get('include_replies', False)
+                posts = scraper.fetch_author_posts(username, max_scrolls=max_scrolls, exclude_replies=exclude_replies)
                 self.stdout.write(f"取得件数: {len(posts)}")
 
                 new_count = 0

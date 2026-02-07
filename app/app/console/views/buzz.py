@@ -226,6 +226,8 @@ def buzz_run_search(request):
 
         # 即時実行: バックグラウンドプロセスで起動
         cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
+        if not request.POST.get('exclude_replies'):
+            cmd.append('--include-replies')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
@@ -268,6 +270,8 @@ def buzz_fetch_author_posts(request):
             sys.executable, 'manage.py', 'th_buzz_fetch_author',
             '--author-id', str(author.id),
         ]
+        if not request.POST.get('exclude_replies'):
+            cmd.append('--include-replies')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_fetch_stdout.log', 'a')
