@@ -710,9 +710,38 @@ class ThreadsBuzzScraper:
             more_button.click()
             time.sleep(1.5)
 
+            # デバッグ: メニュー内のテキスト一覧をログ出力
+            try:
+                menu_items = self._page.evaluate("""() => {
+                    // ダイアログ/メニュー/ポップオーバーを探す
+                    const candidates = document.querySelectorAll(
+                        '[role="dialog"] [role="button"], [role="menu"] [role="menuitem"], ' +
+                        '[role="dialog"] div, [data-overlay] div, ' +
+                        '[role="listbox"] [role="option"]'
+                    );
+                    const texts = new Set();
+                    candidates.forEach(el => {
+                        const t = (el.textContent || '').trim();
+                        if (t && t.length < 60) texts.add(t);
+                    });
+                    // フォールバック: 直近で表示された要素のテキスト
+                    if (texts.size === 0) {
+                        document.querySelectorAll('[role="dialog"], [role="menu"], [role="presentation"]').forEach(el => {
+                            const t = (el.textContent || '').trim();
+                            if (t) texts.add(t.slice(0, 200));
+                        });
+                    }
+                    return Array.from(texts).slice(0, 20);
+                }""")
+                logger.info("[DEBUG] 参加日: メニュー内テキスト一覧: %s",
+                            json.dumps(menu_items, ensure_ascii=False)[:600])
+            except Exception as e:
+                logger.warning("[DEBUG] 参加日: メニューテキスト取得エラー: %s", e)
+
             # 「このプロフィールについて」をクリック
             about_found = False
-            for text in ['このプロフィールについて', 'About this profile', 'About this account']:
+            for text in ['このプロフィールについて', 'About this profile', 'About this account',
+                         'プロフィールについて', 'アカウントについて']:
                 try:
                     about_btn = self._page.get_by_text(text, exact=False)
                     if about_btn.is_visible(timeout=2000):
