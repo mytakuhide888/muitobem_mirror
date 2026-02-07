@@ -646,113 +646,109 @@ class ThreadsBuzzScraper:
 
         # ── 方法2: モーダルから取得 ──
         try:
-            # プロフィール付近の「...」ボタンを探す
-            # 注意: aria-label='もっと見る' はナビメニューなので除外
-            more_button = None
+            # プロフィール付近の SVG アイコンボタン候補を全て取得し、
+            # 順番にクリックして「このプロフィールについて」メニューが出るか確認
+            about_keywords = ['このプロフィールについて', 'About this profile',
+                              'About this account', 'プロフィールについて', 'アカウントについて']
 
-            # JavaScript でプロフィールエリア内の SVG アイコンボタンを特定
             try:
-                btn_index = self._page.evaluate("""() => {
-                    // ページ上の全 role="button" + SVG 要素を取得
+                candidate_indices = self._page.evaluate("""() => {
                     const btns = document.querySelectorAll('[role="button"]');
+                    const result = [];
                     for (let i = 0; i < btns.length; i++) {
                         const b = btns[i];
                         if (!b.querySelector('svg')) continue;
                         const rect = b.getBoundingClientRect();
-                        // 小さいアイコンボタン（三点リーダー系）
                         if (rect.width > 50 || rect.height > 50) continue;
-                        if (rect.width < 10 || rect.height < 10) continue;
-                        // ナビメニュー除外: aria-label='もっと見る' は除外
-                        const aria = b.getAttribute('aria-label') || '';
-                        if (aria === 'もっと見る' || aria === 'More') continue;
-                        // テキストが空 or 非常に短い（アイコンのみ）
+                        if (rect.width < 5 || rect.height < 5) continue;
                         const text = (b.textContent || '').trim();
                         if (text.length > 5) continue;
-                        // 画面上部にある（プロフィールエリア: y < 600）
                         if (rect.top > 600) continue;
-                        return i;
+                        const aria = b.getAttribute('aria-label') || '';
+                        // ナビメニュー除外
+                        if (aria === 'もっと見る' || aria === 'More') continue;
+                        result.push({idx: i, aria: aria, w: Math.round(rect.width),
+                                     h: Math.round(rect.height), y: Math.round(rect.top)});
                     }
-                    return -1;
+                    return result;
                 }""")
-                if btn_index >= 0:
-                    more_button = self._page.locator('[role="button"]').nth(btn_index)
-                    logger.info("[DEBUG] 参加日: プロフィール付近の SVG ボタン発見 (index=%d)", btn_index)
+                logger.info("[DEBUG] 参加日: SVG ボタン候補 %d件: %s",
+                            len(candidate_indices),
+                            json.dumps(candidate_indices, ensure_ascii=False)[:400])
             except Exception as e:
                 logger.warning("[DEBUG] 参加日: JS ボタン検索エラー: %s", e)
+                candidate_indices = []
 
-            if not more_button:
-                # デバッグ: プロフィール付近のボタン一覧をログ
+            about_found = False
+            for cand in candidate_indices:
+                idx = cand['idx']
                 try:
-                    buttons_info = self._page.evaluate("""() => {
+                    btn = self._page.locator('[role="button"]').nth(idx)
+                    btn.click()
+                    time.sleep(1.5)
+
+                    # クリック後に「このプロフィールについて」が出るか確認
+                    for kw in about_keywords:
+                        try:
+                            about_btn = self._page.get_by_text(kw, exact=False)
+                            if about_btn.is_visible(timeout=1500):
+                                about_btn.click()
+                                about_found = True
+                                logger.info("[DEBUG] 参加日: ボタン index=%d → '%s' をクリック", idx, kw)
+                                break
+                        except Exception:
+                            continue
+
+                    if about_found:
+                        break
+
+                    # 違うメニューだった場合: 内容をログして閉じる
+                    try:
+                        menu_text = self._page.evaluate("""() => {
+                            const els = document.querySelectorAll(
+                                '[role="dialog"], [role="menu"], [role="presentation"], [role="listbox"]'
+                            );
+                            const texts = [];
+                            els.forEach(el => {
+                                const t = (el.textContent || '').trim();
+                                if (t) texts.push(t.slice(0, 100));
+                            });
+                            return texts;
+                        }""")
+                        logger.info("[DEBUG] 参加日: ボタン index=%d は別メニュー: %s",
+                                    idx, json.dumps(menu_text, ensure_ascii=False)[:300])
+                    except Exception:
+                        pass
+                    self._page.keyboard.press('Escape')
+                    time.sleep(0.5)
+                except Exception as e:
+                    logger.warning("[DEBUG] 参加日: ボタン index=%d クリックエラー: %s", idx, e)
+                    try:
+                        self._page.keyboard.press('Escape')
+                        time.sleep(0.3)
+                    except Exception:
+                        pass
+
+            if not about_found:
+                # デバッグ: 全 role="button" 一覧
+                try:
+                    all_btns = self._page.evaluate("""() => {
                         const btns = document.querySelectorAll('[role="button"]');
-                        return Array.from(btns).slice(0, 20).map((b, i) => {
+                        return Array.from(btns).slice(0, 25).map((b, i) => {
                             const rect = b.getBoundingClientRect();
                             return {
-                                idx: i,
-                                aria: b.getAttribute('aria-label') || '',
+                                idx: i, aria: b.getAttribute('aria-label') || '',
                                 text: (b.textContent || '').slice(0, 30).trim(),
-                                hasSvg: !!b.querySelector('svg'),
-                                w: Math.round(rect.width),
-                                h: Math.round(rect.height),
+                                svg: !!b.querySelector('svg'),
+                                w: Math.round(rect.width), h: Math.round(rect.height),
                                 y: Math.round(rect.top),
                             };
                         });
                     }""")
-                    logger.warning("[DEBUG] 参加日: '...'ボタン見つからず。role=button一覧: %s",
-                                   json.dumps(buttons_info, ensure_ascii=False)[:800])
+                    logger.warning("[DEBUG] 参加日: 全候補で失敗。role=button一覧: %s",
+                                   json.dumps(all_btns, ensure_ascii=False)[:1000])
                 except Exception:
-                    logger.warning("[DEBUG] 参加日: '...'ボタンが見つかりません（デバッグ情報取得も失敗）")
-                return None
-
-            more_button.click()
-            time.sleep(1.5)
-
-            # デバッグ: メニュー内のテキスト一覧をログ出力
-            try:
-                menu_items = self._page.evaluate("""() => {
-                    // ダイアログ/メニュー/ポップオーバーを探す
-                    const candidates = document.querySelectorAll(
-                        '[role="dialog"] [role="button"], [role="menu"] [role="menuitem"], ' +
-                        '[role="dialog"] div, [data-overlay] div, ' +
-                        '[role="listbox"] [role="option"]'
-                    );
-                    const texts = new Set();
-                    candidates.forEach(el => {
-                        const t = (el.textContent || '').trim();
-                        if (t && t.length < 60) texts.add(t);
-                    });
-                    // フォールバック: 直近で表示された要素のテキスト
-                    if (texts.size === 0) {
-                        document.querySelectorAll('[role="dialog"], [role="menu"], [role="presentation"]').forEach(el => {
-                            const t = (el.textContent || '').trim();
-                            if (t) texts.add(t.slice(0, 200));
-                        });
-                    }
-                    return Array.from(texts).slice(0, 20);
-                }""")
-                logger.info("[DEBUG] 参加日: メニュー内テキスト一覧: %s",
-                            json.dumps(menu_items, ensure_ascii=False)[:600])
-            except Exception as e:
-                logger.warning("[DEBUG] 参加日: メニューテキスト取得エラー: %s", e)
-
-            # 「このプロフィールについて」をクリック
-            about_found = False
-            for text in ['このプロフィールについて', 'About this profile', 'About this account',
-                         'プロフィールについて', 'アカウントについて']:
-                try:
-                    about_btn = self._page.get_by_text(text, exact=False)
-                    if about_btn.is_visible(timeout=2000):
-                        about_btn.click()
-                        about_found = True
-                        logger.info("[DEBUG] 参加日: '%s' をクリック", text)
-                        break
-                except Exception:
-                    continue
-
-            if not about_found:
-                logger.warning("[DEBUG] 参加日: 'このプロフィールについて'が見つかりません")
-                self._page.keyboard.press('Escape')
-                time.sleep(0.5)
+                    pass
                 return None
 
             time.sleep(2)
