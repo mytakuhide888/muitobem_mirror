@@ -8,6 +8,7 @@ scheduler サービスから定期的に呼び出される。
 """
 import json
 import logging
+from pathlib import Path
 import subprocess
 import sys
 
@@ -39,15 +40,20 @@ class Command(BaseCommand):
 
         self.stdout.write(f"予約ジョブ: {cnt}件")
 
+        log_dir = Path(settings.BASE_DIR) / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+
         for job in due_jobs:
             self.stdout.write(f"  実行開始: Job#{job.id} keywords={job.keywords}")
             cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
             try:
+                log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
+                log_err = open(log_dir / 'buzz_search_stderr.log', 'a')
                 subprocess.Popen(
                     cmd,
                     cwd=str(settings.BASE_DIR),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    stdout=log_out,
+                    stderr=log_err,
                 )
                 job.status = 'RUNNING'
                 job.started_at = now

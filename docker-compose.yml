@@ -71,7 +71,7 @@ services:
       MYSQL_HOST: db
     volumes:
       - ./app:/app
-      - static_volume:/app/deploy
+      - ./app/deploy:/app/deploy
     command:
       - bash
       - -lc
