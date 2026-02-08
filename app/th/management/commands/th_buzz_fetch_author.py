@@ -94,6 +94,8 @@ class Command(BaseCommand):
                     followers = author.followers_count or 0
                     virality = ViralityDetector.is_viral(post_data, followers)
 
+                    imp = post_data.get('impressions')
+
                     # 重複チェック → 既存なら数値を更新
                     existing = THBuzzPost.objects.filter(author=author, text_content=text).first()
                     if existing:
@@ -103,6 +105,8 @@ class Command(BaseCommand):
                         existing.engagement_rate = virality['engagement_rate']
                         existing.engagement_score = virality['engagement_score']
                         existing.is_viral = virality['is_viral']
+                        if imp is not None:
+                            existing.impressions = imp
                         if post_data.get('posted_at') and not existing.posted_at:
                             existing.posted_at = post_data['posted_at']
                         if post_data.get('post_url') and not existing.post_url:
@@ -123,6 +127,7 @@ class Command(BaseCommand):
                         like_count=post_data.get('like_count', 0),
                         reply_count=post_data.get('reply_count', 0),
                         repost_count=post_data.get('repost_count', 0),
+                        impressions=imp,
                         engagement_rate=virality['engagement_rate'],
                         engagement_score=virality['engagement_score'],
                         is_viral=virality['is_viral'],

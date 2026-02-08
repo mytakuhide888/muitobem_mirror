@@ -243,6 +243,44 @@ def _create_playwright_browser(headless: bool = True):
     return pw, browser, context, page
 
 
+# ─── インプレッション（表示回数）HTML フォールバック抽出 ───
+
+def _parse_view_count_text(text: str) -> Optional[int]:
+    """「1.2万回表示」「123,456 views」等のテキストからインプレッション数を抽出"""
+    # 日本語: "1.2万回表示", "100万回表示", "1,234回表示"
+    m = re.search(r'([\d,]+(?:\.\d+)?)\s*万\s*回\s*表示', text)
+    if m:
+        num_str = m.group(1).replace(',', '')
+        try:
+            return int(float(num_str) * 10000)
+        except (ValueError, OverflowError):
+            pass
+
+    m = re.search(r'([\d,]+)\s*回\s*表示', text)
+    if m:
+        try:
+            return int(m.group(1).replace(',', ''))
+        except (ValueError, OverflowError):
+            pass
+
+    # 英語: "1.2M views", "123K views", "1,234 views"
+    m = re.search(r'([\d,]+(?:\.\d+)?)\s*([MmKk])?\s*views', text, re.IGNORECASE)
+    if m:
+        num_str = m.group(1).replace(',', '')
+        multiplier = 1
+        suffix = (m.group(2) or '').upper()
+        if suffix == 'M':
+            multiplier = 1000000
+        elif suffix == 'K':
+            multiplier = 1000
+        try:
+            return int(float(num_str) * multiplier)
+        except (ValueError, OverflowError):
+            pass
+
+    return None
+
+
 # ─── SSR JSON 抽出 ───
 
 def _extract_thread_items_from_html(html: str) -> List[Dict]:
@@ -340,6 +378,37 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
         except (ValueError, OSError):
             pass
 
+    # インプレッション（表示回数）抽出
+    impressions = None
+    # SSR JSON の様々なフィールド名を試行
+    for field in ['view_count', 'play_count', 'impression_count', 'views',
+                  'video_view_count', 'media_preview_like_count']:
+        val = post.get(field)
+        if val and isinstance(val, (int, float)) and val > 0:
+            impressions = int(val)
+            break
+    # text_post_app_info 内も探索
+    if impressions is None:
+        for field in ['view_count', 'impression_count', 'views']:
+            val = tpai.get(field)
+            if val and isinstance(val, (int, float)) and val > 0:
+                impressions = int(val)
+                break
+
+    # デバッグ: impressions 関連の候補フィールドをログ（最初の数件のみ）
+    if not hasattr(_parse_ssr_post, '_imp_debug_count'):
+        _parse_ssr_post._imp_debug_count = 0
+    if _parse_ssr_post._imp_debug_count < 3:
+        imp_candidates = {k: v for k, v in post.items()
+                         if isinstance(v, (int, float)) and k not in
+                         ('like_count', 'taken_at', 'pk', 'id', 'original_width', 'original_height')}
+        tpai_candidates = {k: v for k, v in tpai.items()
+                          if isinstance(v, (int, float))}
+        logger.info("[DEBUG] impressions候補 post数値: %s, tpai数値: %s",
+                    json.dumps(imp_candidates, default=str)[:300],
+                    json.dumps(tpai_candidates, default=str)[:200])
+        _parse_ssr_post._imp_debug_count += 1
+
     # 固定ポスト判定
     is_pinned = False
     if item and isinstance(item, dict):
@@ -353,6 +422,7 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
         'like_count': like_count,
         'reply_count': reply_count,
         'repost_count': repost_count,
+        'impressions': impressions,
         'post_url': post_url,
         'posted_at': posted_at,
         'is_pinned': is_pinned,
