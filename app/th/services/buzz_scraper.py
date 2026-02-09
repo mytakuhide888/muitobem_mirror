@@ -592,7 +592,7 @@ class ThreadsBuzzScraper:
         self.rate_limiter.wait_if_needed()
 
         encoded = quote(keyword)
-        search_url = f"{THREADS_BASE}/search?q={encoded}&serp_type=default"
+        search_url = f"{THREADS_BASE}/search?q={encoded}&serp_type=recent"
         logger.info("検索開始: %s → %s", keyword, search_url)
 
         try:
