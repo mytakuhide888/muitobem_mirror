@@ -19,14 +19,19 @@
   .buzz-btn-primary:hover { background:#0069d9; }
   .buzz-btn-secondary { background:#6c757d; color:#fff; text-decoration:none; display:inline-block; }
   .buzz-btn-sm { padding:4px 12px; font-size:12px; }
+  .buzz-btn-active { background:#0056b3; color:#fff; }
   .buzz-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
   .buzz-msg.ok { background:#d4edda; color:#155724; display:block; }
   .buzz-msg.err { background:#f8d7da; color:#721c24; display:block; }
   .buzz-msg.loading { background:#cce5ff; color:#004085; display:block; }
 
-  .tr-chart-area { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; min-height:300px; }
-  .tr-chart-area h3 { margin:0 0 12px; font-size:15px; }
-  #trend-chart { width:100%; height:320px; }
+  .tr-chart-area { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
+  .tr-chart-area h3 { margin:0 0 4px; font-size:15px; display:inline-block; }
+  .tr-chart-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .tr-chart-toolbar .mode-btns { display:flex; gap:4px; }
+  .tr-chart-toolbar .mode-btns button { padding:3px 10px; font-size:11px; border:1px solid #ccc; border-radius:4px; cursor:pointer; background:#fff; }
+  .tr-chart-toolbar .mode-btns button.active { background:#007bff; color:#fff; border-color:#007bff; }
+  .tr-chart-wrap { position:relative; width:100%; height:350px; max-height:350px; }
 
   .tr-results { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .tr-panel { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
@@ -84,10 +89,19 @@
 
 <!-- チャートエリア -->
 <div class="tr-chart-area" id="chart-container" style="display:none;">
-  <h3>検索ボリューム推移</h3>
-  <canvas id="trend-chart"></canvas>
+  <div class="tr-chart-toolbar">
+    <h3>検索ボリューム推移</h3>
+    <div class="mode-btns">
+      <button id="btn-absolute" class="active" onclick="switchMode('absolute')">絶対値</button>
+      <button id="btn-normalized" onclick="switchMode('normalized')">正規化(各KW=100)</button>
+    </div>
+  </div>
+  <div class="tr-chart-wrap">
+    <canvas id="trend-chart"></canvas>
+  </div>
   <p style="font-size:11px; color:#999; margin-top:8px;">
-    ※ 値は相対的な検索ボリューム（最大値=100）。Google Trendsより取得。
+    ※ <b>絶対値</b>: Google Trends の相対ボリューム（全KW中の最大=100）。
+    <b>正規化</b>: 各KWの最大値を100に揃え、推移の傾向を比較しやすくする。
   </p>
 </div>
 
@@ -113,6 +127,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 let chartInstance = null;
+let rawChartData = null;   // 取得した生データを保持
+let currentMode = 'absolute';
 const COLORS = ['#007bff', '#e03131', '#2f9e44', '#f08c00', '#7048e8'];
 
 function setKeywords(kw) {
@@ -143,33 +159,67 @@ function fetchTrend() {
     .then(data => {
       if (!data.ok) { showMsg(data.error || 'エラー', 'err'); return; }
       showMsg('取得完了', 'ok');
-      renderChart(data.data);
+      rawChartData = data.data;
+      currentMode = 'absolute';
+      document.getElementById('btn-absolute').classList.add('active');
+      document.getElementById('btn-normalized').classList.remove('active');
+      renderChart(rawChartData, 'absolute');
     })
     .catch(err => showMsg('リクエストエラー: ' + err, 'err'));
 }
 
-function renderChart(data) {
+function switchMode(mode) {
+  if (!rawChartData) return;
+  currentMode = mode;
+  document.getElementById('btn-absolute').classList.toggle('active', mode === 'absolute');
+  document.getElementById('btn-normalized').classList.toggle('active', mode === 'normalized');
+  renderChart(rawChartData, mode);
+}
+
+function normalizeSeriesData(series) {
+  // 各キーワードの最大値を100にスケーリング
+  const normalized = {};
+  for (const [kw, values] of Object.entries(series)) {
+    const maxVal = Math.max(...values, 1);  // 0除算防止
+    normalized[kw] = values.map(v => Math.round((v / maxVal) * 100 * 10) / 10);
+  }
+  return normalized;
+}
+
+function renderChart(data, mode) {
   const container = document.getElementById('chart-container');
   container.style.display = 'block';
 
   if (chartInstance) { chartInstance.destroy(); }
 
+  const seriesData = (mode === 'normalized') ? normalizeSeriesData(data.series) : data.series;
+  const yLabel = (mode === 'normalized') ? '正規化指数（各KW最大=100）' : '相対検索ボリューム';
+
   const datasets = [];
   let idx = 0;
-  for (const [kw, values] of Object.entries(data.series)) {
+  for (const [kw, values] of Object.entries(seriesData)) {
+    // 凡例にピーク値を付記（絶対値モードのみ）
+    let label = kw;
+    if (mode === 'absolute') {
+      const peak = Math.max(...data.series[kw]);
+      label = kw + ' (peak:' + peak + ')';
+    }
     datasets.push({
-      label: kw,
+      label: label,
       data: values,
       borderColor: COLORS[idx % COLORS.length],
       backgroundColor: COLORS[idx % COLORS.length] + '20',
+      borderWidth: 2,
       tension: 0.3,
       fill: false,
-      pointRadius: 2,
+      pointRadius: 1,
+      pointHoverRadius: 4,
     });
     idx++;
   }
 
-  chartInstance = new Chart(document.getElementById('trend-chart'), {
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+  chartInstance = new Chart(ctx, {
     type: 'line',
     data: { labels: data.dates, datasets: datasets },
     options: {
@@ -177,12 +227,34 @@ function renderChart(data) {
       maintainAspectRatio: false,
       interaction: { intersect: false, mode: 'index' },
       scales: {
-        x: { ticks: { maxTicksLimit: 12, font: { size: 11 } } },
-        y: { beginAtZero: true, title: { display: true, text: '相対検索ボリューム' } },
+        x: {
+          ticks: { maxTicksLimit: 12, font: { size: 11 } },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        y: {
+          beginAtZero: true,
+          max: (mode === 'normalized') ? 105 : undefined,
+          title: { display: true, text: yLabel, font: { size: 12 } },
+          ticks: { font: { size: 11 } },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
       },
       plugins: {
-        legend: { position: 'top' },
-        tooltip: { mode: 'index', intersect: false },
+        legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 14 } },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: function(ctx) {
+              const raw = data.series[Object.keys(data.series)[ctx.datasetIndex]];
+              const rawVal = raw ? raw[ctx.dataIndex] : '';
+              if (mode === 'normalized') {
+                return ctx.dataset.label + ': ' + ctx.parsed.y + ' (実値:' + rawVal + ')';
+              }
+              return ctx.dataset.label.split(' (peak')[0] + ': ' + ctx.parsed.y;
+            },
+          },
+        },
       },
     },
   });
@@ -221,7 +293,7 @@ function renderRelated(data) {
   if (queries.top && queries.top.length > 0) {
     queries.top.forEach(item => {
       topBody.innerHTML += '<tr>'
-        + '<td><span class="kw-link" onclick="searchWithKeyword(\'' + escHtml(item.query) + '\')">' + escHtml(item.query) + '</span></td>'
+        + '<td><span class="kw-link" onclick="addKeyword(\'' + escHtml(item.query) + '\')">' + escHtml(item.query) + '</span></td>'
         + '<td class="num">' + item.value + '</td>'
         + '<td><button class="buzz-btn buzz-btn-sm buzz-btn-secondary" onclick="addKeyword(\'' + escHtml(item.query) + '\')">+追加</button></td>'
         + '</tr>';
@@ -234,7 +306,7 @@ function renderRelated(data) {
     queries.rising.forEach(item => {
       const val = typeof item.value === 'number' ? item.value + '%' : item.value;
       risingBody.innerHTML += '<tr>'
-        + '<td><span class="kw-link" onclick="searchWithKeyword(\'' + escHtml(item.query) + '\')">' + escHtml(item.query) + '</span></td>'
+        + '<td><span class="kw-link" onclick="addKeyword(\'' + escHtml(item.query) + '\')">' + escHtml(item.query) + '</span></td>'
         + '<td class="num">' + val + '</td>'
         + '<td><button class="buzz-btn buzz-btn-sm buzz-btn-secondary" onclick="addKeyword(\'' + escHtml(item.query) + '\')">+追加</button></td>'
         + '</tr>';
@@ -252,10 +324,6 @@ function addKeyword(kw) {
   } else {
     input.value = kw;
   }
-}
-
-function searchWithKeyword(kw) {
-  window.open('{% url "console:buzz_keyword_scan" %}', '_blank');
 }
 
 function escHtml(s) {
