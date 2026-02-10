@@ -167,6 +167,8 @@ class Command(BaseCommand):
                                 author.is_verified = profile.get('is_verified', False)
                                 author.raw_json = profile
                                 author.save()
+                                # 成長指標を初期計算
+                                author.update_growth_stats()
                             except Exception as e:
                                 logger.warning("プロフィール取得失敗 @%s: %s", username, e)
 

@@ -28,3 +28,6 @@ CLAUDE/*/img/
 # Threads セッションファイル（認証情報）
 threads_session.json
 debug_scraper_html.txt
+
+# CLAUDE project files
+CLAUDE/*

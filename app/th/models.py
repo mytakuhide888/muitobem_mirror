@@ -112,6 +112,18 @@ class THBuzzAuthor(models.Model):
     first_scraped_at = models.DateTimeField('初回取得日時', auto_now_add=True)
     updated_at = models.DateTimeField('最終更新', auto_now=True)
 
+    # ─── 成長指標フィールド ───
+    total_post_count = models.IntegerField('総投稿数', null=True, blank=True)
+    earliest_post_at = models.DateTimeField('最古の投稿日時', null=True, blank=True)
+    latest_post_at = models.DateTimeField('最新の投稿日時', null=True, blank=True)
+    avg_likes = models.FloatField('平均いいね数', null=True, blank=True)
+    avg_replies = models.FloatField('平均リプライ数', null=True, blank=True)
+    growth_score = models.FloatField('急成長スコア', null=True, blank=True)
+    account_age_days = models.IntegerField('推定アカウント日数', null=True, blank=True)
+    followers_per_day = models.FloatField('1日あたりフォロワー増', null=True, blank=True)
+    category_tags = models.CharField('カテゴリタグ', max_length=500, blank=True, default='')
+    memo = models.TextField('メモ', blank=True, default='')
+
     class Meta:
         db_table = 'meta_th_buzz_authors'
         verbose_name = 'Threadsバズ投稿者'
@@ -120,6 +132,69 @@ class THBuzzAuthor(models.Model):
 
     def __str__(self):
         return f"@{self.username}" if self.username else self.display_name
+
+    def update_growth_stats(self):
+        """DB 上の投稿データから成長指標を再計算して保存する"""
+        from django.db.models import Avg, Count, Min, Max
+        from django.utils import timezone as tz
+
+        stats = self.buzz_posts.aggregate(
+            count=Count('id'),
+            avg_likes=Avg('like_count'),
+            avg_replies=Avg('reply_count'),
+            earliest=Min('posted_at'),
+            latest=Max('posted_at'),
+        )
+
+        self.total_post_count = stats['count']
+        self.avg_likes = round(stats['avg_likes'], 1) if stats['avg_likes'] else None
+        self.avg_replies = round(stats['avg_replies'], 1) if stats['avg_replies'] else None
+        self.earliest_post_at = stats['earliest']
+        self.latest_post_at = stats['latest']
+
+        # アカウント日数（最古投稿〜現在）
+        if self.earliest_post_at:
+            delta = tz.now() - self.earliest_post_at
+            self.account_age_days = max(delta.days, 1)
+        else:
+            self.account_age_days = None
+
+        # 1日あたりフォロワー増加
+        if self.account_age_days and self.followers_count:
+            self.followers_per_day = round(
+                self.followers_count / self.account_age_days, 1
+            )
+        else:
+            self.followers_per_day = None
+
+        # 急成長スコア = フォロワー密度 × エンゲージメント品質
+        self.growth_score = self._calc_growth_score()
+
+        self.save(update_fields=[
+            'total_post_count', 'earliest_post_at', 'latest_post_at',
+            'avg_likes', 'avg_replies', 'account_age_days',
+            'followers_per_day', 'growth_score',
+        ])
+
+    def _calc_growth_score(self):
+        """
+        急成長スコア算出:
+          フォロワー密度 (followers / days) × エンゲージメント品質 (avg_likes / followers %)
+        高スコア = 短期間でフォロワーが多く、かつエンゲージメントが高いアカウント
+        """
+        if not self.account_age_days or self.account_age_days < 1:
+            return None
+        if not self.followers_count or self.followers_count < 10:
+            return None
+
+        follower_density = self.followers_count / self.account_age_days
+
+        eng_quality = 1.0
+        if self.avg_likes and self.followers_count > 0:
+            eng_quality = (self.avg_likes / self.followers_count) * 100
+            eng_quality = min(eng_quality, 50.0)
+
+        return round(follower_density * eng_quality, 2)
 
 
 class THBuzzPost(models.Model):

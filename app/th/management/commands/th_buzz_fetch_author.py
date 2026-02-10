@@ -142,5 +142,13 @@ class Command(BaseCommand):
             self.stderr.write(f"エラー: {e}")
             return
 
+        # 成長指標を再計算
+        author.update_growth_stats()
+        self.stdout.write(
+            f"成長指標更新: score={author.growth_score}, "
+            f"followers/day={author.followers_per_day}, "
+            f"age={author.account_age_days}days"
+        )
+
         logger.info("[CMD] th_buzz_fetch_author 完了: username=%s, new=%d, updated=%d", username, new_count, updated_count)
         self.stdout.write(f"完了: @{username} 新規 {new_count} 件保存, {updated_count} 件更新")

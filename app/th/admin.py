@@ -35,10 +35,42 @@ class THWebhookEventAdmin(TimeStampedAdminMixin):
 
 @admin.register(THBuzzAuthor)
 class THBuzzAuthorAdmin(admin.ModelAdmin):
-    list_display = ('username', 'display_name', 'followers_count', 'is_verified', 'updated_at')
-    search_fields = ('username', 'display_name')
-    list_filter = ('is_verified',)
-    readonly_fields = ('first_scraped_at', 'updated_at')
+    list_display = (
+        'username', 'display_name', 'followers_count',
+        'growth_score', 'followers_per_day', 'account_age_days',
+        'avg_likes', 'is_verified', 'updated_at',
+    )
+    search_fields = ('username', 'display_name', 'category_tags')
+    list_filter = ('is_verified', 'category_tags')
+    readonly_fields = (
+        'first_scraped_at', 'updated_at',
+        'growth_score', 'followers_per_day', 'account_age_days',
+        'total_post_count', 'earliest_post_at', 'latest_post_at',
+        'avg_likes', 'avg_replies',
+    )
+    fieldsets = (
+        ('基本情報', {
+            'fields': (
+                'username', 'display_name', 'bio',
+                'followers_count', 'following_count', 'is_verified',
+                'profile_url',
+            ),
+        }),
+        ('成長指標（自動計算）', {
+            'fields': (
+                'growth_score', 'followers_per_day', 'account_age_days',
+                'total_post_count', 'avg_likes', 'avg_replies',
+                'earliest_post_at', 'latest_post_at',
+            ),
+        }),
+        ('分類・メモ', {
+            'fields': ('category_tags', 'memo'),
+        }),
+        ('メタ情報', {
+            'fields': ('raw_json', 'first_scraped_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 @admin.register(THBuzzPost)
