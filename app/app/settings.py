@@ -199,6 +199,7 @@ JAZZMIN_SETTINGS = {
         {"name": "バズ投稿取得",          "url": "console:buzz_search",      "permissions": ["auth.view_user"]},
         {"name": "急成長ランキング",      "url": "console:buzz_growth_ranking", "permissions": ["auth.view_user"]},
         {"name": "一括巡回",              "url": "console:buzz_keyword_scan",   "permissions": ["auth.view_user"]},
+        {"name": "トレンド分析",          "url": "console:buzz_trends",         "permissions": ["auth.view_user"]},
 
         # ヘルプ/ログ
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},

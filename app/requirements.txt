@@ -49,3 +49,4 @@ selenium
 webdriver-manager
 django-jazzmin==3.0.0
 playwright>=1.40.0
+pytrends>=4.9.0

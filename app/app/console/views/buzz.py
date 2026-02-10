@@ -504,3 +504,68 @@ def buzz_run_keyword_scan(request):
     except Exception as e:
         logger.exception("buzz_run_keyword_scan エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+# ─── Phase C: Googleトレンド連携 ───
+
+
+@staff_member_required
+def buzz_trends(request):
+    """Googleトレンド分析画面"""
+    ctx = {
+        'title': 'Googleトレンド分析',
+    }
+    return render(request, 'admin/console/buzz_trends.html', ctx)
+
+
+@staff_member_required
+def buzz_trends_api(request):
+    """Googleトレンドデータ取得 API（GET）"""
+    from th.services.trend_analyzer import TrendAnalyzer
+
+    keywords_raw = request.GET.get('keywords', '').strip()
+    timeframe = request.GET.get('timeframe', 'today 3-m')
+    action = request.GET.get('action', 'interest')
+
+    if not keywords_raw:
+        return JsonResponse({'ok': False, 'error': 'キーワードを指定してください'}, status=400)
+
+    keywords = [kw.strip() for kw in keywords_raw.replace('\n', ',').split(',') if kw.strip()]
+    if not keywords:
+        return JsonResponse({'ok': False, 'error': 'キーワードを指定してください'}, status=400)
+
+    # timeframe の安全性チェック
+    allowed_timeframes = {
+        'now 7-d', 'today 1-m', 'today 3-m', 'today 12-m', 'today 5-y',
+    }
+    if timeframe not in allowed_timeframes:
+        timeframe = 'today 3-m'
+
+    ta = TrendAnalyzer()
+
+    try:
+        if action == 'interest':
+            data = ta.get_keyword_interest(keywords[:5], timeframe=timeframe)
+            if data is None:
+                return JsonResponse({'ok': False, 'error': 'トレンドデータの取得に失敗しました'}, status=500)
+            return JsonResponse({'ok': True, 'data': data})
+
+        elif action == 'related':
+            keyword = keywords[0]
+            queries = ta.get_related_queries(keyword)
+            topics = ta.get_related_topics(keyword)
+            return JsonResponse({
+                'ok': True,
+                'data': {
+                    'keyword': keyword,
+                    'related_queries': queries,
+                    'related_topics': topics,
+                },
+            })
+
+        else:
+            return JsonResponse({'ok': False, 'error': f'不明なアクション: {action}'}, status=400)
+
+    except Exception as e:
+        logger.exception("buzz_trends_api エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)

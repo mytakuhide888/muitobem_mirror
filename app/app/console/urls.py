@@ -43,4 +43,8 @@ urlpatterns = [
     path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),
     path("buzz-keyword-scan/",                buzz_views.buzz_keyword_scan,      name="buzz_keyword_scan"),
     path("api/buzz/run-keyword-scan/",        buzz_views.buzz_run_keyword_scan,  name="buzz_run_keyword_scan"),
+
+    # Googleトレンド分析
+    path("buzz-trends/",                      buzz_views.buzz_trends,            name="buzz_trends"),
+    path("api/buzz/trends/",                  buzz_views.buzz_trends_api,        name="buzz_trends_api"),
 ]
