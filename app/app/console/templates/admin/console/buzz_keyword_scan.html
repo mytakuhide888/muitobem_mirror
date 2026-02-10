@@ -1,0 +1,181 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}キーワード一括巡回{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; キーワード一括巡回</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ks-header { font-size:18px; font-weight:bold; margin:0 0 12px; }
+
+  .ks-top-row { display:flex; gap:16px; margin-bottom:16px; }
+  .ks-top-row > * { flex:1; min-width:0; }
+
+  .ks-form { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .ks-form h3 { margin:0 0 12px; font-size:15px; }
+  .ks-form textarea { width:100%; min-height:80px; font-size:14px; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical; box-sizing:border-box; }
+  .ks-form .row { display:flex; gap:12px; align-items:flex-end; margin-top:10px; }
+
+  .ks-presets { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .ks-presets h3 { margin:0 0 12px; font-size:15px; }
+  .ks-preset-btn { display:block; width:100%; text-align:left; padding:8px 12px; margin-bottom:6px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; cursor:pointer; font-size:13px; }
+  .ks-preset-btn:hover { background:#e9ecef; }
+  .ks-preset-btn .preset-name { font-weight:bold; }
+  .ks-preset-btn .preset-kw { font-size:12px; color:#666; margin-top:2px; }
+
+  .buzz-btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+  .buzz-btn-primary { background:#007bff; color:#fff; }
+  .buzz-btn-primary:hover { background:#0069d9; }
+  .buzz-btn-secondary { background:#6c757d; color:#fff; text-decoration:none; display:inline-block; }
+  .buzz-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
+  .buzz-msg.ok { background:#d4edda; color:#155724; display:block; }
+  .buzz-msg.err { background:#f8d7da; color:#721c24; display:block; }
+
+  .ks-jobs { background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-top:16px; }
+  .ks-jobs h4 { margin:0 0 8px; font-size:14px; }
+  .ks-jobs .jobs-scroll { max-height:400px; overflow-y:auto; }
+  .ks-jobs table { width:100%; font-size:12px; border-collapse:collapse; }
+  .ks-jobs td, .ks-jobs th { padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
+  .ks-jobs th { background:#f8f9fa; font-weight:bold; }
+  .status-PENDING { color:#6c757d; }
+  .status-RUNNING { color:#007bff; font-weight:bold; }
+  .status-COMPLETED { color:#28a745; }
+  .status-FAILED { color:#dc3545; }
+</style>
+
+<!-- Cookie 警告 -->
+{% if session_warning %}
+<div style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px;">
+  {{ session_warning }}
+</div>
+{% endif %}
+
+<h2 class="ks-header">キーワード一括巡回</h2>
+
+<div class="ks-top-row">
+  <!-- 入力フォーム -->
+  <div class="ks-form">
+    <h3>キーワード入力</h3>
+    <textarea id="keywords-input" placeholder="カンマ区切りまたは改行区切りでキーワードを入力&#10;例: 占い, タロット, 霊視, ツインレイ"></textarea>
+    <div class="row">
+      <button class="buzz-btn buzz-btn-primary" onclick="runKeywordScan()">一括巡回開始</button>
+      <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary">ランキング画面へ</a>
+    </div>
+    <div id="scan-message" class="buzz-msg"></div>
+    <p style="font-size:11px; color:#999; margin-top:8px;">
+      各キーワードで検索 → 新規投稿者のプロフィール取得 → 成長スコア計算を自動実行します。
+    </p>
+  </div>
+
+  <!-- プリセット -->
+  <div class="ks-presets">
+    <h3>定義済みキーワードセット</h3>
+    {% for name, keywords in keyword_presets.items %}
+    <button class="ks-preset-btn" onclick="usePreset('{{ keywords }}')">
+      <div class="preset-name">{{ name }}</div>
+      <div class="preset-kw">{{ keywords }}</div>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ジョブ履歴 -->
+<div class="ks-jobs">
+  <h4>最近のジョブ</h4>
+  <div class="jobs-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>キーワード</th>
+          <th>ステータス</th>
+          <th>取得件数</th>
+          <th>開始</th>
+          <th>完了</th>
+          <th>エラー</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in recent_jobs %}
+        <tr>
+          <td>{{ job.id }}</td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ job.keywords }}</td>
+          <td><span class="status-{{ job.status }}">{{ job.get_status_display }}</span></td>
+          <td>{{ job.result_count }}</td>
+          <td>{{ job.started_at|date:"m/d H:i"|default:"-" }}</td>
+          <td>{{ job.completed_at|date:"m/d H:i"|default:"-" }}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#dc3545;">{{ job.error_message|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="color:#999; text-align:center; padding:16px;">ジョブ履歴がありません</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function usePreset(keywords) {
+  document.getElementById('keywords-input').value = keywords;
+}
+
+function runKeywordScan() {
+  const msgEl = document.getElementById('scan-message');
+  const keywords = document.getElementById('keywords-input').value.trim();
+
+  if (!keywords) {
+    msgEl.className = 'buzz-msg err';
+    msgEl.textContent = 'キーワードを入力してください';
+    return;
+  }
+
+  msgEl.className = 'buzz-msg ok';
+  msgEl.textContent = '一括巡回を開始しています...';
+
+  const fd = new FormData();
+  fd.append('keywords', keywords);
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch('{% url "console:buzz_run_keyword_scan" %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        msgEl.className = 'buzz-msg ok';
+        msgEl.textContent = data.message + ' バックグラウンドで処理中です。完了後にランキング画面で確認できます。';
+        // ジョブステータスをポーリング
+        if (data.job_id) {
+          pollJobStatus(data.job_id);
+        }
+      } else {
+        msgEl.className = 'buzz-msg err';
+        msgEl.textContent = data.error || 'エラーが発生しました';
+      }
+    })
+    .catch(err => {
+      msgEl.className = 'buzz-msg err';
+      msgEl.textContent = 'リクエストエラー: ' + err;
+    });
+}
+
+function pollJobStatus(jobId) {
+  const msgEl = document.getElementById('scan-message');
+  const interval = setInterval(() => {
+    fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'COMPLETED') {
+          clearInterval(interval);
+          msgEl.className = 'buzz-msg ok';
+          msgEl.textContent = '完了: ' + data.result_count + '件の新規投稿を取得しました。ページを更新するかランキング画面で確認してください。';
+        } else if (data.status === 'FAILED') {
+          clearInterval(interval);
+          msgEl.className = 'buzz-msg err';
+          msgEl.textContent = 'エラー: ' + (data.error_message || '不明なエラー');
+        } else {
+          msgEl.textContent = '処理中... (ジョブID: ' + jobId + ')';
+        }
+      })
+      .catch(() => {});
+  }, 5000);
+}
+</script>
+{% endblock %}

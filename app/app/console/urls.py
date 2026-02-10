@@ -38,4 +38,9 @@ urlpatterns = [
     path("api/buzz/run-search/",              buzz_views.buzz_run_search,        name="buzz_run_search"),
     path("api/buzz/fetch-author-posts/",      buzz_views.buzz_fetch_author_posts, name="buzz_fetch_author_posts"),
     path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
+
+    # 急成長アカウント発見
+    path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),
+    path("buzz-keyword-scan/",                buzz_views.buzz_keyword_scan,      name="buzz_keyword_scan"),
+    path("api/buzz/run-keyword-scan/",        buzz_views.buzz_run_keyword_scan,  name="buzz_run_keyword_scan"),
 ]

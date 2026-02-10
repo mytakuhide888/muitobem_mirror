@@ -1,0 +1,189 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}急成長アカウントランキング{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 急成長ランキング</div>{% endblock %}
+
+{% block content %}
+<style>
+  .gr-header { font-size:18px; font-weight:bold; margin:0 0 12px; }
+  .gr-header small { font-size:13px; color:#666; font-weight:normal; margin-left:8px; }
+
+  .gr-filters { background:#f8f9fa; border-radius:8px; padding:12px 16px; margin-bottom:16px; }
+  .gr-filters form { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .gr-filters label { font-size:12px; display:block; margin-bottom:2px; color:#666; }
+  .gr-filters input, .gr-filters select { padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px; }
+  .gr-filters input[type="number"] { width:90px; }
+  .gr-filters input[type="text"] { width:150px; }
+
+  .buzz-btn { padding:6px 14px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+  .buzz-btn-primary { background:#007bff; color:#fff; }
+  .buzz-btn-primary:hover { background:#0069d9; }
+  .buzz-btn-secondary { background:#6c757d; color:#fff; text-decoration:none; display:inline-block; }
+
+  .gr-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:12px; }
+  .gr-card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); position:relative; }
+  .gr-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .gr-card .rank { position:absolute; top:12px; right:16px; font-size:24px; font-weight:bold; color:#dee2e6; }
+  .gr-card .rank.top3 { color:#ffd43b; }
+  .gr-card h3 { margin:0 0 4px; font-size:16px; }
+  .gr-card h3 a { color:#333; text-decoration:none; }
+  .gr-card h3 a:hover { color:#007bff; }
+  .gr-card .username { color:#007bff; font-size:13px; margin-bottom:8px; }
+  .gr-card .username a { color:#007bff; text-decoration:none; }
+  .gr-card .verified { display:inline-block; background:#1da1f2; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+
+  .gr-metrics { display:flex; gap:12px; margin:10px 0; flex-wrap:wrap; }
+  .gr-metric { text-align:center; min-width:60px; }
+  .gr-metric .val { font-size:16px; font-weight:bold; display:block; }
+  .gr-metric .val.highlight { color:#e03131; }
+  .gr-metric .lbl { font-size:10px; color:#666; }
+
+  .gr-bio { font-size:12px; color:#555; line-height:1.5; margin:8px 0; max-height:3em; overflow:hidden; white-space:pre-wrap; }
+  .gr-latest-post { font-size:12px; color:#888; background:#f8f9fa; border-radius:4px; padding:6px 8px; margin-top:8px; max-height:2.4em; overflow:hidden; }
+  .gr-latest-post::before { content:"最新投稿: "; font-weight:bold; }
+  .gr-tags { margin-top:8px; }
+  .gr-tags span { display:inline-block; background:#e9ecef; color:#495057; padding:1px 8px; border-radius:10px; font-size:11px; margin-right:4px; }
+
+  .gr-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
+  .gr-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
+  .gr-pagination a:hover { background:#e9ecef; }
+  .gr-pagination .current { padding:4px 10px; background:#007bff; color:#fff; border-radius:4px; }
+</style>
+
+<h2 class="gr-header">
+  急成長アカウントランキング
+  <small>{{ total_count }}件</small>
+</h2>
+
+<!-- フィルタ -->
+<div class="gr-filters">
+  <form method="get">
+    <div>
+      <label>検索</label>
+      <input type="text" name="q" value="{{ current_q }}" placeholder="ユーザー名/bio">
+    </div>
+    <div>
+      <label>最小フォロワー</label>
+      <input type="number" name="min_followers" value="{{ current_min_followers }}" placeholder="例: 100">
+    </div>
+    <div>
+      <label>最小スコア</label>
+      <input type="number" name="min_score" value="{{ current_min_score }}" step="0.1" placeholder="例: 10">
+    </div>
+    <div>
+      <label>最大アカウント日数</label>
+      <input type="number" name="max_age_days" value="{{ current_max_age_days }}" placeholder="例: 90">
+    </div>
+    <div>
+      <label>カテゴリ</label>
+      <select name="category">
+        <option value="">全て</option>
+        {% for tag in all_tags %}
+        <option value="{{ tag }}" {% if tag == current_category %}selected{% endif %}>{{ tag }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>ソート</label>
+      <select name="sort">
+        <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
+        <option value="-followers_per_day" {% if current_sort == "-followers_per_day" %}selected{% endif %}>フォロワー増/日(多い順)</option>
+        <option value="-followers_count" {% if current_sort == "-followers_count" %}selected{% endif %}>フォロワー数(多い順)</option>
+        <option value="account_age_days" {% if current_sort == "account_age_days" %}selected{% endif %}>アカウント日数(若い順)</option>
+        <option value="-avg_likes" {% if current_sort == "-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
+        <option value="-updated_at" {% if current_sort == "-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="buzz-btn buzz-btn-primary">絞り込み</button>
+      <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary" style="margin-left:4px;">リセット</a>
+    </div>
+  </form>
+</div>
+
+<!-- カード一覧 -->
+<div class="gr-cards">
+  {% for author in page_obj %}
+  <div class="gr-card">
+    <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+    <h3>
+      <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">
+        {{ author.display_name|default:author.username }}
+      </a>
+      {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+    </h3>
+    <div class="username">
+      <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+    </div>
+
+    <div class="gr-metrics">
+      <div class="gr-metric">
+        <span class="val highlight">{{ author.growth_score|floatformat:1 }}</span>
+        <span class="lbl">成長スコア</span>
+      </div>
+      <div class="gr-metric">
+        <span class="val">{{ author.followers_count|default:"-" }}</span>
+        <span class="lbl">フォロワー</span>
+      </div>
+      <div class="gr-metric">
+        <span class="val">{{ author.followers_per_day|floatformat:1|default:"-" }}</span>
+        <span class="lbl">F/日</span>
+      </div>
+      <div class="gr-metric">
+        <span class="val">{{ author.account_age_days|default:"-" }}</span>
+        <span class="lbl">日数</span>
+      </div>
+      <div class="gr-metric">
+        <span class="val">{{ author.avg_likes|floatformat:0|default:"-" }}</span>
+        <span class="lbl">平均いいね</span>
+      </div>
+      <div class="gr-metric">
+        <span class="val">{{ author.total_post_count|default:"-" }}</span>
+        <span class="lbl">投稿数</span>
+      </div>
+    </div>
+
+    {% if author.bio %}
+    <div class="gr-bio">{{ author.bio }}</div>
+    {% endif %}
+
+    {% with latest=latest_posts|dictsort:"author_id" %}
+    {% endwith %}
+    {% if author.pk in latest_posts %}
+    <!-- latest_posts はビュー側で dict なのでテンプレートタグでは直接参照不可のため JS不要 -->
+    {% endif %}
+
+    {% if author.category_tags %}
+    <div class="gr-tags">
+      {% for tag in author.category_tags.split %}
+      <span>{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p style="color:#999; padding:24px; text-align:center; grid-column:1/-1;">
+    成長スコアが計算されたアカウントがまだありません。<br>
+    <a href="{% url 'console:buzz_keyword_scan' %}">キーワード一括巡回</a>で投稿者を取得してください。
+  </p>
+  {% endfor %}
+</div>
+
+<!-- ページネーション -->
+{% if page_obj.has_other_pages %}
+{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category %}
+<div class="gr-pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{{ fp }}">&laquo; 最初</a>
+    <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  {% endif %}
+  <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  {% endif %}
+</div>
+{% endwith %}
+{% endif %}
+
+{% endblock %}

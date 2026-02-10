@@ -319,3 +319,188 @@ def buzz_job_status(request, pk):
         'started_at': job.started_at.isoformat() if job.started_at else None,
         'completed_at': job.completed_at.isoformat() if job.completed_at else None,
     })
+
+
+# ─── Phase B: 急成長アカウント発見 ───
+
+
+@staff_member_required
+def buzz_growth_ranking(request):
+    """急成長アカウントランキング画面"""
+
+    # ─── フィルタ/ソートパラメータ ───
+    sort_by = request.GET.get('sort', '-growth_score')
+    min_followers = request.GET.get('min_followers', '')
+    min_score = request.GET.get('min_score', '')
+    max_age_days = request.GET.get('max_age_days', '')
+    category = request.GET.get('category', '')
+    q = request.GET.get('q', '')
+
+    allowed_sorts = {
+        'growth_score', '-growth_score',
+        'followers_per_day', '-followers_per_day',
+        'followers_count', '-followers_count',
+        'account_age_days', '-account_age_days',
+        'avg_likes', '-avg_likes',
+        'updated_at', '-updated_at',
+    }
+    if sort_by not in allowed_sorts:
+        sort_by = '-growth_score'
+
+    # ─── クエリセット構築 ───
+    qs = THBuzzAuthor.objects.filter(growth_score__isnull=False)
+
+    if q:
+        qs = qs.filter(username__icontains=q) | qs.filter(display_name__icontains=q) | qs.filter(bio__icontains=q)
+    if min_followers:
+        try:
+            qs = qs.filter(followers_count__gte=int(min_followers))
+        except (ValueError, TypeError):
+            pass
+    if min_score:
+        try:
+            qs = qs.filter(growth_score__gte=float(min_score))
+        except (ValueError, TypeError):
+            pass
+    if max_age_days:
+        try:
+            qs = qs.filter(account_age_days__lte=int(max_age_days))
+        except (ValueError, TypeError):
+            pass
+    if category:
+        qs = qs.filter(category_tags__icontains=category)
+
+    qs = qs.order_by(sort_by)
+
+    # ─── ページネーション ───
+    paginator = Paginator(qs, 30)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # 各アカウントの最新投稿を1件プリフェッチ
+    author_ids = [a.id for a in page_obj]
+    from django.db.models import Subquery, OuterRef
+    latest_post_ids = (
+        THBuzzPost.objects
+        .filter(author_id=OuterRef('author_id'))
+        .order_by('-scraped_at')
+        .values('id')[:1]
+    )
+    latest_posts = {}
+    if author_ids:
+        posts_qs = (
+            THBuzzPost.objects
+            .filter(author_id__in=author_ids)
+            .filter(id__in=Subquery(
+                THBuzzPost.objects
+                .filter(author_id=OuterRef('author_id'))
+                .order_by('-scraped_at')
+                .values('id')[:1]
+            ))
+        )
+        for p in posts_qs:
+            latest_posts[p.author_id] = p
+
+    # カテゴリタグ一覧（フィルタ用）
+    all_tags = set()
+    for tags_str in THBuzzAuthor.objects.exclude(category_tags='').values_list('category_tags', flat=True):
+        for tag in tags_str.split(','):
+            tag = tag.strip()
+            if tag:
+                all_tags.add(tag)
+    all_tags = sorted(all_tags)
+
+    ctx = {
+        'title': '急成長アカウントランキング',
+        'page_obj': page_obj,
+        'latest_posts': latest_posts,
+        'all_tags': all_tags,
+        'total_count': paginator.count,
+        # 現在のフィルタ値
+        'current_sort': sort_by,
+        'current_min_followers': min_followers,
+        'current_min_score': min_score,
+        'current_max_age_days': max_age_days,
+        'current_category': category,
+        'current_q': q,
+    }
+    return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
+
+
+@staff_member_required
+def buzz_keyword_scan(request):
+    """キーワード一括巡回画面"""
+
+    # 最近のジョブ一覧
+    recent_jobs = THBuzzSearchJob.objects.order_by('-created_at')[:20]
+
+    # 定義済みキーワードセット
+    keyword_presets = {
+        '占い基本セット': '占い,タロット,霊視,スピリチュアル,四柱推命,数秘術',
+        'ツインレイ・恋愛セット': 'ツインレイ,ソウルメイト,復縁,片思い占い,恋愛占い',
+        '金運・開運セット': '金運,開運,パワーストーン,風水,引き寄せ',
+        '仕事・転職セット': '仕事運,転職占い,適職診断,キャリア占い',
+    }
+
+    # Cookie 有効期限チェック
+    session_info = check_session_validity()
+    session_warning = None
+    if not session_info['valid']:
+        session_warning = session_info['message']
+    elif session_info['expires_at']:
+        from datetime import datetime, timezone as dt_timezone
+        remaining = session_info['expires_at'] - datetime.now(tz=dt_timezone.utc)
+        if remaining.days <= 3:
+            session_warning = session_info['message']
+
+    ctx = {
+        'title': 'キーワード一括巡回',
+        'recent_jobs': recent_jobs,
+        'keyword_presets': keyword_presets,
+        'session_warning': session_warning,
+    }
+    return render(request, 'admin/console/buzz_keyword_scan.html', ctx)
+
+
+@staff_member_required
+@require_POST
+def buzz_run_keyword_scan(request):
+    """キーワード一括巡回ジョブを開始する API"""
+    try:
+        keywords_raw = request.POST.get('keywords', '').strip()
+        if not keywords_raw:
+            return JsonResponse({'ok': False, 'error': 'キーワードを入力してください'}, status=400)
+
+        keywords = [kw.strip() for kw in keywords_raw.replace('\n', ',').split(',') if kw.strip()]
+        if not keywords:
+            return JsonResponse({'ok': False, 'error': 'キーワードを入力してください'}, status=400)
+
+        # ジョブレコード作成
+        job = THBuzzSearchJob.objects.create(
+            keywords=json.dumps(keywords, ensure_ascii=False),
+            status='RUNNING',
+            started_at=timezone.now(),
+        )
+
+        # バックグラウンドで一括巡回コマンドを起動
+        cmd = [sys.executable, 'manage.py', 'th_buzz_keyword_scan', '--job-id', str(job.id)]
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_keyword_scan_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_keyword_scan_stderr.log', 'a')
+        subprocess.Popen(
+            cmd,
+            cwd=str(settings.BASE_DIR),
+            stdout=log_out,
+            stderr=log_err,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'message': f'一括巡回を開始しました (ID: {job.id}, {len(keywords)}キーワード)',
+            'job_id': job.id,
+        })
+
+    except Exception as e:
+        logger.exception("buzz_run_keyword_scan エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
