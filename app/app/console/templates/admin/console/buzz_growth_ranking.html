@@ -147,12 +147,6 @@
     <div class="gr-bio">{{ author.bio }}</div>
     {% endif %}
 
-    {% with latest=latest_posts|dictsort:"author_id" %}
-    {% endwith %}
-    {% if author.pk in latest_posts %}
-    <!-- latest_posts はビュー側で dict なのでテンプレートタグでは直接参照不可のため JS不要 -->
-    {% endif %}
-
     {% if author.category_tags %}
     <div class="gr-tags">
       {% for tag in author.category_tags.split %}

@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
@@ -348,10 +349,12 @@ def buzz_growth_ranking(request):
         sort_by = '-growth_score'
 
     # ─── クエリセット構築 ───
-    qs = THBuzzAuthor.objects.filter(growth_score__isnull=False)
+    qs = THBuzzAuthor.objects.all()
 
     if q:
-        qs = qs.filter(username__icontains=q) | qs.filter(display_name__icontains=q) | qs.filter(bio__icontains=q)
+        qs = qs.filter(
+            Q(username__icontains=q) | Q(display_name__icontains=q) | Q(bio__icontains=q)
+        )
     if min_followers:
         try:
             qs = qs.filter(followers_count__gte=int(min_followers))
@@ -377,30 +380,6 @@ def buzz_growth_ranking(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # 各アカウントの最新投稿を1件プリフェッチ
-    author_ids = [a.id for a in page_obj]
-    from django.db.models import Subquery, OuterRef
-    latest_post_ids = (
-        THBuzzPost.objects
-        .filter(author_id=OuterRef('author_id'))
-        .order_by('-scraped_at')
-        .values('id')[:1]
-    )
-    latest_posts = {}
-    if author_ids:
-        posts_qs = (
-            THBuzzPost.objects
-            .filter(author_id__in=author_ids)
-            .filter(id__in=Subquery(
-                THBuzzPost.objects
-                .filter(author_id=OuterRef('author_id'))
-                .order_by('-scraped_at')
-                .values('id')[:1]
-            ))
-        )
-        for p in posts_qs:
-            latest_posts[p.author_id] = p
-
     # カテゴリタグ一覧（フィルタ用）
     all_tags = set()
     for tags_str in THBuzzAuthor.objects.exclude(category_tags='').values_list('category_tags', flat=True):
@@ -413,7 +392,6 @@ def buzz_growth_ranking(request):
     ctx = {
         'title': '急成長アカウントランキング',
         'page_obj': page_obj,
-        'latest_posts': latest_posts,
         'all_tags': all_tags,
         'total_count': paginator.count,
         # 現在のフィルタ値
