@@ -381,6 +381,11 @@ function openPostModal(postId) {
   const d = POST_DATA[postId];
   if (!d) return;
 
+  // デバッグ: メディアデータの確認
+  console.log('[PostModal] id=' + postId, 'mediaType=' + d.mediaType,
+    'mediaUrls=', d.mediaUrls, 'type=' + typeof d.mediaUrls,
+    'length=' + (d.mediaUrls ? d.mediaUrls.length : 'N/A'));
+
   let text = d.text;
   const hiddenEl = document.querySelector('[data-post-pk="' + postId + '"]');
   if (hiddenEl) text = hiddenEl.textContent;
@@ -397,7 +402,9 @@ function openPostModal(postId) {
 
   // メディア
   mediaEl.innerHTML = '';
-  if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
+  if (d.mediaType && d.mediaType !== 'text' && (!d.mediaUrls || d.mediaUrls.length === 0)) {
+    mediaEl.innerHTML = '<p style="color:#999; font-size:12px;">[' + d.mediaType + ' 投稿: メディアURL未取得 - 再スクレイプが必要です]</p>';
+  } else if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
     if (d.mediaType === 'carousel') {
       const wrap = document.createElement('div');
       wrap.className = 'carousel-wrap';

@@ -538,6 +538,17 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
             img_entry = _extract_best_image(image_versions)
             if img_entry:
                 media_urls.append(img_entry)
+                logger.info("[DEBUG] 画像抽出成功: url=%s", img_entry.get('url', '')[:120])
+            else:
+                # _extract_best_image が None を返した原因を詳細ログ
+                logger.warning(
+                    "[DEBUG] 画像抽出失敗: image_versions2 type=%s, keys=%s, candidates=%s",
+                    type(image_versions).__name__,
+                    list(image_versions.keys()) if isinstance(image_versions, dict) else 'N/A',
+                    len(image_versions.get('candidates', [])) if isinstance(image_versions, dict) else 'N/A',
+                )
+        else:
+            logger.warning("[DEBUG] 画像投稿(mt=1)だが image_versions2 が存在しない: text=%s", (text[:40] if text else ''))
 
     # post_url からメディアURL構築（フォールバック）
     if not media_urls and code and mt in (1, 2, 8):
