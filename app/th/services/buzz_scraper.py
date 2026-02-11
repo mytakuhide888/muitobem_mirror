@@ -586,13 +586,16 @@ class ThreadsBuzzScraper:
 
     # ─── 検索 ───
 
-    def search_keyword(self, keyword: str, exclude_replies: bool = True) -> List[Dict]:
-        """キーワードで Threads を検索し、投稿を取得"""
+    def search_keyword(self, keyword: str, exclude_replies: bool = True, sort_order: str = 'recent') -> List[Dict]:
+        """キーワードで Threads を検索し、投稿を取得
+        sort_order: 'recent'=新しい順, 'default'=おすすめ順
+        """
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
 
+        serp_type = 'recent' if sort_order == 'recent' else 'default'
         encoded = quote(keyword)
-        search_url = f"{THREADS_BASE}/search?q={encoded}&serp_type=recent"
+        search_url = f"{THREADS_BASE}/search?q={encoded}&serp_type={serp_type}"
         logger.info("検索開始: %s → %s", keyword, search_url)
 
         try:

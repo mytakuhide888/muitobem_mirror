@@ -39,6 +39,11 @@ class Command(BaseCommand):
             '--include-replies', action='store_true',
             help='低品質リプライも含めて取得する',
         )
+        parser.add_argument(
+            '--sort-order', type=str, default='recent',
+            choices=['recent', 'default'],
+            help='検索結果の並び順: recent=新しい順, default=おすすめ順（デフォルト: recent）',
+        )
 
     def handle(self, *args, **opts):
         # Playwright sync API が内部でイベントループを作成するため、
@@ -76,7 +81,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"\n--- 検索中: {kw} ---")
                     logger.info("[CMD] 検索実行: keyword=%s", kw)
                     exclude_replies = not opts.get('include_replies', False)
-                    posts = scraper.search_keyword(kw, exclude_replies=exclude_replies)
+                    sort_order = opts.get('sort_order', 'recent')
+                    posts = scraper.search_keyword(kw, exclude_replies=exclude_replies, sort_order=sort_order)
                     self.stdout.write(f"  取得件数: {len(posts)}")
                     logger.info("[CMD] 取得結果: keyword=%s, count=%d", kw, len(posts))
 

@@ -88,6 +88,13 @@
           <input type="checkbox" id="buzz-exclude-replies" checked> リプライを除外
         </label>
       </div>
+      <div>
+        <label>並び順</label>
+        <select id="buzz-sort-order" style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+          <option value="recent">新しい順</option>
+          <option value="default">おすすめ順</option>
+        </select>
+      </div>
       <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
       <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
     </div>
@@ -296,6 +303,7 @@ function runSearch(scheduled) {
   if (document.getElementById('buzz-exclude-replies').checked) {
     fd.append('exclude_replies', '1');
   }
+  fd.append('sort_order', document.getElementById('buzz-sort-order').value);
 
   msgEl.className = 'buzz-msg ok';
   msgEl.textContent = '処理中...';

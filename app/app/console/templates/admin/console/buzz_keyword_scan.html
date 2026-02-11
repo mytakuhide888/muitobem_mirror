@@ -57,6 +57,13 @@
     <h3>キーワード入力</h3>
     <textarea id="keywords-input" placeholder="カンマ区切りまたは改行区切りでキーワードを入力&#10;例: 占い, タロット, 霊視, ツインレイ"></textarea>
     <div class="row">
+      <div>
+        <label style="font-size:12px; display:block; margin-bottom:2px; color:#666;">並び順</label>
+        <select id="scan-sort-order" style="padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+          <option value="recent">新しい順</option>
+          <option value="default">おすすめ順</option>
+        </select>
+      </div>
       <button class="buzz-btn buzz-btn-primary" onclick="runKeywordScan()">一括巡回開始</button>
       <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary">ランキング画面へ</a>
     </div>
@@ -134,6 +141,7 @@ function runKeywordScan() {
   const fd = new FormData();
   fd.append('keywords', keywords);
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('sort_order', document.getElementById('scan-sort-order').value);
 
   fetch('{% url "console:buzz_run_keyword_scan" %}', { method: 'POST', body: fd })
     .then(r => r.json())

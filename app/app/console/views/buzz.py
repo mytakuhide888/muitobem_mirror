@@ -247,6 +247,9 @@ def buzz_run_search(request):
         cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
         if not request.POST.get('exclude_replies'):
             cmd.append('--include-replies')
+        sort_order = request.POST.get('sort_order', 'recent')
+        if sort_order in ('recent', 'default'):
+            cmd.extend(['--sort-order', sort_order])
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
@@ -462,6 +465,9 @@ def buzz_run_keyword_scan(request):
 
         # バックグラウンドで一括巡回コマンドを起動
         cmd = [sys.executable, 'manage.py', 'th_buzz_keyword_scan', '--job-id', str(job.id)]
+        sort_order = request.POST.get('sort_order', 'recent')
+        if sort_order in ('recent', 'default'):
+            cmd.extend(['--sort-order', sort_order])
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_keyword_scan_stdout.log', 'a')

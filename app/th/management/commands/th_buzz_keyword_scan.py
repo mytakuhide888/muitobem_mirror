@@ -35,6 +35,11 @@ class Command(BaseCommand):
             '--max-profile-fetch', type=int, default=20,
             help='1回の巡回で取得するプロフィールの最大数（デフォルト: 20）',
         )
+        parser.add_argument(
+            '--sort-order', type=str, default='recent',
+            choices=['recent', 'default'],
+            help='検索結果の並び順: recent=新しい順, default=おすすめ順（デフォルト: recent）',
+        )
 
     def handle(self, *args, **opts):
         import os
@@ -77,7 +82,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"\n--- 検索中: {kw} ---")
                     logger.info("[SCAN] 検索実行: keyword=%s", kw)
 
-                    posts = scraper.search_keyword(kw)
+                    sort_order = opts.get('sort_order', 'recent')
+                    posts = scraper.search_keyword(kw, sort_order=sort_order)
                     self.stdout.write(f"  取得件数: {len(posts)}")
 
                     for post_data in posts:
