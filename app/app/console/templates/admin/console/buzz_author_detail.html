@@ -353,7 +353,7 @@
 const POST_DATA = {
   {% for post in page_obj %}
   {{ post.pk }}: {
-    text: {{ post.text_content|escapejs|safe|default:"''"|truncatechars:0 }},
+    text: '',
     like: {{ post.like_count }},
     reply: {{ post.reply_count }},
     repost: {{ post.repost_count }},
