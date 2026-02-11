@@ -35,6 +35,7 @@ def buzz_search(request):
     author_filter = request.GET.get('author', '')
     keyword_filter = request.GET.get('keyword', '')
     viral_only = request.GET.get('viral', '')
+    favorite_only = request.GET.get('favorite', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -70,6 +71,8 @@ def buzz_search(request):
         qs = qs.filter(search_keyword__icontains=keyword_filter)
     if viral_only == '1':
         qs = qs.filter(is_viral=True)
+    if favorite_only == '1':
+        qs = qs.filter(author__is_favorited=True)
     if date_from:
         qs = qs.filter(scraped_at__date__gte=date_from)
     if date_to:
@@ -175,6 +178,7 @@ def buzz_search(request):
         'current_author': author_filter,
         'current_keyword': keyword_filter,
         'current_viral': viral_only,
+        'current_favorite': favorite_only,
         'current_date_from': date_from,
         'current_date_to': date_to,
         'current_like_min': like_min,
@@ -681,6 +685,16 @@ def buzz_trends_api(request):
     except Exception as e:
         logger.exception("buzz_trends_api エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
+def buzz_toggle_favorite(request, pk):
+    """投稿者のお気に入りをトグルする API"""
+    author = get_object_or_404(THBuzzAuthor, pk=pk)
+    author.is_favorited = not author.is_favorited
+    author.save(update_fields=['is_favorited'])
+    return JsonResponse({'ok': True, 'is_favorited': author.is_favorited})
 
 
 @staff_member_required

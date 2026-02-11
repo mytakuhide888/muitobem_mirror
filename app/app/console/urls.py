@@ -38,6 +38,7 @@ urlpatterns = [
     path("api/buzz/run-search/",              buzz_views.buzz_run_search,        name="buzz_run_search"),
     path("api/buzz/fetch-author-posts/",      buzz_views.buzz_fetch_author_posts, name="buzz_fetch_author_posts"),
     path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
+    path("api/buzz/author-favorite/<int:pk>/", buzz_views.buzz_toggle_favorite,   name="buzz_toggle_favorite"),
 
     # 急成長アカウント発見
     path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),

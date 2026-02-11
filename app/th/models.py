@@ -123,6 +123,7 @@ class THBuzzAuthor(models.Model):
     followers_per_day = models.FloatField('1日あたりフォロワー増', null=True, blank=True)
     category_tags = models.CharField('カテゴリタグ', max_length=500, blank=True, default='')
     memo = models.TextField('メモ', blank=True, default='')
+    is_favorited = models.BooleanField('お気に入り', default=False)
 
     class Meta:
         db_table = 'meta_th_buzz_authors'

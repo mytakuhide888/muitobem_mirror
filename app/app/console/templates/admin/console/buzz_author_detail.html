@@ -109,6 +109,7 @@
     <h2>
       {{ author.display_name|default:author.username }}
       {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+      <a href="#" id="fav-toggle" onclick="toggleFavorite(event)" title="お気に入り" style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{% if author.is_favorited %}★{% else %}☆{% endif %}</a>
     </h2>
     <div class="username">
       <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
@@ -545,6 +546,27 @@ function fetchAuthorPosts() {
       msgEl.className = 'author-msg err';
       msgEl.textContent = 'リクエストエラー: ' + err;
     });
+}
+
+function toggleFavorite(e) {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "console:buzz_toggle_favorite" pk=author.pk %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        const el = document.getElementById('fav-toggle');
+        if (data.is_favorited) {
+          el.textContent = '\u2605';
+          el.style.color = '#f5a623';
+        } else {
+          el.textContent = '\u2606';
+          el.style.color = '#ccc';
+        }
+      }
+    })
+    .catch(err => console.error('toggleFavorite error:', err));
 }
 </script>
 

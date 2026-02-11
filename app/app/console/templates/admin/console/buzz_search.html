@@ -179,6 +179,13 @@
       </select>
     </div>
     <div>
+      <label>お気に入り</label>
+      <select name="favorite">
+        <option value="">全て</option>
+        <option value="1" {% if current_favorite == "1" %}selected{% endif %}>お気に入りのみ</option>
+      </select>
+    </div>
+    <div>
       <label>日付(From)</label>
       <input type="date" name="date_from" value="{{ current_date_from }}">
     </div>
@@ -258,7 +265,7 @@
   <tbody>
     {% for post in page_obj %}
     <tr>
-      <td style="white-space:nowrap;"><a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
+      <td style="white-space:nowrap;">{% if post.author.is_favorited %}<span style="color:#f5a623; font-size:14px;" title="お気に入り">★</span>{% endif %}<a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
       <td class="text-col" onclick="openPostModal({{ post.pk }})">
         {% if post.raw_json.is_pinned %}<span style="color:#e65100;">&#x1F4CC;</span>{% endif %}
         {{ post.text_content|truncatechars:50 }}
@@ -302,7 +309,7 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&author="|add:current_author|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
+{% with fp="&sort="|add:current_sort|add:"&author="|add:current_author|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&favorite="|add:current_favorite|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
 <div class="buzz-pagination">
   {% if page_obj.has_previous %}
     <a href="?page=1{{ fp }}">&laquo; 最初</a>
