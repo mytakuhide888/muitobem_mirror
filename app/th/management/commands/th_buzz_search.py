@@ -45,6 +45,25 @@ class Command(BaseCommand):
             help='検索結果の並び順: recent=新しい順, default=おすすめ順（デフォルト: recent）',
         )
 
+    def _recalc_author_posts(self, author):
+        """投稿者のフォロワー数が判明した後、全投稿の ER / バズ判定を再計算"""
+        posts = THBuzzPost.objects.filter(author=author)
+        updated = 0
+        for p in posts:
+            post_data = {
+                'like_count': p.like_count or 0,
+                'reply_count': p.reply_count or 0,
+                'repost_count': p.repost_count or 0,
+            }
+            virality = ViralityDetector.is_viral(post_data, author.followers_count)
+            p.engagement_rate = virality['engagement_rate']
+            p.engagement_score = virality['engagement_score']
+            p.is_viral = virality['is_viral']
+            p.save(update_fields=['engagement_rate', 'engagement_score', 'is_viral'])
+            updated += 1
+        if updated:
+            logger.info("[CMD] @%s: %d件の投稿のER/バズ判定を再計算", author.username, updated)
+
     def handle(self, *args, **opts):
         # Playwright sync API が内部でイベントループを作成するため、
         # Django ORM の async safety チェックを無効化する
@@ -175,6 +194,9 @@ class Command(BaseCommand):
                                 author.save()
                                 # 成長指標を初期計算
                                 author.update_growth_stats()
+                                # フォロワー数が判明したので ER/バズ判定を再計算
+                                if author.followers_count:
+                                    self._recalc_author_posts(author)
                             except Exception as e:
                                 logger.warning("プロフィール取得失敗 @%s: %s", username, e)
 

@@ -116,10 +116,14 @@ class ViralityDetector:
             + post_data.get('repost_count', 0) * cls.WEIGHTS['reposts']
         )
 
+    # フォロワー不明時のスコアベースバズ閾値
+    SCORE_VIRAL_THRESHOLD = 1500   # likes×1 + replies×3 + reposts×2.5 >= 1500
+
     @classmethod
-    def calc_engagement_rate(cls, post_data: Dict, followers: int) -> float:
+    def calc_engagement_rate(cls, post_data: Dict, followers: int) -> Optional[float]:
+        """エンゲージメント率を算出。フォロワー不明時は None を返す。"""
         if not followers or followers <= 0:
-            return 0.0
+            return None
         total = (
             post_data.get('like_count', 0)
             + post_data.get('reply_count', 0)
@@ -142,15 +146,21 @@ class ViralityDetector:
         engagement_rate = cls.calc_engagement_rate(post_data, followers)
         engagement_score = cls.calc_engagement_score(post_data)
 
-        meets_likes = post_data.get('like_count', 0) >= threshold['min_likes']
-        meets_replies = post_data.get('reply_count', 0) >= threshold['min_replies']
-        meets_rate = engagement_rate >= threshold['engagement_rate']
+        followers_known = followers is not None and followers > 0
 
-        viral = (meets_likes or meets_replies) and meets_rate
+        if followers_known:
+            # フォロワー既知: 従来ロジック（いいね/リプライ閾値 + ER閾値）
+            meets_likes = post_data.get('like_count', 0) >= threshold['min_likes']
+            meets_replies = post_data.get('reply_count', 0) >= threshold['min_replies']
+            meets_rate = engagement_rate >= threshold['engagement_rate']
+            viral = (meets_likes or meets_replies) and meets_rate
+        else:
+            # フォロワー不明: スコアベースで判定
+            viral = engagement_score >= cls.SCORE_VIRAL_THRESHOLD
 
         return {
             'is_viral': viral,
-            'engagement_rate': round(engagement_rate, 2),
+            'engagement_rate': round(engagement_rate, 2) if engagement_rate is not None else None,
             'engagement_score': round(engagement_score, 2),
             'tier': tier,
         }
@@ -393,6 +403,20 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
             val = tpai.get(field)
             if val and isinstance(val, (int, float)) and val > 0:
                 impressions = int(val)
+                break
+
+    # テキストベースのインプレッション抽出（"〇万回表示", "〇 views" 等）
+    if impressions is None:
+        # post / item 内の文字列フィールドを探索
+        str_candidates = []
+        for obj in [post, tpai, item or {}]:
+            for v in obj.values():
+                if isinstance(v, str) and ('表示' in v or 'view' in v.lower()):
+                    str_candidates.append(v)
+        for s in str_candidates:
+            parsed_imp = _parse_view_count_text(s)
+            if parsed_imp:
+                impressions = parsed_imp
                 break
 
     # デバッグ: impressions 関連の候補フィールドをログ（最初の数件のみ）

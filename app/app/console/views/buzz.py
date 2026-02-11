@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from th.models import THBuzzAuthor, THBuzzPost, THBuzzSearchJob
-from th.services.buzz_scraper import check_session_validity
+from th.services.buzz_scraper import ViralityDetector, check_session_validity
 
 logger = logging.getLogger(__name__)
 
@@ -552,4 +552,36 @@ def buzz_trends_api(request):
 
     except Exception as e:
         logger.exception("buzz_trends_api エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
+def buzz_recalc_er(request):
+    """フォロワー既知の投稿者の投稿について ER/バズ判定を一括再計算する API"""
+    try:
+        authors = THBuzzAuthor.objects.filter(followers_count__isnull=False, followers_count__gt=0)
+        total_updated = 0
+        for author in authors:
+            posts = THBuzzPost.objects.filter(author=author)
+            for p in posts:
+                post_data = {
+                    'like_count': p.like_count or 0,
+                    'reply_count': p.reply_count or 0,
+                    'repost_count': p.repost_count or 0,
+                }
+                virality = ViralityDetector.is_viral(post_data, author.followers_count)
+                p.engagement_rate = virality['engagement_rate']
+                p.engagement_score = virality['engagement_score']
+                p.is_viral = virality['is_viral']
+                p.save(update_fields=['engagement_rate', 'engagement_score', 'is_viral'])
+                total_updated += 1
+
+        return JsonResponse({
+            'ok': True,
+            'message': f'{total_updated}件の投稿のER/バズ判定を再計算しました',
+            'updated_count': total_updated,
+        })
+    except Exception as e:
+        logger.exception("buzz_recalc_er エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
