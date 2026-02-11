@@ -186,7 +186,104 @@ def buzz_search(request):
 def buzz_author_detail(request, pk):
     """投稿者詳細画面"""
     author = get_object_or_404(THBuzzAuthor, pk=pk)
-    posts = author.buzz_posts.order_by('-scraped_at')
+
+    # ─── フィルタ/ソートパラメータ ───
+    sort_by = request.GET.get('sort', '-scraped_at')
+    keyword_filter = request.GET.get('keyword', '')
+    viral_only = request.GET.get('viral', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    like_min = request.GET.get('like_min', '')
+    like_max = request.GET.get('like_max', '')
+    reply_min = request.GET.get('reply_min', '')
+    reply_max = request.GET.get('reply_max', '')
+    score_min = request.GET.get('score_min', '')
+    score_max = request.GET.get('score_max', '')
+    er_min = request.GET.get('er_min', '')
+    er_max = request.GET.get('er_max', '')
+
+    allowed_sorts = {
+        'scraped_at', '-scraped_at',
+        'posted_at', '-posted_at',
+        'like_count', '-like_count',
+        'impressions', '-impressions',
+        'engagement_score', '-engagement_score',
+        'engagement_rate', '-engagement_rate',
+        'reply_count', '-reply_count',
+    }
+    if sort_by not in allowed_sorts:
+        sort_by = '-scraped_at'
+
+    # ─── クエリセット構築 ───
+    qs = author.buzz_posts.all()
+
+    if keyword_filter:
+        qs = qs.filter(search_keyword__icontains=keyword_filter)
+    if viral_only == '1':
+        qs = qs.filter(is_viral=True)
+    if date_from:
+        qs = qs.filter(scraped_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(scraped_at__date__lte=date_to)
+    if like_min:
+        try:
+            qs = qs.filter(like_count__gte=int(like_min))
+        except (ValueError, TypeError):
+            pass
+    if like_max:
+        try:
+            qs = qs.filter(like_count__lte=int(like_max))
+        except (ValueError, TypeError):
+            pass
+    if reply_min:
+        try:
+            qs = qs.filter(reply_count__gte=int(reply_min))
+        except (ValueError, TypeError):
+            pass
+    if reply_max:
+        try:
+            qs = qs.filter(reply_count__lte=int(reply_max))
+        except (ValueError, TypeError):
+            pass
+    if score_min:
+        try:
+            qs = qs.filter(engagement_score__gte=float(score_min))
+        except (ValueError, TypeError):
+            pass
+    if score_max:
+        try:
+            qs = qs.filter(engagement_score__lte=float(score_max))
+        except (ValueError, TypeError):
+            pass
+    if er_min:
+        try:
+            qs = qs.filter(engagement_rate__gte=float(er_min))
+        except (ValueError, TypeError):
+            pass
+    if er_max:
+        try:
+            qs = qs.filter(engagement_rate__lte=float(er_max))
+        except (ValueError, TypeError):
+            pass
+
+    qs = qs.order_by(sort_by)
+
+    # ─── ページネーション ───
+    paginator = Paginator(qs, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # ─── ピン留め投稿を分離 ───
+    pinned_posts = [p for p in author.buzz_posts.all() if p.raw_json and p.raw_json.get('is_pinned')]
+
+    # ─── 検索キーワード一覧（フィルタ用） ───
+    keywords_list = (
+        author.buzz_posts
+        .exclude(search_keyword='')
+        .values_list('search_keyword', flat=True)
+        .distinct()
+        .order_by('search_keyword')
+    )
 
     # Cookie 有効期限チェック
     session_info = check_session_validity()
@@ -202,8 +299,23 @@ def buzz_author_detail(request, pk):
     ctx = {
         'title': f'投稿者: @{author.username}',
         'author': author,
-        'posts': posts,
+        'page_obj': page_obj,
+        'pinned_posts': pinned_posts,
+        'keywords_list': keywords_list,
         'session_warning': session_warning,
+        'current_sort': sort_by,
+        'current_keyword': keyword_filter,
+        'current_viral': viral_only,
+        'current_date_from': date_from,
+        'current_date_to': date_to,
+        'current_like_min': like_min,
+        'current_like_max': like_max,
+        'current_reply_min': reply_min,
+        'current_reply_max': reply_max,
+        'current_score_min': score_min,
+        'current_score_max': score_max,
+        'current_er_min': er_min,
+        'current_er_max': er_max,
     }
     return render(request, 'admin/console/buzz_author_detail.html', ctx)
 

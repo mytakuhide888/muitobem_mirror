@@ -115,6 +115,9 @@ class Command(BaseCommand):
                         raw = existing.raw_json or {}
                         raw['is_pinned'] = post_data.get('is_pinned', False)
                         existing.raw_json = raw
+                        if post_data.get('media_urls') and not existing.media_urls:
+                            existing.media_type = post_data.get('media_type', '')
+                            existing.media_urls = post_data.get('media_urls', [])
                         existing.save()
                         updated_count += 1
                         continue
@@ -134,6 +137,8 @@ class Command(BaseCommand):
                         search_keyword='',
                         posted_at=post_data.get('posted_at'),
                         raw_json=raw_json,
+                        media_type=post_data.get('media_type', ''),
+                        media_urls=post_data.get('media_urls', []),
                     )
                     new_count += 1
 

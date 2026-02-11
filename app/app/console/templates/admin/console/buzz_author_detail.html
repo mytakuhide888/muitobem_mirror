@@ -5,124 +5,313 @@
 
 {% block content %}
 <style>
-  .author-profile { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
+  /* ─── 上段: プロフィール + ピン留め ─── */
+  .ad-top-row { display:flex; gap:16px; margin-bottom:16px; align-items:flex-start; }
+  .ad-top-row > .author-profile { flex:1; min-width:0; }
+  .ad-top-row > .pinned-section { flex:1; min-width:0; max-width:50%; }
+
+  .author-profile { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .author-profile h2 { margin:0 0 4px; font-size:20px; }
   .author-profile .username { color:#007bff; font-size:16px; margin-bottom:12px; }
+  .author-profile .username a { color:#007bff; text-decoration:none; }
   .author-profile .verified { display:inline-block; background:#1da1f2; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:8px; }
   .author-stats { display:flex; gap:24px; margin:12px 0; }
   .author-stats .stat { text-align:center; }
   .author-stats .stat-value { font-size:20px; font-weight:bold; display:block; }
   .author-stats .stat-label { font-size:12px; color:#666; }
   .author-bio { margin:12px 0; padding:12px; background:#f8f9fa; border-radius:6px; font-size:14px; line-height:1.6; white-space:pre-wrap; }
-  .author-actions { margin-top:16px; }
+  .author-actions { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .author-actions .buzz-btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
   .author-actions .buzz-btn-primary { background:#007bff; color:#fff; }
   .author-actions .buzz-btn-primary:hover { background:#0069d9; }
-  .author-actions .buzz-btn-secondary, .author-actions a.buzz-btn-secondary { background:#495057; color:#fff !important; text-decoration:none; display:inline-block; }
+  .author-actions a.buzz-btn-secondary { background:#495057; color:#fff !important; text-decoration:none; display:inline-block; padding:8px 16px; border:none; border-radius:6px; font-size:14px; }
   .author-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
   .author-msg.ok { background:#d4edda; color:#155724; display:block; }
   .author-msg.err { background:#f8d7da; color:#721c24; display:block; }
 
-  .posts-list { margin-top:16px; }
-  .posts-list h3 { font-size:16px; margin-bottom:12px; }
-  .post-item { background:#fff; border-radius:8px; padding:14px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .post-item .post-text { font-size:14px; line-height:1.6; margin-bottom:8px; white-space:pre-wrap; }
-  .post-item .post-meta { font-size:12px; color:#666; display:flex; gap:16px; flex-wrap:wrap; }
-  .post-item .post-meta span { white-space:nowrap; }
-  .post-item .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
-  .post-item .viral-yes { background:#ffd43b; color:#333; }
-  .post-item .pinned-badge { display:inline-block; background:#e3f2fd; color:#1565c0; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
+  /* ─── ピン留め投稿 ─── */
+  .pinned-section { background:#fffbea; border:1px solid #ffe082; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .pinned-section h3 { margin:0 0 12px; font-size:15px; color:#e65100; }
+  .pinned-item { background:#fff; border-radius:6px; padding:12px; margin-bottom:8px; border:1px solid #fff3e0; }
+  .pinned-item:last-child { margin-bottom:0; }
+  .pinned-item .pin-text { font-size:13px; line-height:1.6; white-space:pre-wrap; max-height:4.8em; overflow:hidden; }
+  .pinned-item .pin-meta { font-size:11px; color:#888; margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* ─── フィルタ ─── */
+  .ad-filters { background:#f8f9fa; border-radius:8px; padding:12px 16px; margin-bottom:16px; }
+  .ad-filters form { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .ad-filters label { font-size:12px; display:block; margin-bottom:2px; color:#666; }
+  .ad-filters input, .ad-filters select { padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px; }
+  .ad-filters .range-group { display:flex; align-items:center; gap:2px; }
+  .ad-filters .range-group input[type="number"] { width:70px; }
+  .ad-filters .range-sep { font-size:12px; color:#999; padding:0 1px; }
+  .ad-filter-btn { padding:4px 12px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+
+  /* ─── 投稿テーブル ─── */
+  .ad-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .ad-table th { background:#f1f3f5; padding:8px 10px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:2px solid #dee2e6; }
+  .ad-table td { padding:8px 10px; font-size:13px; border-bottom:1px solid #eee; vertical-align:top; }
+  .ad-table tr:hover { background:#f8f9fa; }
+  .ad-table .text-col { max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ad-table .num { text-align:right; font-family:monospace; }
+  .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
+  .viral-yes { background:#ffd43b; color:#333; }
+  .media-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:bold; margin-right:4px; }
+  .media-image { background:#e3f2fd; color:#1565c0; }
+  .media-video { background:#fce4ec; color:#c62828; }
+  .media-carousel { background:#e8f5e9; color:#2e7d32; }
+  .pinned-badge { display:inline-block; background:#fff3e0; color:#e65100; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:bold; }
+
+  /* ─── ページネーション ─── */
+  .ad-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
+  .ad-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
+  .ad-pagination a:hover { background:#e9ecef; }
+  .ad-pagination .current { padding:4px 10px; border:1px solid #007bff; border-radius:4px; background:#007bff; color:#fff; }
+
+  .buzz-btn-primary-sm { padding:4px 12px; font-size:13px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+  .buzz-btn-secondary-sm { padding:4px 12px; font-size:13px; background:#6c757d; color:#fff; border:none; border-radius:6px; cursor:pointer; text-decoration:none; display:inline-block; }
 </style>
 
 <!-- Cookie 警告 -->
 {% if session_warning %}
 <div style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px;">
-  ⚠ {{ session_warning }}
+  {{ session_warning }}
 </div>
 {% endif %}
 
-<!-- パンくず -->
-<p style="font-size:13px; margin-bottom:12px;">
-  <a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細
-</p>
+<!-- 上段: プロフィール + ピン留め投稿 -->
+<div class="ad-top-row">
+  <!-- プロフィール -->
+  <div class="author-profile">
+    <h2>
+      {{ author.display_name|default:author.username }}
+      {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+    </h2>
+    <div class="username">
+      <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+    </div>
 
-<!-- プロフィール -->
-<div class="author-profile">
-  <h2>
-    {{ author.display_name|default:author.username }}
-    {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
-  </h2>
-  <div class="username">
-    <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
-  </div>
+    <div class="author-stats">
+      <div class="stat">
+        <span class="stat-value">{{ author.followers_count|default:"-" }}</span>
+        <span class="stat-label">フォロワー</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ author.following_count|default:"-" }}</span>
+        <span class="stat-label">フォロー</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ author.buzz_posts.count }}</span>
+        <span class="stat-label">取得済み投稿</span>
+      </div>
+      {% if author.raw_json.joined_at %}
+      <div class="stat">
+        <span class="stat-value">{{ author.raw_json.joined_at }}</span>
+        <span class="stat-label">参加日</span>
+      </div>
+      {% endif %}
+      {% if author.growth_score %}
+      <div class="stat">
+        <span class="stat-value">{{ author.growth_score|floatformat:1 }}</span>
+        <span class="stat-label">成長スコア</span>
+      </div>
+      {% endif %}
+    </div>
 
-  <div class="author-stats">
-    <div class="stat">
-      <span class="stat-value">{{ author.followers_count|default:"-" }}</span>
-      <span class="stat-label">フォロワー</span>
-    </div>
-    <div class="stat">
-      <span class="stat-value">{{ author.following_count|default:"-" }}</span>
-      <span class="stat-label">フォロー</span>
-    </div>
-    <div class="stat">
-      <span class="stat-value">{{ author.buzz_posts.count }}</span>
-      <span class="stat-label">取得済み投稿</span>
-    </div>
-    {% if author.raw_json.joined_at %}
-    <div class="stat">
-      <span class="stat-value">{{ author.raw_json.joined_at }}</span>
-      <span class="stat-label">参加日</span>
-    </div>
+    {% if author.bio %}
+    <div class="author-bio">{{ author.bio }}</div>
     {% endif %}
+
+    <div class="author-actions">
+      <button class="buzz-btn buzz-btn-primary" onclick="fetchAuthorPosts()">投稿文を取得</button>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
+        <input type="checkbox" id="exclude-replies" checked> リプライを除外
+      </label>
+      <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn-secondary" style="padding:8px 16px; border-radius:6px; font-size:14px;">この投稿者で検索結果を絞り込み</a>
+    </div>
+    <div id="author-message" class="author-msg"></div>
+
+    <p style="font-size:11px; color:#999; margin-top:12px;">
+      初回取得: {{ author.first_scraped_at|date:"Y/m/d H:i" }} /
+      最終更新: {{ author.updated_at|date:"Y/m/d H:i" }}
+    </p>
   </div>
 
-  {% if author.bio %}
-  <div class="author-bio">{{ author.bio }}</div>
+  <!-- ピン留め投稿 -->
+  {% if pinned_posts %}
+  <div class="pinned-section">
+    <h3>ピン留め投稿（{{ pinned_posts|length }}件）</h3>
+    {% for post in pinned_posts %}
+    <div class="pinned-item">
+      <div class="pin-text">{{ post.text_content }}</div>
+      <div class="pin-meta">
+        <span>いいね: {{ post.like_count }}</span>
+        <span>リプライ: {{ post.reply_count }}</span>
+        <span>リポスト: {{ post.repost_count }}</span>
+        {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
+        {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
+        {% if post.media_type and post.media_type != 'text' %}
+          <span class="media-badge media-{{ post.media_type }}">
+            {% if post.media_type == 'image' %}画像{% elif post.media_type == 'video' %}動画{% elif post.media_type == 'carousel' %}複数画像{% endif %}
+          </span>
+        {% endif %}
+        {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:11px;">元投稿</a></span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% endif %}
+</div>
 
-  <div class="author-actions">
-    <button class="buzz-btn buzz-btn-primary" onclick="fetchAuthorPosts()">投稿文を取得</button>
-    <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px; margin-left:8px;">
-      <input type="checkbox" id="exclude-replies" checked> リプライを除外
-    </label>
-    <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn buzz-btn-secondary" style="margin-left:8px;">この投稿者で検索結果を絞り込み</a>
-  </div>
-  <div id="author-message" class="author-msg"></div>
-
-  <p style="font-size:11px; color:#999; margin-top:12px;">
-    初回取得: {{ author.first_scraped_at|date:"Y/m/d H:i" }} /
-    最終更新: {{ author.updated_at|date:"Y/m/d H:i" }}
-  </p>
+<!-- フィルタ -->
+<div class="ad-filters">
+  <form method="get">
+    <div>
+      <label>キーワード</label>
+      <select name="keyword">
+        <option value="">全て</option>
+        {% for kw in keywords_list %}
+        <option value="{{ kw }}" {% if kw == current_keyword %}selected{% endif %}>{{ kw }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>バズのみ</label>
+      <select name="viral">
+        <option value="">全て</option>
+        <option value="1" {% if current_viral == "1" %}selected{% endif %}>バズのみ</option>
+      </select>
+    </div>
+    <div>
+      <label>日付(From)</label>
+      <input type="date" name="date_from" value="{{ current_date_from }}">
+    </div>
+    <div>
+      <label>日付(To)</label>
+      <input type="date" name="date_to" value="{{ current_date_to }}">
+    </div>
+    <div>
+      <label>いいね数</label>
+      <div class="range-group">
+        <input type="number" name="like_min" value="{{ current_like_min }}" placeholder="min" min="0">
+        <span class="range-sep">〜</span>
+        <input type="number" name="like_max" value="{{ current_like_max }}" placeholder="max" min="0">
+      </div>
+    </div>
+    <div>
+      <label>リプライ数</label>
+      <div class="range-group">
+        <input type="number" name="reply_min" value="{{ current_reply_min }}" placeholder="min" min="0">
+        <span class="range-sep">〜</span>
+        <input type="number" name="reply_max" value="{{ current_reply_max }}" placeholder="max" min="0">
+      </div>
+    </div>
+    <div>
+      <label>スコア</label>
+      <div class="range-group">
+        <input type="number" name="score_min" value="{{ current_score_min }}" placeholder="min" min="0" step="0.1">
+        <span class="range-sep">〜</span>
+        <input type="number" name="score_max" value="{{ current_score_max }}" placeholder="max" min="0" step="0.1">
+      </div>
+    </div>
+    <div>
+      <label>ER(%)</label>
+      <div class="range-group">
+        <input type="number" name="er_min" value="{{ current_er_min }}" placeholder="min" min="0" step="0.1">
+        <span class="range-sep">〜</span>
+        <input type="number" name="er_max" value="{{ current_er_max }}" placeholder="max" min="0" step="0.1">
+      </div>
+    </div>
+    <div>
+      <label>ソート</label>
+      <select name="sort">
+        <option value="-scraped_at" {% if current_sort == "-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
+        <option value="-posted_at" {% if current_sort == "-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
+        <option value="-engagement_score" {% if current_sort == "-engagement_score" %}selected{% endif %}>バズスコア(高い順)</option>
+        <option value="-like_count" {% if current_sort == "-like_count" %}selected{% endif %}>いいね数(多い順)</option>
+        <option value="-impressions" {% if current_sort == "-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
+        <option value="-engagement_rate" {% if current_sort == "-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
+        <option value="-reply_count" {% if current_sort == "-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
+      </select>
+    </div>
+    <button type="submit" class="buzz-btn-primary-sm">絞り込み</button>
+    <a href="{% url 'console:buzz_author_detail' pk=author.pk %}" class="buzz-btn-secondary-sm">リセット</a>
+  </form>
 </div>
 
 <!-- 投稿一覧 -->
-<div class="posts-list">
-  <h3>投稿一覧（{{ posts|length }}件）</h3>
+<h3 style="font-size:16px; margin-bottom:12px;">投稿一覧（{{ page_obj.paginator.count }}件）</h3>
 
-  {% for post in posts %}
-  <div class="post-item">
-    <div class="post-text">
-      {% if post.raw_json.is_pinned %}<span class="pinned-badge">📌固定</span> {% endif %}
-      {{ post.text_content }}
-    </div>
-    <div class="post-meta">
-      {% if post.posted_at %}<span>投稿日: {{ post.posted_at|date:"Y/m/d H:i" }}</span>{% endif %}
-      <span>いいね: {{ post.like_count }}</span>
-      <span>リプライ: {{ post.reply_count }}</span>
-      <span>リポスト: {{ post.repost_count }}</span>
-      {% if post.impressions %}<span>インプレッション: {{ post.impressions }}</span>{% endif %}
-      {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
-      {% if post.engagement_rate %}<span>ER: {{ post.engagement_rate|floatformat:1 }}%</span>{% endif %}
-      {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
-      {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener">元投稿</a></span>{% endif %}
-      <span>取得: {{ post.scraped_at|date:"m/d H:i" }}</span>
-    </div>
-  </div>
-  {% empty %}
-  <p style="color:#999; padding:24px; text-align:center;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</p>
-  {% endfor %}
+<table class="ad-table">
+  <thead>
+    <tr>
+      <th>投稿文</th>
+      <th>メディア</th>
+      <th>いいね</th>
+      <th>リプライ</th>
+      <th>リポスト</th>
+      <th>IMP</th>
+      <th>スコア</th>
+      <th>ER%</th>
+      <th>バズ</th>
+      <th>投稿日</th>
+      <th>取得日</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for post in page_obj %}
+    <tr>
+      <td class="text-col" title="{{ post.text_content|truncatechars:200 }}">
+        {% if post.raw_json.is_pinned %}<span class="pinned-badge">固定</span> {% endif %}
+        {{ post.text_content|truncatechars:60 }}
+      </td>
+      <td style="white-space:nowrap;">
+        {% if post.media_type == 'image' %}
+          <span class="media-badge media-image">画像</span>
+        {% elif post.media_type == 'video' %}
+          <span class="media-badge media-video">動画</span>
+        {% elif post.media_type == 'carousel' %}
+          <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
+        {% else %}
+          <span style="color:#ccc; font-size:11px;">-</span>
+        {% endif %}
+      </td>
+      <td class="num">{{ post.like_count }}</td>
+      <td class="num">{{ post.reply_count }}</td>
+      <td class="num">{{ post.repost_count }}</td>
+      <td class="num">{{ post.impressions|default:"-" }}</td>
+      <td class="num">{{ post.engagement_score|floatformat:1|default:"-" }}</td>
+      <td class="num">{{ post.engagement_rate|floatformat:1|default:"-" }}</td>
+      <td>{% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}</td>
+      <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
+      <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
+      <td>
+        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:12px;">元投稿</a>{% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="12" style="color:#999; text-align:center; padding:24px;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ページネーション -->
+{% if page_obj.has_other_pages %}
+{% with fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
+<div class="ad-pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{{ fp }}">&laquo; 最初</a>
+    <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  {% endif %}
+  <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  {% endif %}
 </div>
+{% endwith %}
+{% endif %}
 
 <script>
 function fetchAuthorPosts() {

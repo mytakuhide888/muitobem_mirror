@@ -291,6 +291,45 @@ def _parse_view_count_text(text: str) -> Optional[int]:
     return None
 
 
+# ─── メディア情報抽出ヘルパー ───
+
+def _extract_best_image(image_versions: Optional[Dict]) -> Optional[Dict]:
+    """image_versions2 オブジェクトから最大サイズの画像URLを取得"""
+    if not image_versions or not isinstance(image_versions, dict):
+        return None
+    candidates = image_versions.get('candidates', [])
+    if not candidates:
+        return None
+    best = max(candidates, key=lambda c: c.get('width', 0) * c.get('height', 0))
+    url = best.get('url', '')
+    if not url:
+        return None
+    return {
+        'type': 'image',
+        'url': url,
+        'width': best.get('width', 0),
+        'height': best.get('height', 0),
+    }
+
+
+def _extract_media_entry(media_item: Dict) -> Optional[Dict]:
+    """carousel_media の個別アイテムからメディア情報を抽出"""
+    video_versions = media_item.get('video_versions') or []
+    image_versions = media_item.get('image_versions2')
+
+    if video_versions:
+        best = max(video_versions, key=lambda v: v.get('width', 0) * v.get('height', 0))
+        return {
+            'type': 'video',
+            'url': best.get('url', ''),
+            'width': best.get('width', 0),
+            'height': best.get('height', 0),
+        }
+    if image_versions:
+        return _extract_best_image(image_versions)
+    return None
+
+
 # ─── SSR JSON 抽出 ───
 
 def _extract_thread_items_from_html(html: str) -> List[Dict]:
@@ -438,6 +477,58 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
     if item and isinstance(item, dict):
         is_pinned = bool(item.get('pinned') or item.get('is_pinned'))
 
+    # ─── メディア（画像/動画）抽出 ───
+    media_type = 'text'
+    media_urls = []
+
+    # media_type フィールド: 1=photo, 2=video, 8=carousel
+    mt = post.get('media_type')
+    carousel_media = post.get('carousel_media') or []
+    image_versions = post.get('image_versions2')
+    video_versions = post.get('video_versions') or []
+
+    if carousel_media:
+        media_type = 'carousel'
+        for cm in carousel_media:
+            cm_entry = _extract_media_entry(cm)
+            if cm_entry:
+                media_urls.append(cm_entry)
+    elif video_versions or mt == 2:
+        media_type = 'video'
+        # 動画URL（最高画質を選択）
+        if video_versions:
+            best = max(video_versions, key=lambda v: v.get('width', 0) * v.get('height', 0))
+            media_urls.append({
+                'type': 'video',
+                'url': best.get('url', ''),
+                'width': best.get('width', 0),
+                'height': best.get('height', 0),
+            })
+        # 動画のサムネイル画像
+        if image_versions:
+            img_entry = _extract_best_image(image_versions)
+            if img_entry:
+                img_entry['type'] = 'thumbnail'
+                media_urls.append(img_entry)
+    elif image_versions or mt == 1:
+        media_type = 'image'
+        img_entry = _extract_best_image(image_versions)
+        if img_entry:
+            media_urls.append(img_entry)
+
+    # post_url からメディアURL構築（フォールバック）
+    if not media_urls and code and (mt in (1, 2, 8) or image_versions or video_versions):
+        media_type = {1: 'image', 2: 'video', 8: 'carousel'}.get(mt, 'image')
+        media_urls.append({
+            'type': media_type,
+            'url': f"{THREADS_BASE}/post/{code}/media",
+            'width': post.get('original_width', 0),
+            'height': post.get('original_height', 0),
+        })
+
+    # メディアURLをサニタイズ
+    media_urls = [m for m in media_urls if m.get('url')]
+
     return {
         'text_content': text,
         'username': username,
@@ -450,6 +541,8 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
         'post_url': post_url,
         'posted_at': posted_at,
         'is_pinned': is_pinned,
+        'media_type': media_type,
+        'media_urls': media_urls,
     }
 
 

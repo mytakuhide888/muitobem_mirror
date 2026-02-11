@@ -213,6 +213,14 @@ class THBuzzPost(models.Model):
     posted_at = models.DateTimeField('投稿日時', null=True, blank=True)
     scraped_at = models.DateTimeField('取得日時', auto_now_add=True)
     raw_json = models.JSONField('取得時の生データ', default=dict, blank=True)
+    media_type = models.CharField(
+        'メディア種別', max_length=20, blank=True, default='',
+        help_text='text/image/video/carousel',
+    )
+    media_urls = models.JSONField(
+        'メディアURL一覧', default=list, blank=True,
+        help_text='画像/動画URLの配列 [{\"type\":\"image\",\"url\":\"...\",\"width\":0,\"height\":0}, ...]',
+    )
 
     class Meta:
         db_table = 'meta_th_buzz_posts'
