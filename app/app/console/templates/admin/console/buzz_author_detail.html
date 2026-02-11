@@ -173,7 +173,9 @@
         <span>リポスト: {{ post.repost_count }}</span>
         {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
         {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
-        {% if post.media_type == 'video' %}
+        {% if post.media_type == 'image' %}
+          <span class="media-badge media-image">画像</span>
+        {% elif post.media_type == 'video' %}
           <span class="media-badge media-video">動画</span>
         {% elif post.media_type == 'carousel' %}
           <span class="media-badge media-carousel">複数画像</span>
@@ -285,7 +287,9 @@
         {{ post.text_content|truncatechars:60 }}
       </td>
       <td style="white-space:nowrap;">
-        {% if post.media_type == 'video' %}
+        {% if post.media_type == 'image' %}
+          <span class="media-badge media-image">画像</span>
+        {% elif post.media_type == 'video' %}
           <span class="media-badge media-video">動画</span>
         {% elif post.media_type == 'carousel' %}
           <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>

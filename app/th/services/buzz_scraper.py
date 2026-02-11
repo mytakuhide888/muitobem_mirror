@@ -478,16 +478,35 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
         is_pinned = bool(item.get('pinned') or item.get('is_pinned'))
 
     # ─── メディア（画像/動画）抽出 ───
-    # 注意: Threads SSR JSON では テキストのみの投稿でも media_type=1 と
-    # image_versions2（自動生成OGPサムネイル）が存在する。
-    # そのため media_type==1 は画像投稿の判定に使用しない。
-    # 信頼できるシグナル: carousel_media（カルーセル）, video_versions（動画）のみ。
+    # Threads SSR JSON の media_type 値:
+    #   1 = 画像投稿, 2 = 動画投稿, 8 = カルーセル, 19 = テキスト投稿
+    # image_versions2 は全投稿に存在する（OGPサムネイル含む）ため単独では使用不可。
+    # carousel_media / video_versions は信頼できるシグナル。
+    # mt == 1 は画像投稿のシグナル（テキスト投稿は通常 mt == 19 or None）。
     media_type = 'text'
     media_urls = []
 
-    carousel_media = post.get('carousel_media') or []
-    video_versions = post.get('video_versions') or []
     mt = post.get('media_type')
+    carousel_media = post.get('carousel_media') or []
+    image_versions = post.get('image_versions2')
+    video_versions = post.get('video_versions') or []
+
+    # デバッグログ: media_type 値を記録（最初の数件）
+    if not hasattr(_parse_ssr_post, '_media_debug_count'):
+        _parse_ssr_post._media_debug_count = 0
+    if _parse_ssr_post._media_debug_count < 10:
+        ow = post.get('original_width', 0)
+        oh = post.get('original_height', 0)
+        has_iv = bool(image_versions)
+        has_cm = bool(carousel_media)
+        has_vv = bool(video_versions)
+        logger.info(
+            "[DEBUG] media判定: mt=%s, original=%sx%s, "
+            "image_versions2=%s, carousel=%s, video=%s, text=%s",
+            mt, ow, oh, has_iv, has_cm, has_vv,
+            (text[:30] if text else ''),
+        )
+        _parse_ssr_post._media_debug_count += 1
 
     if carousel_media:
         media_type = 'carousel'
@@ -507,16 +526,22 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
                 'height': best.get('height', 0),
             })
         # 動画のサムネイル画像
-        image_versions = post.get('image_versions2')
         if image_versions:
             img_entry = _extract_best_image(image_versions)
             if img_entry:
                 img_entry['type'] = 'thumbnail'
                 media_urls.append(img_entry)
+    elif mt == 1:
+        # media_type=1 は画像投稿（テキスト投稿は mt=19 or None）
+        media_type = 'image'
+        if image_versions:
+            img_entry = _extract_best_image(image_versions)
+            if img_entry:
+                media_urls.append(img_entry)
 
-    # post_url からメディアURL構築（フォールバック: 動画/カルーセルのみ）
-    if not media_urls and code and mt in (2, 8):
-        media_type = {2: 'video', 8: 'carousel'}.get(mt, 'text')
+    # post_url からメディアURL構築（フォールバック）
+    if not media_urls and code and mt in (1, 2, 8):
+        media_type = {1: 'image', 2: 'video', 8: 'carousel'}.get(mt, 'text')
         media_urls.append({
             'type': media_type,
             'url': f"{THREADS_BASE}/post/{code}/media",
