@@ -17,6 +17,9 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+import re
+import urllib.request
+
 from th.models import THBuzzAuthor, THBuzzPost, THBuzzSearchJob
 from th.services.buzz_scraper import ViralityDetector, check_session_validity
 
@@ -710,3 +713,34 @@ def buzz_recalc_er(request):
     except Exception as e:
         logger.exception("buzz_recalc_er エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+# ─── メディアプロキシ ───
+
+# Instagram CDN ドメインのホワイトリスト
+_CDN_PATTERN = re.compile(r'^https://scontent[-\w]*\.cdninstagram\.com/')
+
+
+@staff_member_required
+def buzz_media_proxy(request):
+    """Instagram CDN 画像/動画のプロキシ（CORP ヘッダー回避用）"""
+    from django.http import HttpResponse
+
+    url = request.GET.get('url', '')
+    if not url or not _CDN_PATTERN.match(url):
+        return HttpResponse(b'Invalid URL', status=400, content_type='text/plain')
+
+    try:
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://www.threads.com/',
+        })
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            content = resp.read()
+            content_type = resp.headers.get('Content-Type', 'image/jpeg')
+            response = HttpResponse(content, content_type=content_type)
+            response['Cache-Control'] = 'public, max-age=86400'
+            return response
+    except Exception as e:
+        logger.warning("buzz_media_proxy エラー: %s (url=%s)", e, url[:120])
+        return HttpResponse(b'Fetch failed', status=502, content_type='text/plain')

@@ -403,6 +403,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+// Instagram CDN の CORP ヘッダー回避用プロキシ
+const MEDIA_PROXY_URL = '{% url "console:buzz_media_proxy" %}';
+function proxyUrl(url) {
+  if (!url) return '';
+  if (url.indexOf('cdninstagram.com/') !== -1) {
+    return MEDIA_PROXY_URL + '?url=' + encodeURIComponent(url);
+  }
+  return url;
+}
+
 function openPostModal(postId) {
   const d = POST_DATA[postId];
   if (!d) return;
@@ -443,12 +453,12 @@ function openPostModal(postId) {
       d.mediaUrls.forEach(function(m) {
         if (m.type === 'video') {
           const v = document.createElement('video');
-          v.src = m.url; v.controls = true;
+          v.src = proxyUrl(m.url); v.controls = true;
           v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
           wrap.appendChild(v);
         } else {
           const img = document.createElement('img');
-          img.src = m.url; img.loading = 'lazy';
+          img.src = proxyUrl(m.url); img.loading = 'lazy';
           wrap.appendChild(img);
         }
       });
@@ -457,18 +467,18 @@ function openPostModal(postId) {
       d.mediaUrls.forEach(function(m) {
         if (m.type === 'video') {
           const v = document.createElement('video');
-          v.src = m.url; v.controls = true;
+          v.src = proxyUrl(m.url); v.controls = true;
           mediaEl.appendChild(v);
         } else if (m.type === 'thumbnail') {
           const img = document.createElement('img');
-          img.src = m.url; img.loading = 'lazy';
+          img.src = proxyUrl(m.url); img.loading = 'lazy';
           mediaEl.appendChild(img);
         }
       });
     } else if (d.mediaType === 'image') {
       d.mediaUrls.forEach(function(m) {
         const img = document.createElement('img');
-        img.src = m.url; img.loading = 'lazy';
+        img.src = proxyUrl(m.url); img.loading = 'lazy';
         mediaEl.appendChild(img);
       });
     }
