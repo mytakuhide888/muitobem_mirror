@@ -510,15 +510,18 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
             if img_entry:
                 img_entry['type'] = 'thumbnail'
                 media_urls.append(img_entry)
-    elif image_versions or mt == 1:
+    elif mt == 1:
+        # media_type=1 が明示されている場合のみ画像投稿と判定
+        # (image_versions2 はテキスト投稿にもサムネとして存在するため単独では判定不可)
         media_type = 'image'
-        img_entry = _extract_best_image(image_versions)
-        if img_entry:
-            media_urls.append(img_entry)
+        if image_versions:
+            img_entry = _extract_best_image(image_versions)
+            if img_entry:
+                media_urls.append(img_entry)
 
     # post_url からメディアURL構築（フォールバック）
-    if not media_urls and code and (mt in (1, 2, 8) or image_versions or video_versions):
-        media_type = {1: 'image', 2: 'video', 8: 'carousel'}.get(mt, 'image')
+    if not media_urls and code and mt in (1, 2, 8):
+        media_type = {1: 'image', 2: 'video', 8: 'carousel'}.get(mt, 'text')
         media_urls.append({
             'type': media_type,
             'url': f"{THREADS_BASE}/post/{code}/media",

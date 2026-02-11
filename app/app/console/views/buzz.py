@@ -218,7 +218,10 @@ def buzz_author_detail(request, pk):
     qs = author.buzz_posts.all()
 
     if keyword_filter:
-        qs = qs.filter(search_keyword__icontains=keyword_filter)
+        qs = qs.filter(
+            Q(text_content__icontains=keyword_filter)
+            | Q(search_keyword__icontains=keyword_filter)
+        )
     if viral_only == '1':
         qs = qs.filter(is_viral=True)
     if date_from:
