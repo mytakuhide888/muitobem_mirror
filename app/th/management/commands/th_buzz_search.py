@@ -162,6 +162,9 @@ class Command(BaseCommand):
                             # メディア情報更新（常に上書き）
                             existing.media_type = post_data.get('media_type', '')
                             existing.media_urls = post_data.get('media_urls', [])
+                            # 検索キーワードが未設定なら埋める
+                            if not existing.search_keyword and kw:
+                                existing.search_keyword = kw
                             existing.save()
                             self.stdout.write(f"  更新: @{username} - {text[:30]}")
                         else:

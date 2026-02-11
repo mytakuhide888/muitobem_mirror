@@ -19,7 +19,7 @@
   .buzz-btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
   .buzz-btn-primary { background:#007bff; color:#fff; }
   .buzz-btn-primary:hover { background:#0069d9; }
-  .buzz-btn-secondary { background:#6c757d; color:#fff; }
+  .buzz-btn-secondary { background:#6c757d; color:#fff !important; }
   .buzz-btn-secondary:hover { background:#5a6268; }
   .buzz-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
   .buzz-msg.ok { background:#d4edda; color:#155724; display:block; }
@@ -33,6 +33,7 @@
   .buzz-filters .range-group { display:flex; align-items:center; gap:2px; }
   .buzz-filters .range-group input[type="number"] { width:70px; }
   .buzz-filters .range-sep { font-size:12px; color:#999; padding:0 1px; }
+  .buzz-filters a.buzz-btn-secondary { color:#fff !important; text-decoration:none !important; }
 
   .buzz-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .buzz-table th { background:#f1f3f5; padding:8px 10px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:2px solid #dee2e6; }
@@ -40,11 +41,18 @@
   .buzz-table th a:hover { color:#007bff; }
   .buzz-table td { padding:8px 10px; font-size:13px; border-bottom:1px solid #eee; vertical-align:top; }
   .buzz-table tr:hover { background:#f8f9fa; }
-  .buzz-table .text-col { max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .buzz-table .text-col { max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+  .buzz-table .text-col:hover { color:#007bff; }
   .buzz-table .num { text-align:right; font-family:monospace; }
   .buzz-table .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
   .buzz-table .viral-yes { background:#ffd43b; color:#333; }
   .buzz-table .viral-no { background:#e9ecef; color:#666; }
+
+  .media-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:bold; margin-right:4px; }
+  .media-video { background:#fce4ec; color:#c62828; }
+  .media-carousel { background:#e8f5e9; color:#2e7d32; }
+  .link-btn { display:inline-block; padding:2px 8px; background:#e9ecef; border-radius:4px; font-size:11px; white-space:nowrap; color:#007bff !important; text-decoration:none !important; }
+  .link-btn:hover { background:#dee2e6; }
 
   .buzz-jobs { background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
   .buzz-jobs h4 { margin:0 0 8px; font-size:14px; }
@@ -63,13 +71,32 @@
   .buzz-pagination .disabled { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#999; }
 
   .session-warning { background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px; }
+
+  /* ─── 投稿モーダル ─── */
+  .post-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:9999; justify-content:center; align-items:center; }
+  .post-modal-overlay.active { display:flex; }
+  .post-modal { background:#fff; border-radius:12px; max-width:680px; width:90%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.25); }
+  .post-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid #eee; }
+  .post-modal-header h4 { margin:0; font-size:15px; }
+  .post-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:0 4px; line-height:1; }
+  .post-modal-close:hover { color:#333; }
+  .post-modal-body { padding:20px; }
+  .post-modal-text { font-size:14px; line-height:1.8; white-space:pre-wrap; margin-bottom:16px; }
+  .post-modal-media { margin-bottom:16px; }
+  .post-modal-media video { max-width:100%; border-radius:8px; }
+  .post-modal-media .carousel-wrap { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; }
+  .post-modal-media .carousel-wrap img { max-width:300px; max-height:300px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+  .post-modal-stats { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:#555; padding:12px 0; border-top:1px solid #eee; }
+  .post-modal-stats span { white-space:nowrap; }
+  .post-modal-link { margin-top:8px; }
+  .post-modal-link a { color:#007bff; font-size:13px; }
 </style>
 
 <div class="buzz-header">バズ投稿取得</div>
 
 <!-- Cookie 警告 -->
 {% if session_warning %}
-<div class="session-warning">⚠ {{ session_warning }}</div>
+<div class="session-warning">{{ session_warning }}</div>
 {% endif %}
 
 <!-- 上段: 検索フォーム + ジョブ枠を横並び -->
@@ -196,7 +223,7 @@
         <option value="-posted_at" {% if current_sort == "-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
         <option value="-engagement_score" {% if current_sort == "-engagement_score" %}selected{% endif %}>バズスコア(高い順)</option>
         <option value="-like_count" {% if current_sort == "-like_count" %}selected{% endif %}>いいね数(多い順)</option>
-        <option value="-impressions" {% if current_sort == "-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
+        <option value="-impressions" {% if current_sort == "-impressions" %}selected{% endif %}>IMP(多い順)</option>
         <option value="-engagement_rate" {% if current_sort == "-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
         <option value="-reply_count" {% if current_sort == "-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
       </select>
@@ -212,25 +239,36 @@
     <tr>
       <th>投稿者</th>
       <th>投稿文</th>
+      <th>メディア</th>
       <th>いいね</th>
       <th>リプライ</th>
       <th>リポスト</th>
-      <th>インプレッション</th>
+      <th>IMP</th>
       <th>スコア</th>
-      <th>ER(%)</th>
+      <th>ER%</th>
       <th>バズ</th>
-      <th>キーワード</th>
+      <th>KW</th>
       <th>投稿日</th>
-      <th>取得日時</th>
+      <th>取得日</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
     {% for post in page_obj %}
     <tr>
-      <td><a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
-      <td class="text-col" title="{{ post.text_content }}">
-        {% if post.raw_json.is_pinned %}📌{% endif %}
+      <td style="white-space:nowrap;"><a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
+      <td class="text-col" onclick="openPostModal({{ post.pk }})">
+        {% if post.raw_json.is_pinned %}<span style="color:#e65100;">&#x1F4CC;</span>{% endif %}
         {{ post.text_content|truncatechars:50 }}
+      </td>
+      <td style="white-space:nowrap;">
+        {% if post.media_type == 'video' %}
+          <span class="media-badge media-video">動画</span>
+        {% elif post.media_type == 'carousel' %}
+          <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
+        {% else %}
+          <span style="color:#ccc; font-size:11px;">-</span>
+        {% endif %}
       </td>
       <td class="num">{{ post.like_count|default:0 }}</td>
       <td class="num">{{ post.reply_count|default:0 }}</td>
@@ -245,12 +283,15 @@
         <span class="viral-badge viral-no">-</span>
         {% endif %}
       </td>
-      <td>{{ post.search_keyword }}</td>
-      <td style="white-space:nowrap;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
-      <td style="white-space:nowrap;">{{ post.scraped_at|date:"m/d H:i" }}</td>
+      <td style="font-size:12px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ post.search_keyword }}">{{ post.search_keyword|default:"-" }}</td>
+      <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
+      <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
+      <td style="white-space:nowrap;">
+        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
+      </td>
     </tr>
     {% empty %}
-    <tr><td colspan="12" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
+    <tr><td colspan="14" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
     {% endfor %}
   </tbody>
 </table>
@@ -282,7 +323,138 @@
 <p style="font-size:12px;color:#999;margin-top:8px;">全{{ page_obj.paginator.count }}件</p>
 {% endif %}
 
+<!-- 投稿詳細モーダル -->
+<div class="post-modal-overlay" id="postModal" onclick="closePostModal(event)">
+  <div class="post-modal" onclick="event.stopPropagation()">
+    <div class="post-modal-header">
+      <h4 id="modalTitle">投稿詳細</h4>
+      <button class="post-modal-close" onclick="closePostModal()">&times;</button>
+    </div>
+    <div class="post-modal-body">
+      <div class="post-modal-text" id="modalText"></div>
+      <div class="post-modal-media" id="modalMedia"></div>
+      <div class="post-modal-stats" id="modalStats"></div>
+      <div class="post-modal-link" id="modalLink"></div>
+    </div>
+  </div>
+</div>
+
 <script>
+// 投稿データを JS オブジェクトとして埋め込み
+const POST_DATA = {
+  {% for post in page_obj %}
+  {{ post.pk }}: {
+    text: '',
+    author: '@{{ post.author.username }}',
+    like: {{ post.like_count|default:"0" }},
+    reply: {{ post.reply_count|default:"0" }},
+    repost: {{ post.repost_count|default:"0" }},
+    imp: {{ post.impressions|default:"null" }},
+    score: {{ post.engagement_score|default:"null" }},
+    er: {{ post.engagement_rate|default:"null" }},
+    viral: {{ post.is_viral|yesno:"true,false" }},
+    posted: '{{ post.posted_at|date:"Y/m/d H:i"|default:"" }}',
+    scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
+    url: '{{ post.post_url|default:"" }}',
+    keyword: '{{ post.search_keyword|default:"" }}',
+    mediaType: '{{ post.media_type|default:"" }}',
+    mediaUrls: {{ post.media_urls|safe|default:"[]" }},
+  },
+  {% endfor %}
+};
+
+// テキストデータは hidden 要素から取得
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-post-text]').forEach(function(el) {
+    const pk = el.dataset.postPk;
+    if (POST_DATA[pk]) {
+      POST_DATA[pk].text = el.textContent;
+    }
+  });
+});
+
+function openPostModal(postId) {
+  const d = POST_DATA[postId];
+  if (!d) return;
+
+  let text = d.text;
+  const hiddenEl = document.querySelector('[data-post-pk="' + postId + '"]');
+  if (hiddenEl) text = hiddenEl.textContent;
+
+  const modal = document.getElementById('postModal');
+  const titleEl = document.getElementById('modalTitle');
+  const textEl = document.getElementById('modalText');
+  const mediaEl = document.getElementById('modalMedia');
+  const statsEl = document.getElementById('modalStats');
+  const linkEl = document.getElementById('modalLink');
+
+  titleEl.textContent = '投稿詳細 (' + d.author + ')';
+  textEl.textContent = text;
+
+  // メディア
+  mediaEl.innerHTML = '';
+  if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
+    if (d.mediaType === 'carousel') {
+      const wrap = document.createElement('div');
+      wrap.className = 'carousel-wrap';
+      d.mediaUrls.forEach(function(m) {
+        if (m.type === 'video') {
+          const v = document.createElement('video');
+          v.src = m.url; v.controls = true;
+          v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
+          wrap.appendChild(v);
+        } else {
+          const img = document.createElement('img');
+          img.src = m.url; img.loading = 'lazy';
+          wrap.appendChild(img);
+        }
+      });
+      mediaEl.appendChild(wrap);
+    } else if (d.mediaType === 'video') {
+      d.mediaUrls.forEach(function(m) {
+        if (m.type === 'video') {
+          const v = document.createElement('video');
+          v.src = m.url; v.controls = true;
+          mediaEl.appendChild(v);
+        }
+      });
+    }
+  }
+
+  // 統計
+  let stats = '';
+  stats += '<span>いいね: <b>' + d.like + '</b></span>';
+  stats += '<span>リプライ: <b>' + d.reply + '</b></span>';
+  stats += '<span>リポスト: <b>' + d.repost + '</b></span>';
+  if (d.imp !== null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
+  if (d.score !== null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
+  if (d.er !== null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
+  if (d.viral) stats += '<span class="viral-badge viral-yes" style="margin-left:4px;">BUZZ</span>';
+  if (d.keyword) stats += '<span>KW: ' + d.keyword + '</span>';
+  if (d.posted) stats += '<span>投稿: ' + d.posted + '</span>';
+  stats += '<span>取得: ' + d.scraped + '</span>';
+  statsEl.innerHTML = stats;
+
+  if (d.url) {
+    linkEl.innerHTML = '<a href="' + d.url + '" target="_blank" rel="noopener">元投稿を開く</a>';
+  } else {
+    linkEl.innerHTML = '';
+  }
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePostModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('postModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePostModal();
+});
+
 function runSearch(scheduled) {
   const keywords = document.getElementById('buzz-keywords').value.trim();
   const scheduledAt = document.getElementById('buzz-scheduled-at').value;
@@ -350,4 +522,11 @@ function pollJobStatus(jobId) {
   }, 3000);
 }
 </script>
+
+<!-- 投稿テキストを hidden 要素に格納 -->
+<div style="display:none;">
+  {% for post in page_obj %}
+  <div data-post-pk="{{ post.pk }}" data-post-text>{{ post.text_content }}</div>
+  {% endfor %}
+</div>
 {% endblock %}

@@ -150,6 +150,9 @@ class Command(BaseCommand):
                             existing.raw_json = raw
                             existing.media_type = post_data.get('media_type', '')
                             existing.media_urls = post_data.get('media_urls', [])
+                            # 検索キーワードが未設定なら埋める
+                            if not existing.search_keyword and kw:
+                                existing.search_keyword = kw
                             existing.save()
                         else:
                             raw_json = {'is_pinned': post_data.get('is_pinned', False)}

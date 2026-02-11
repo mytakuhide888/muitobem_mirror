@@ -70,7 +70,9 @@
   .ad-pagination .current { padding:4px 10px; border:1px solid #007bff; border-radius:4px; background:#007bff; color:#fff; }
 
   .buzz-btn-primary-sm { padding:4px 12px; font-size:13px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
-  .buzz-btn-secondary-sm { padding:4px 12px; font-size:13px; background:#6c757d; color:#fff; border:none; border-radius:6px; cursor:pointer; text-decoration:none; display:inline-block; }
+  .buzz-btn-secondary-sm { padding:4px 12px; font-size:13px; background:#6c757d; color:#fff !important; border:none; border-radius:6px; cursor:pointer; text-decoration:none !important; display:inline-block; }
+  .link-btn { display:inline-block; padding:2px 8px; background:#e9ecef; border-radius:4px; font-size:11px; white-space:nowrap; color:#007bff !important; text-decoration:none !important; }
+  .link-btn:hover { background:#dee2e6; }
 
   /* ─── 投稿モーダル ─── */
   .post-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:9999; justify-content:center; align-items:center; }
@@ -171,10 +173,10 @@
         <span>リポスト: {{ post.repost_count }}</span>
         {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
         {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
-        {% if post.media_type and post.media_type != 'text' and post.media_urls %}
-          <span class="media-badge media-{{ post.media_type }}">
-            {% if post.media_type == 'image' %}画像{% elif post.media_type == 'video' %}動画{% elif post.media_type == 'carousel' %}複数画像{% endif %}
-          </span>
+        {% if post.media_type == 'video' %}
+          <span class="media-badge media-video">動画</span>
+        {% elif post.media_type == 'carousel' %}
+          <span class="media-badge media-carousel">複数画像</span>
         {% endif %}
         {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:11px;" onclick="event.stopPropagation()">元投稿</a></span>{% endif %}
       </div>
@@ -283,14 +285,10 @@
         {{ post.text_content|truncatechars:60 }}
       </td>
       <td style="white-space:nowrap;">
-        {% if post.media_type and post.media_type != 'text' and post.media_urls %}
-          {% if post.media_type == 'image' %}
-            <span class="media-badge media-image">画像</span>
-          {% elif post.media_type == 'video' %}
-            <span class="media-badge media-video">動画</span>
-          {% elif post.media_type == 'carousel' %}
-            <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
-          {% endif %}
+        {% if post.media_type == 'video' %}
+          <span class="media-badge media-video">動画</span>
+        {% elif post.media_type == 'carousel' %}
+          <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
         {% else %}
           <span style="color:#ccc; font-size:11px;">-</span>
         {% endif %}
@@ -304,8 +302,8 @@
       <td>{% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}</td>
       <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
       <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
-      <td>
-        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:12px;">元投稿</a>{% endif %}
+      <td style="white-space:nowrap;">
+        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
       </td>
     </tr>
     {% endfor %}
