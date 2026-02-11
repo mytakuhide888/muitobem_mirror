@@ -475,7 +475,27 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
     # 固定ポスト判定
     is_pinned = False
     if item and isinstance(item, dict):
-        is_pinned = bool(item.get('pinned') or item.get('is_pinned'))
+        is_pinned = bool(
+            item.get('pinned')
+            or item.get('is_pinned')
+            or item.get('should_show_pinned_badge')
+        )
+        # header_context にピン留め表示がある場合
+        if not is_pinned:
+            header_ctx = item.get('header_context')
+            if header_ctx and isinstance(header_ctx, dict):
+                ctx_text = str(header_ctx.get('display_text', ''))
+                if 'pin' in ctx_text.lower() or 'ピン' in ctx_text:
+                    is_pinned = True
+        # デバッグ: item のキーをログ出力（最初の数件のみ）
+        if not hasattr(_parse_ssr_post, '_item_debug_count'):
+            _parse_ssr_post._item_debug_count = 0
+        if _parse_ssr_post._item_debug_count < 5:
+            logger.info("[DEBUG] thread_item keys: %s", list(item.keys()))
+            _parse_ssr_post._item_debug_count += 1
+    # post 内の timeline_pinned_user_ids チェック
+    if not is_pinned and post.get('timeline_pinned_user_ids'):
+        is_pinned = True
 
     # ─── メディア（画像/動画）抽出 ───
     # Threads SSR JSON の media_type 値:
@@ -1104,6 +1124,56 @@ class ThreadsBuzzScraper:
             if key not in seen_urls:
                 seen_urls.add(key)
                 posts.append(p)
+
+        # ─── DOM ベースのピン留め検出（SSR JSON で検出できない場合のフォールバック） ───
+        pinned_codes = set()
+        try:
+            pinned_hrefs = self._page.evaluate('''() => {
+                const hrefs = new Set();
+                // Method 1: Pin icon SVG の aria-label から検出
+                document.querySelectorAll('svg[aria-label="Pin icon"], svg[aria-label="ピン留めアイコン"]').forEach(svg => {
+                    let n = svg;
+                    for (let i = 0; i < 20; i++) {
+                        n = n.parentElement;
+                        if (!n) break;
+                        const a = n.querySelector('a[href*="/post/"]');
+                        if (a) { hrefs.add(a.getAttribute('href')); break; }
+                    }
+                });
+                // Method 2: "ピン留め済み" テキストから検出（フォールバック）
+                if (hrefs.size === 0) {
+                    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                    while (walker.nextNode()) {
+                        if (walker.currentNode.textContent.trim() === 'ピン留め済み') {
+                            let n = walker.currentNode.parentElement;
+                            for (let i = 0; i < 25; i++) {
+                                n = n.parentElement;
+                                if (!n) break;
+                                const a = n.querySelector('a[href*="/post/"]');
+                                if (a) { hrefs.add(a.getAttribute('href')); break; }
+                            }
+                        }
+                    }
+                }
+                return Array.from(hrefs);
+            }''')
+            for href in (pinned_hrefs or []):
+                if '/post/' in href:
+                    code = href.split('/post/')[-1].split('?')[0].rstrip('/')
+                    if code:
+                        pinned_codes.add(code)
+        except Exception as e:
+            logger.warning("[DEBUG] DOM ピン留め検出エラー: %s", e)
+
+        if pinned_codes:
+            logger.info("[DEBUG] DOM ピン留め投稿コード: %s", pinned_codes)
+            for p in posts:
+                url = p.get('post_url', '')
+                for code in pinned_codes:
+                    if code in url:
+                        p['is_pinned'] = True
+                        logger.info("[DEBUG] ピン留めマーク（DOM検出）: %s", url)
+                        break
 
         # API レスポンス傍受を開始してスクロール
         self._start_response_capture()
