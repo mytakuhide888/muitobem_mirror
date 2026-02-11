@@ -84,6 +84,7 @@
   .post-modal-body { padding:20px; }
   .post-modal-text { font-size:14px; line-height:1.8; white-space:pre-wrap; margin-bottom:16px; }
   .post-modal-media { margin-bottom:16px; }
+  .post-modal-media img { max-width:100%; border-radius:8px; margin-bottom:8px; }
   .post-modal-media video { max-width:100%; border-radius:8px; }
   .post-modal-media .carousel-wrap { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; }
   .post-modal-media .carousel-wrap img { max-width:300px; max-height:300px; object-fit:cover; border-radius:8px; flex-shrink:0; }
@@ -361,7 +362,7 @@ const POST_DATA = {
     url: '{{ post.post_url|default:"" }}',
     keyword: '{{ post.search_keyword|default:"" }}',
     mediaType: '{{ post.media_type|default:"" }}',
-    mediaUrls: {{ post.media_urls|safe|default:"[]" }},
+    mediaUrls: {{ post.media_urls_json|safe }},
   },
   {% endfor %}
 };

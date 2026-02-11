@@ -121,6 +121,10 @@ def buzz_search(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
+    # media_urls を正しい JSON 文字列に変換（テンプレートの safe フィルタ用）
+    for post in page_obj:
+        post.media_urls_json = json.dumps(post.media_urls or [], ensure_ascii=False)
+
     # ─── 検索キーワード一覧（フィルタ用） ───
     keywords_list = (
         THBuzzPost.objects
@@ -276,8 +280,14 @@ def buzz_author_detail(request, pk):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
+    # media_urls を正しい JSON 文字列に変換（テンプレートの safe フィルタ用）
+    for post in page_obj:
+        post.media_urls_json = json.dumps(post.media_urls or [], ensure_ascii=False)
+
     # ─── ピン留め投稿を分離 ───
     pinned_posts = [p for p in author.buzz_posts.all() if p.raw_json and p.raw_json.get('is_pinned')]
+    for post in pinned_posts:
+        post.media_urls_json = json.dumps(post.media_urls or [], ensure_ascii=False)
 
     # ─── 検索キーワード一覧（フィルタ用） ───
     keywords_list = (

@@ -368,7 +368,7 @@ const POST_DATA = {
     url: '{{ post.post_url|default:"" }}',
     pinned: {{ post.raw_json.is_pinned|yesno:"true,false" }},
     mediaType: '{{ post.media_type|default:"" }}',
-    mediaUrls: {{ post.media_urls|safe|default:"[]" }},
+    mediaUrls: {{ post.media_urls_json|safe }},
   },
   {% endfor %}
   {% for post in pinned_posts %}
@@ -387,7 +387,7 @@ const POST_DATA = {
     url: '{{ post.post_url|default:"" }}',
     pinned: true,
     mediaType: '{{ post.media_type|default:"" }}',
-    mediaUrls: {{ post.media_urls|safe|default:"[]" }},
+    mediaUrls: {{ post.media_urls_json|safe }},
   },
   {% endif %}
   {% endfor %}
