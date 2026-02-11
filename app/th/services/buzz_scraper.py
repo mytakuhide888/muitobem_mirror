@@ -478,14 +478,16 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
         is_pinned = bool(item.get('pinned') or item.get('is_pinned'))
 
     # ─── メディア（画像/動画）抽出 ───
+    # 注意: Threads SSR JSON では テキストのみの投稿でも media_type=1 と
+    # image_versions2（自動生成OGPサムネイル）が存在する。
+    # そのため media_type==1 は画像投稿の判定に使用しない。
+    # 信頼できるシグナル: carousel_media（カルーセル）, video_versions（動画）のみ。
     media_type = 'text'
     media_urls = []
 
-    # media_type フィールド: 1=photo, 2=video, 8=carousel
-    mt = post.get('media_type')
     carousel_media = post.get('carousel_media') or []
-    image_versions = post.get('image_versions2')
     video_versions = post.get('video_versions') or []
+    mt = post.get('media_type')
 
     if carousel_media:
         media_type = 'carousel'
@@ -505,23 +507,16 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
                 'height': best.get('height', 0),
             })
         # 動画のサムネイル画像
+        image_versions = post.get('image_versions2')
         if image_versions:
             img_entry = _extract_best_image(image_versions)
             if img_entry:
                 img_entry['type'] = 'thumbnail'
                 media_urls.append(img_entry)
-    elif mt == 1:
-        # media_type=1 が明示されている場合のみ画像投稿と判定
-        # (image_versions2 はテキスト投稿にもサムネとして存在するため単独では判定不可)
-        media_type = 'image'
-        if image_versions:
-            img_entry = _extract_best_image(image_versions)
-            if img_entry:
-                media_urls.append(img_entry)
 
-    # post_url からメディアURL構築（フォールバック）
-    if not media_urls and code and mt in (1, 2, 8):
-        media_type = {1: 'image', 2: 'video', 8: 'carousel'}.get(mt, 'text')
+    # post_url からメディアURL構築（フォールバック: 動画/カルーセルのみ）
+    if not media_urls and code and mt in (2, 8):
+        media_type = {2: 'video', 8: 'carousel'}.get(mt, 'text')
         media_urls.append({
             'type': media_type,
             'url': f"{THREADS_BASE}/post/{code}/media",
