@@ -40,6 +40,8 @@ urlpatterns = [
     path("api/buzz/fetch-author-posts/",      buzz_views.buzz_fetch_author_posts, name="buzz_fetch_author_posts"),
     path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
     path("api/buzz/author-favorite/<int:pk>/", buzz_views.buzz_toggle_favorite,   name="buzz_toggle_favorite"),
+    path("api/buzz/author-exclude/<int:pk>/", buzz_views.buzz_toggle_excluded,   name="buzz_toggle_excluded"),
+    path("api/buzz/bulk-exclude/",            buzz_views.buzz_bulk_exclude,       name="buzz_bulk_exclude"),
 
     # 急成長アカウント発見
     path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),

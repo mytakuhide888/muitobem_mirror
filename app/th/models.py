@@ -125,6 +125,7 @@ class THBuzzAuthor(models.Model):
     memo = models.TextField('メモ', blank=True, default='')
     is_favorited = models.BooleanField('お気に入り', default=False)
     is_concept_candidate = models.BooleanField('コンセプト候補', default=False)
+    is_excluded = models.BooleanField('対象外', default=False)
 
     # ─── 品質指標フィールド ───
     quality_score = models.FloatField('品質スコア', null=True, blank=True)

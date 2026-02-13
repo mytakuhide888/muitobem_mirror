@@ -36,6 +36,7 @@ def buzz_search(request):
     keyword_filter = request.GET.get('keyword', '')
     viral_only = request.GET.get('viral', '')
     favorite_only = request.GET.get('favorite', '')
+    include_excluded = request.GET.get('include_excluded', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -73,6 +74,8 @@ def buzz_search(request):
         qs = qs.filter(is_viral=True)
     if favorite_only == '1':
         qs = qs.filter(author__is_favorited=True)
+    if not include_excluded:
+        qs = qs.filter(author__is_excluded=False)
     if date_from:
         qs = qs.filter(scraped_at__date__gte=date_from)
     if date_to:
@@ -179,6 +182,7 @@ def buzz_search(request):
         'current_keyword': keyword_filter,
         'current_viral': viral_only,
         'current_favorite': favorite_only,
+        'current_include_excluded': include_excluded,
         'current_date_from': date_from,
         'current_date_to': date_to,
         'current_like_min': like_min,
@@ -542,6 +546,7 @@ def buzz_growth_ranking(request):
     q = request.GET.get('q', '')
     candidates_only = request.GET.get('candidates_only', '')
     quality_only = request.GET.get('quality_only', '')
+    include_excluded = request.GET.get('include_excluded', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -583,6 +588,8 @@ def buzz_growth_ranking(request):
         qs = qs.filter(is_concept_candidate=True)
     if quality_only:
         qs = qs.filter(is_quality_account=True)
+    if not include_excluded:
+        qs = qs.filter(is_excluded=False)
 
     qs = qs.order_by(sort_by)
 
@@ -625,6 +632,8 @@ def buzz_growth_ranking(request):
         'current_candidates_only_str': '1' if candidates_only else '',
         'current_quality_only': bool(quality_only),
         'current_quality_only_str': '1' if quality_only else '',
+        'current_include_excluded': include_excluded,
+        'current_include_excluded_str': '1' if include_excluded else '',
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
 
@@ -786,6 +795,35 @@ def buzz_toggle_favorite(request, pk):
     author.is_favorited = not author.is_favorited
     author.save(update_fields=['is_favorited'])
     return JsonResponse({'ok': True, 'is_favorited': author.is_favorited})
+
+
+@staff_member_required
+@require_POST
+def buzz_toggle_excluded(request, pk):
+    """投稿者の対象外フラグをトグルする API"""
+    author = get_object_or_404(THBuzzAuthor, pk=pk)
+    author.is_excluded = not author.is_excluded
+    author.save(update_fields=['is_excluded'])
+    return JsonResponse({'ok': True, 'is_excluded': author.is_excluded})
+
+
+@staff_member_required
+@require_POST
+def buzz_bulk_exclude(request):
+    """投稿者の対象外フラグを一括更新する API"""
+    try:
+        body = json.loads(request.body)
+        author_ids = body.get('author_ids', [])
+        exclude = body.get('exclude', True)
+        if not author_ids:
+            return JsonResponse({'ok': False, 'error': 'author_ids が必要です'}, status=400)
+        updated_count = THBuzzAuthor.objects.filter(pk__in=author_ids).update(is_excluded=exclude)
+        return JsonResponse({'ok': True, 'updated_count': updated_count})
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'リクエストの形式が不正です'}, status=400)
+    except Exception as e:
+        logger.exception("buzz_bulk_exclude エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
 @staff_member_required

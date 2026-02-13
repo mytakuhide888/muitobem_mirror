@@ -92,6 +92,15 @@
   .post-modal-stats span { white-space:nowrap; }
   .post-modal-link { margin-top:8px; }
   .post-modal-link a { color:#007bff; font-size:13px; }
+
+  .excluded-row { opacity:0.5; background:#f0f0f0 !important; }
+  .bulk-bar { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .bulk-bar .buzz-btn { padding:4px 12px; font-size:12px; }
+  .bulk-bar .buzz-btn-danger { background:#dc3545; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+  .bulk-bar .buzz-btn-danger:hover { background:#c82333; }
+  .bulk-bar .buzz-btn-outline { background:#fff; color:#333; border:1px solid #ccc; border-radius:6px; cursor:pointer; }
+  .bulk-bar .buzz-btn-outline:hover { background:#e9ecef; }
+  .bulk-bar .bulk-msg { font-size:12px; color:#28a745; }
 </style>
 
 <div class="buzz-header">バズ投稿取得</div>
@@ -248,6 +257,12 @@
       </div>
     </div>
     <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="include_excluded" value="1" {% if current_include_excluded %}checked{% endif %}>
+        対象外も含める
+      </label>
+    </div>
+    <div>
       <label>ソート</label>
       <select name="sort">
         <option value="-scraped_at" {% if current_sort == "-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
@@ -264,10 +279,20 @@
   </form>
 </div>
 
+<!-- 一括操作バー -->
+{% if current_include_excluded %}
+<div class="bulk-bar">
+  <button class="buzz-btn buzz-btn-danger" onclick="bulkExclude(true)">選択を対象外にする</button>
+  <button class="buzz-btn buzz-btn-outline" onclick="bulkExclude(false)">選択の対象外を解除</button>
+  <span id="bulk-message" class="bulk-msg"></span>
+</div>
+{% endif %}
+
 <!-- 結果テーブル -->
 <table class="buzz-table">
   <thead>
     <tr>
+      {% if current_include_excluded %}<th style="width:30px;"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"></th>{% endif %}
       <th>投稿者</th>
       <th>投稿文</th>
       <th>メディア</th>
@@ -286,8 +311,9 @@
   </thead>
   <tbody>
     {% for post in page_obj %}
-    <tr>
-      <td style="white-space:nowrap;">{% if post.author.is_favorited %}<span style="color:#f5a623; font-size:14px;" title="お気に入り">★</span>{% endif %}<a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
+    <tr{% if current_include_excluded and post.author.is_excluded %} class="excluded-row"{% endif %}>
+      {% if current_include_excluded %}<td><input type="checkbox" class="row-check" data-author-id="{{ post.author.pk }}" {% if post.author.is_excluded %}checked{% endif %}></td>{% endif %}
+      <td style="white-space:nowrap;">{% if post.author.is_favorited %}<span style="color:#f5a623; font-size:14px;" title="お気に入り">★</span>{% endif %}{% if post.author.is_excluded %}<span style="color:#dc3545; font-size:11px; margin-right:2px;" title="対象外">&#x26D4;</span>{% endif %}<a href="{% url 'console:buzz_author_detail' pk=post.author.pk %}">@{{ post.author.username }}</a></td>
       <td class="text-col" onclick="openPostModal({{ post.pk }})">
         {% if post.raw_json.is_pinned %}<span style="color:#e65100;">&#x1F4CC;</span>{% endif %}
         {{ post.text_content|truncatechars:50 }}
@@ -324,14 +350,14 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="14" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
+    <tr><td colspan="{% if current_include_excluded %}15{% else %}14{% endif %}" style="text-align:center;padding:24px;color:#999;">まだバズ投稿データがありません。上のフォームからキーワード検索を実行してください。</td></tr>
     {% endfor %}
   </tbody>
 </table>
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&author="|add:current_author|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&favorite="|add:current_favorite|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
+{% with fp="&sort="|add:current_sort|add:"&author="|add:current_author|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&favorite="|add:current_favorite|add:"&include_excluded="|add:current_include_excluded|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
 <div class="buzz-pagination">
   {% if page_obj.has_previous %}
     <a href="?page=1{{ fp }}">&laquo; 最初</a>
@@ -601,6 +627,46 @@ function runAccountFetch(scheduled) {
     .catch(err => {
       msgEl.className = 'buzz-msg err';
       msgEl.textContent = 'リクエストエラー: ' + err;
+    });
+}
+
+function toggleSelectAll(el) {
+  document.querySelectorAll('.row-check').forEach(function(cb) {
+    cb.checked = el.checked;
+  });
+}
+
+function bulkExclude(exclude) {
+  const checks = document.querySelectorAll('.row-check:checked');
+  const ids = [...new Set([...checks].map(cb => parseInt(cb.dataset.authorId)))];
+  if (ids.length === 0) {
+    alert('対象を選択してください');
+    return;
+  }
+  const msgEl = document.getElementById('bulk-message');
+  msgEl.textContent = '更新中...';
+
+  fetch('{% url "console:buzz_bulk_exclude" %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}',
+    },
+    body: JSON.stringify({ author_ids: ids, exclude: exclude }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        msgEl.textContent = data.updated_count + '件更新しました。リロードします...';
+        setTimeout(function() { location.reload(); }, 800);
+      } else {
+        msgEl.textContent = data.error || 'エラーが発生しました';
+        msgEl.style.color = '#dc3545';
+      }
+    })
+    .catch(err => {
+      msgEl.textContent = 'リクエストエラー: ' + err;
+      msgEl.style.color = '#dc3545';
     });
 }
 

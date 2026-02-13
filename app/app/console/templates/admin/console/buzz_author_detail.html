@@ -125,6 +125,7 @@
       {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
       {% if author.is_quality_account %}<span class="quality-badge-lg">優良</span>{% endif %}
       <a href="#" id="fav-toggle" onclick="toggleFavorite(event)" title="お気に入り" style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{% if author.is_favorited %}★{% else %}☆{% endif %}</a>
+      <a href="#" id="excluded-toggle" onclick="toggleExcluded(event)" title="対象外" style="text-decoration:none; font-size:13px; margin-left:10px; cursor:pointer; padding:2px 8px; border-radius:10px; {% if author.is_excluded %}background:#dc3545; color:#fff;{% else %}background:#e9ecef; color:#999;{% endif %}">対象外</a>
     </h2>
     <div class="username">
       <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
@@ -705,6 +706,27 @@ function toggleFavorite(e) {
       }
     })
     .catch(err => console.error('toggleFavorite error:', err));
+}
+
+function toggleExcluded(e) {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "console:buzz_toggle_excluded" pk=author.pk %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        const el = document.getElementById('excluded-toggle');
+        if (data.is_excluded) {
+          el.style.background = '#dc3545';
+          el.style.color = '#fff';
+        } else {
+          el.style.background = '#e9ecef';
+          el.style.color = '#999';
+        }
+      }
+    })
+    .catch(err => console.error('toggleExcluded error:', err));
 }
 </script>
 

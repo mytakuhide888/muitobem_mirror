@@ -38,10 +38,10 @@ class THBuzzAuthorAdmin(admin.ModelAdmin):
     list_display = (
         'username', 'display_name', 'followers_count',
         'growth_score', 'quality_score', 'followers_per_day', 'account_age_days',
-        'avg_likes', 'is_verified', 'is_concept_candidate', 'is_quality_account', 'updated_at',
+        'avg_likes', 'is_verified', 'is_concept_candidate', 'is_quality_account', 'is_excluded', 'updated_at',
     )
     search_fields = ('username', 'display_name', 'category_tags')
-    list_filter = ('is_verified', 'is_concept_candidate', 'is_quality_account', 'category_tags')
+    list_filter = ('is_verified', 'is_concept_candidate', 'is_quality_account', 'is_excluded', 'category_tags')
     readonly_fields = (
         'first_scraped_at', 'updated_at',
         'growth_score', 'followers_per_day', 'account_age_days',

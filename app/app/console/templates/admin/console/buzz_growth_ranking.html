@@ -38,6 +38,8 @@
   .gr-card .verified { display:inline-block; background:#1da1f2; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card .candidate-badge { display:inline-block; background:#28a745; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card .quality-badge { display:inline-block; background:#6f42c1; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+  .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+  .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
 
   .gr-metrics { display:flex; gap:12px; margin:10px 0; flex-wrap:wrap; }
   .gr-metric { text-align:center; min-width:60px; }
@@ -128,6 +130,12 @@
       </label>
     </div>
     <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="include_excluded" value="1" {% if current_include_excluded %}checked{% endif %}>
+        対象外も含める
+      </label>
+    </div>
+    <div>
       <label>ソート</label>
       <select name="sort">
         <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
@@ -162,7 +170,7 @@
 <!-- カード一覧 -->
 <div class="gr-cards">
   {% for author in page_obj %}
-  <div class="gr-card">
+  <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}">
     <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
     <h3>
       <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">
@@ -171,6 +179,7 @@
       {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
       {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
       {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
+      {% if author.is_excluded %}<span class="excluded-badge">対象外</span>{% endif %}
     </h3>
     <div class="username">
       <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
@@ -231,7 +240,7 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str %}
+{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str %}
 <div class="gr-pagination">
   {% if page_obj.has_previous %}
     <a href="?page=1{{ fp }}">&laquo; 最初</a>
