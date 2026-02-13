@@ -128,6 +128,24 @@
       <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
     </div>
     <div id="buzz-message" class="buzz-msg"></div>
+
+    <hr style="margin:16px 0 12px; border:none; border-top:1px solid #eee;">
+    <h3>アカウント指定検索</h3>
+    <textarea id="buzz-usernames" placeholder="アカウント名（@なし、カンマ区切りで複数可）&#10;例: mio_byoutou, example_user"></textarea>
+    <div class="row">
+      <div>
+        <label>予約実行（任意）</label>
+        <input type="datetime-local" id="buzz-account-scheduled-at">
+      </div>
+      <div>
+        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
+          <input type="checkbox" id="buzz-account-exclude-replies" checked> リプライを除外
+        </label>
+      </div>
+      <button class="buzz-btn buzz-btn-primary" onclick="runAccountFetch(false)">すぐに実行</button>
+      <button class="buzz-btn buzz-btn-secondary" onclick="runAccountFetch(true)">予約実行</button>
+    </div>
+    <div id="buzz-account-message" class="buzz-msg"></div>
   </div>
 
   <!-- 最近のジョブ -->
@@ -136,10 +154,11 @@
     <div class="jobs-scroll">
     {% if recent_jobs %}
       <table>
-        <tr><th>ID</th><th>キーワード</th><th>ステータス</th><th>件数</th><th>開始</th><th>完了</th></tr>
+        <tr><th>ID</th><th>種別</th><th>キーワード</th><th>ステータス</th><th>件数</th><th>開始</th><th>完了</th></tr>
         {% for job in recent_jobs %}
         <tr>
           <td>{{ job.id }}</td>
+          <td>{{ job.get_job_type_display }}</td>
           <td>{{ job.keywords|truncatechars:40 }}</td>
           <td class="status-{{ job.status }}">{{ job.get_status_display }}</td>
           <td>{{ job.result_count }}</td>
@@ -522,7 +541,7 @@ function runSearch(scheduled) {
         msgEl.className = 'buzz-msg ok';
         msgEl.textContent = data.message;
         if (data.job_id) {
-          pollJobStatus(data.job_id);
+          pollJobStatus(data.job_id, 'buzz-message');
         }
       } else {
         msgEl.className = 'buzz-msg err';
@@ -535,8 +554,52 @@ function runSearch(scheduled) {
     });
 }
 
-function pollJobStatus(jobId) {
-  const msgEl = document.getElementById('buzz-message');
+function runAccountFetch(scheduled) {
+  const usernames = document.getElementById('buzz-usernames').value.trim();
+  const scheduledAt = document.getElementById('buzz-account-scheduled-at').value;
+  const msgEl = document.getElementById('buzz-account-message');
+
+  if (!usernames) {
+    msgEl.className = 'buzz-msg err';
+    msgEl.textContent = 'アカウント名を入力してください';
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('usernames', usernames);
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  if (scheduled && scheduledAt) {
+    fd.append('scheduled_at', scheduledAt);
+  }
+  if (document.getElementById('buzz-account-exclude-replies').checked) {
+    fd.append('exclude_replies', '1');
+  }
+
+  msgEl.className = 'buzz-msg ok';
+  msgEl.textContent = '処理中...';
+
+  fetch('{% url "console:buzz_run_account_fetch" %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        msgEl.className = 'buzz-msg ok';
+        msgEl.textContent = data.message;
+        if (data.job_id) {
+          pollJobStatus(data.job_id, 'buzz-account-message');
+        }
+      } else {
+        msgEl.className = 'buzz-msg err';
+        msgEl.textContent = data.error || 'エラーが発生しました';
+      }
+    })
+    .catch(err => {
+      msgEl.className = 'buzz-msg err';
+      msgEl.textContent = 'リクエストエラー: ' + err;
+    });
+}
+
+function pollJobStatus(jobId, msgElId) {
+  const msgEl = document.getElementById(msgElId);
   const interval = setInterval(() => {
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())

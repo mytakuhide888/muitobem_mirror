@@ -44,8 +44,11 @@ class Command(BaseCommand):
         log_dir.mkdir(parents=True, exist_ok=True)
 
         for job in due_jobs:
-            self.stdout.write(f"  実行開始: Job#{job.id} keywords={job.keywords}")
-            cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
+            self.stdout.write(f"  実行開始: Job#{job.id} type={job.job_type} keywords={job.keywords}")
+            if job.job_type == 'account':
+                cmd = [sys.executable, 'manage.py', 'th_buzz_fetch_author', '--job-id', str(job.id)]
+            else:
+                cmd = [sys.executable, 'manage.py', 'th_buzz_search', '--job-id', str(job.id)]
             try:
                 log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
                 log_err = open(log_dir / 'buzz_search_stderr.log', 'a')

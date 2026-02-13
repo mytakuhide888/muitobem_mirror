@@ -36,6 +36,7 @@ urlpatterns = [
     path("buzz-search/",                      buzz_views.buzz_search,            name="buzz_search"),
     path("buzz-author/<int:pk>/",             buzz_views.buzz_author_detail,     name="buzz_author_detail"),
     path("api/buzz/run-search/",              buzz_views.buzz_run_search,        name="buzz_run_search"),
+    path("api/buzz/run-account-fetch/",       buzz_views.buzz_run_account_fetch,  name="buzz_run_account_fetch"),
     path("api/buzz/fetch-author-posts/",      buzz_views.buzz_fetch_author_posts, name="buzz_fetch_author_posts"),
     path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
     path("api/buzz/author-favorite/<int:pk>/", buzz_views.buzz_toggle_favorite,   name="buzz_toggle_favorite"),

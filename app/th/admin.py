@@ -87,8 +87,8 @@ class THBuzzPostAdmin(admin.ModelAdmin):
 
 @admin.register(THBuzzSearchJob)
 class THBuzzSearchJobAdmin(admin.ModelAdmin):
-    list_display = ('keywords_short', 'status', 'result_count', 'scheduled_at', 'started_at', 'completed_at')
-    list_filter = ('status',)
+    list_display = ('keywords_short', 'job_type', 'status', 'result_count', 'scheduled_at', 'started_at', 'completed_at')
+    list_filter = ('status', 'job_type')
     readonly_fields = ('created_at',)
 
     @admin.display(description='キーワード')

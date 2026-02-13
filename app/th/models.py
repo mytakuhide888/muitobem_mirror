@@ -241,6 +241,14 @@ class THBuzzSearchJob(models.Model):
         ('COMPLETED', '完了'),
         ('FAILED', '失敗'),
     ]
+    JOB_TYPE_CHOICES = [
+        ('keyword', 'キーワード検索'),
+        ('account', 'アカウント取得'),
+    ]
+    job_type = models.CharField(
+        'ジョブ種別', max_length=20,
+        choices=JOB_TYPE_CHOICES, default='keyword',
+    )
     keywords = models.TextField('検索キーワード', help_text='JSON配列形式 例: ["AI", "副業"]')
     status = models.CharField('ステータス', max_length=20, choices=STATUS_CHOICES, default='PENDING')
     scheduled_at = models.DateTimeField('予約実行日時', null=True, blank=True)

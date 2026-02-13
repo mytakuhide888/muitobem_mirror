@@ -406,6 +406,73 @@ def buzz_run_search(request):
 
 @staff_member_required
 @require_POST
+def buzz_run_account_fetch(request):
+    """アカウント指定検索ジョブを開始する API"""
+    try:
+        usernames_raw = request.POST.get('usernames', '').strip()
+        scheduled_at = request.POST.get('scheduled_at', '').strip()
+
+        if not usernames_raw:
+            return JsonResponse({'ok': False, 'error': 'アカウント名を入力してください'}, status=400)
+
+        # カンマ/改行区切りでパース、@を除去
+        usernames = [
+            u.strip().lstrip('@')
+            for u in usernames_raw.replace('\n', ',').split(',')
+            if u.strip()
+        ]
+        if not usernames:
+            return JsonResponse({'ok': False, 'error': 'アカウント名を入力してください'}, status=400)
+
+        # ジョブレコード作成
+        job = THBuzzSearchJob.objects.create(
+            job_type='account',
+            keywords=json.dumps(usernames, ensure_ascii=False),
+            status='PENDING',
+            scheduled_at=scheduled_at if scheduled_at else None,
+        )
+
+        if scheduled_at:
+            return JsonResponse({
+                'ok': True,
+                'message': f'アカウント取得ジョブを予約しました (ID: {job.id})',
+                'job_id': job.id,
+            })
+
+        # 即時実行
+        job.status = 'RUNNING'
+        job.started_at = timezone.now()
+        job.save(update_fields=['status', 'started_at'])
+
+        cmd = [sys.executable, 'manage.py', 'th_buzz_fetch_author', '--job-id', str(job.id)]
+        if request.POST.get('exclude_replies'):
+            pass  # デフォルトでリプライ除外（--include-replies を付けない）
+        else:
+            cmd.append('--include-replies')
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_fetch_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_fetch_stderr.log', 'a')
+        subprocess.Popen(
+            cmd,
+            cwd=str(settings.BASE_DIR),
+            stdout=log_out,
+            stderr=log_err,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'message': f'アカウント取得を開始しました (ID: {job.id}, {len(usernames)}件)',
+            'job_id': job.id,
+        })
+
+    except Exception as e:
+        logger.exception("buzz_run_account_fetch エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
 def buzz_fetch_author_posts(request):
     """投稿者の過去投稿取得を開始する API"""
     try:
