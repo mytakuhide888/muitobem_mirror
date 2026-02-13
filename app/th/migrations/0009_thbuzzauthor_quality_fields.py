@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('th', '0007_thbuzzauthor_is_concept_candidate'),
+        ('th', '0008_merge_20260213_1111'),
     ]
 
     operations = [
