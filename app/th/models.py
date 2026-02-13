@@ -139,6 +139,15 @@ class THBuzzAuthor(models.Model):
         verbose_name = 'Threadsバズ投稿者'
         verbose_name_plural = verbose_name
         ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['-updated_at'], name='bza_updated_at_desc'),
+            models.Index(fields=['is_excluded'], name='bza_is_excluded'),
+            models.Index(fields=['is_favorited'], name='bza_is_favorited'),
+            models.Index(fields=['-growth_score'], name='bza_growth_score_desc'),
+            models.Index(fields=['-quality_score'], name='bza_quality_score_desc'),
+            models.Index(fields=['followers_count'], name='bza_followers_count'),
+            models.Index(fields=['account_age_days'], name='bza_account_age_days'),
+        ]
 
     def __str__(self):
         return f"@{self.username}" if self.username else self.display_name
@@ -469,6 +478,16 @@ class THBuzzPost(models.Model):
         verbose_name = 'Threadsバズ投稿'
         verbose_name_plural = verbose_name
         ordering = ['-scraped_at']
+        indexes = [
+            models.Index(fields=['-scraped_at'], name='bzp_scraped_at_desc'),
+            models.Index(fields=['author', '-scraped_at'], name='bzp_author_scraped'),
+            models.Index(fields=['-posted_at'], name='bzp_posted_at_desc'),
+            models.Index(fields=['search_keyword'], name='bzp_search_keyword'),
+            models.Index(fields=['is_viral'], name='bzp_is_viral'),
+            models.Index(fields=['-like_count'], name='bzp_like_count_desc'),
+            models.Index(fields=['-engagement_score'], name='bzp_eng_score_desc'),
+            models.Index(fields=['-engagement_rate'], name='bzp_eng_rate_desc'),
+        ]
 
     def __str__(self):
         return f"{self.author} - {self.text_content[:30]}"
