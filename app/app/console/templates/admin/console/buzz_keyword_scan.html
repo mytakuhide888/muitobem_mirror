@@ -64,12 +64,16 @@
           <option value="default">おすすめ順</option>
         </select>
       </div>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
+        <input type="checkbox" id="scan-growth-filter"> 急成長フィルタ
+      </label>
       <button class="buzz-btn buzz-btn-primary" onclick="runKeywordScan()">一括巡回開始</button>
       <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary">ランキング画面へ</a>
     </div>
     <div id="scan-message" class="buzz-msg"></div>
     <p style="font-size:11px; color:#999; margin-top:8px;">
-      各キーワードで検索 → 新規投稿者のプロフィール取得 → 成長スコア計算を自動実行します。
+      各キーワードで検索 → 新規投稿者のプロフィール取得 → 成長スコア計算を自動実行します。<br>
+      「急成長フィルタ」ON: コンセプト候補（7〜90日, フォロワー500+, 1日10人+増加）に該当しないアカウントの投稿を除外します。
     </p>
   </div>
 
@@ -142,6 +146,9 @@ function runKeywordScan() {
   fd.append('keywords', keywords);
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   fd.append('sort_order', document.getElementById('scan-sort-order').value);
+  if (document.getElementById('scan-growth-filter').checked) {
+    fd.append('growth_filter', '1');
+  }
 
   fetch('{% url "console:buzz_run_keyword_scan" %}', { method: 'POST', body: fd })
     .then(r => r.json())

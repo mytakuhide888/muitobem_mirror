@@ -36,6 +36,8 @@
   .gr-card .username { color:#007bff; font-size:13px; margin-bottom:8px; }
   .gr-card .username a { color:#007bff; text-decoration:none; }
   .gr-card .verified { display:inline-block; background:#1da1f2; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+  .gr-card .candidate-badge { display:inline-block; background:#28a745; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+  .gr-card .quality-badge { display:inline-block; background:#6f42c1; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
 
   .gr-metrics { display:flex; gap:12px; margin:10px 0; flex-wrap:wrap; }
   .gr-metric { text-align:center; min-width:60px; }
@@ -53,11 +55,36 @@
   .gr-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
   .gr-pagination a:hover { background:#e9ecef; }
   .gr-pagination .current { padding:4px 10px; background:#007bff; color:#fff; border-radius:4px; }
+
+  /* ヘルプモーダル */
+  .help-icon { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#6c757d; color:#fff; font-size:14px; font-weight:bold; cursor:pointer; text-decoration:none; margin-left:8px; vertical-align:middle; line-height:1; }
+  .help-icon:hover { background:#495057; }
+  .help-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:9999; justify-content:center; align-items:center; }
+  .help-overlay.active { display:flex; }
+  .help-modal { background:#fff; border-radius:12px; max-width:860px; width:92%; max-height:85vh; display:flex; box-shadow:0 8px 30px rgba(0,0,0,.25); overflow:hidden; }
+  .help-nav { width:200px; min-width:200px; background:#f8f9fa; border-right:1px solid #eee; padding:16px 0; overflow-y:auto; }
+  .help-nav a { display:block; padding:8px 16px; font-size:13px; color:#333; text-decoration:none; border-left:3px solid transparent; }
+  .help-nav a:hover { background:#e9ecef; }
+  .help-nav a.active { background:#e7f1ff; border-left-color:#007bff; color:#007bff; font-weight:bold; }
+  .help-nav .nav-group { font-size:11px; color:#999; padding:12px 16px 4px; text-transform:uppercase; letter-spacing:.5px; }
+  .help-body { flex:1; overflow-y:auto; padding:24px; }
+  .help-body .help-section { display:none; }
+  .help-body .help-section.active { display:block; }
+  .help-body h3 { margin:0 0 12px; font-size:17px; color:#333; border-bottom:2px solid #007bff; padding-bottom:6px; }
+  .help-body h4 { margin:16px 0 8px; font-size:14px; color:#495057; }
+  .help-body p { font-size:13px; line-height:1.8; color:#444; margin:0 0 10px; }
+  .help-body ul { font-size:13px; line-height:1.8; color:#444; margin:0 0 10px; padding-left:20px; }
+  .help-body .formula { background:#f1f3f5; border-radius:6px; padding:10px 14px; font-family:monospace; font-size:13px; margin:8px 0; line-height:1.6; }
+  .help-body .tip { background:#e7f5ff; border-left:3px solid #007bff; padding:8px 12px; border-radius:0 6px 6px 0; font-size:12px; margin:10px 0; }
+  .help-body .example { background:#fff3cd; border-left:3px solid #ffc107; padding:8px 12px; border-radius:0 6px 6px 0; font-size:12px; margin:10px 0; }
+  .help-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:22px; cursor:pointer; color:#999; z-index:1; }
+  .help-close:hover { color:#333; }
 </style>
 
 <h2 class="gr-header">
   急成長アカウントランキング
   <small>{{ total_count }}件</small>
+  <a class="help-icon" onclick="openHelp()" title="ヘルプ・指標の説明">?</a>
 </h2>
 
 <!-- フィルタ -->
@@ -89,6 +116,18 @@
       </select>
     </div>
     <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="candidates_only" value="1" {% if current_candidates_only %}checked{% endif %}>
+        候補のみ
+      </label>
+    </div>
+    <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="quality_only" value="1" {% if current_quality_only %}checked{% endif %}>
+        優良のみ
+      </label>
+    </div>
+    <div>
       <label>ソート</label>
       <select name="sort">
         <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
@@ -96,6 +135,7 @@
         <option value="-followers_count" {% if current_sort == "-followers_count" %}selected{% endif %}>フォロワー数(多い順)</option>
         <option value="account_age_days" {% if current_sort == "account_age_days" %}selected{% endif %}>アカウント日数(若い順)</option>
         <option value="-avg_likes" {% if current_sort == "-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
+        <option value="-quality_score" {% if current_sort == "-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
         <option value="-updated_at" {% if current_sort == "-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
       </select>
     </div>
@@ -104,9 +144,18 @@
       <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary" style="margin-left:4px;">リセット</a>
     </div>
   </form>
-  <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
     <button class="buzz-btn buzz-btn-warning" onclick="recalcER()">ER/バズ判定を一括再計算</button>
     <span id="recalc-message" class="buzz-msg" style="margin:0;"></span>
+  </div>
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count == 0 %}disabled style="opacity:.5"{% endif %}>
+      深掘りスキャン（投稿不足 {{ deep_scan_target_count }}件）
+    </button>
+    <label style="font-size:12px; color:#666;">
+      最大件数: <input type="number" id="deep-scan-max" value="10" min="1" max="50" style="width:60px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+    </label>
+    <span id="deep-scan-message" class="buzz-msg" style="margin:0;"></span>
   </div>
 </div>
 
@@ -120,6 +169,8 @@
         {{ author.display_name|default:author.username }}
       </a>
       {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+      {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
+      {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
     </h3>
     <div class="username">
       <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
@@ -150,6 +201,12 @@
         <span class="val">{{ author.total_post_count|default:"-" }}</span>
         <span class="lbl">投稿数</span>
       </div>
+      {% if author.quality_score %}
+      <div class="gr-metric">
+        <span class="val" style="color:#6f42c1;">{{ author.quality_score|floatformat:1 }}</span>
+        <span class="lbl">品質</span>
+      </div>
+      {% endif %}
     </div>
 
     {% if author.bio %}
@@ -174,7 +231,7 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category %}
+{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str %}
 <div class="gr-pagination">
   {% if page_obj.has_previous %}
     <a href="?page=1{{ fp }}">&laquo; 最初</a>
@@ -189,7 +246,300 @@
 {% endwith %}
 {% endif %}
 
+<!-- ヘルプモーダル -->
+<div class="help-overlay" id="helpModal" onclick="closeHelp(event)">
+  <div class="help-modal" onclick="event.stopPropagation()" style="position:relative;">
+    <button class="help-close" onclick="closeHelp()">&times;</button>
+    <div class="help-nav">
+      <div class="nav-group">コンセプト設計</div>
+      <a href="#" class="active" data-section="concept-overview">考え方の概要</a>
+      <a href="#" data-section="concept-step1">Step1: 急成長を見つける</a>
+      <a href="#" data-section="concept-step2">Step2: 要因をピックアップ</a>
+      <a href="#" data-section="concept-step3">Step3: ずらしてコンセプト化</a>
+      <div class="nav-group">機能の説明</div>
+      <a href="#" data-section="feature-candidate">コンセプト候補</a>
+      <a href="#" data-section="feature-deepscan">深掘りスキャン</a>
+      <a href="#" data-section="feature-growthfilter">急成長フィルタ</a>
+      <a href="#" data-section="feature-quality">品質スコア</a>
+      <div class="nav-group">指標の説明</div>
+      <a href="#" data-section="metric-growth">成長スコア</a>
+      <a href="#" data-section="metric-er">ER（エンゲージメント率）</a>
+      <a href="#" data-section="metric-buzz">バズ判定</a>
+      <a href="#" data-section="metric-eng-score">エンゲージメントスコア</a>
+      <div class="nav-group">使い方</div>
+      <a href="#" data-section="howto">リサーチ手順</a>
+    </div>
+    <div class="help-body">
+
+      <!-- コンセプト設計: 概要 -->
+      <div class="help-section active" id="concept-overview">
+        <h3>コンセプト設計の考え方</h3>
+        <p>コンセプト設計は、アカウント運用の土台です。強いコンセプトがあれば楽に集客でき、弱いコンセプトではいくら投稿しても伸びません。</p>
+        <p>基本の3ステップ:</p>
+        <ul>
+          <li><b>Step 1:</b> 直近で異常に伸びているアカウントを見つける</li>
+          <li><b>Step 2:</b> 伸びている要因を3つ以上ピックアップする</li>
+          <li><b>Step 3:</b> ピックアップした要素を少しずらしてコンセプトを固める</li>
+        </ul>
+        <div class="tip">最重要ポイント: 0からオリジナルで生み出すのではなく、市場に落ちている"答え"から逆算して設計する。「直近で伸びているアカウント = 答えに近いアカウント」</div>
+      </div>
+
+      <!-- Step1 -->
+      <div class="help-section" id="concept-step1">
+        <h3>Step 1: 直近で異常に伸びているアカウントを見つける</h3>
+        <p>「最近作られたアカウントなのにめっちゃ伸びている」 = 今、需要があるという証拠。少しコンセプトをずらすだけで伸びる可能性が高い。</p>
+        <h4>「異常に伸びている」の目安</h4>
+        <ul>
+          <li>初投稿で10万インプレッション</li>
+          <li>開設1週間でフォロワー3,000人</li>
+          <li>開設1ヶ月でフォロワー10,000人</li>
+        </ul>
+        <h4>見つからない場合はハードルを下げる</h4>
+        <ul>
+          <li>初投稿で5万インプレッション</li>
+          <li>開設1週間でフォロワー1,000人</li>
+          <li>開設1ヶ月でフォロワー5,000人</li>
+        </ul>
+        <div class="tip">このツールでの操作: ランキングを「アカウント日数(若い順)」でソートし、「最大アカウント日数」を30〜90日に設定。フォロワー数が多く成長スコアが高いアカウントが候補。</div>
+      </div>
+
+      <!-- Step2 -->
+      <div class="help-section" id="concept-step2">
+        <h3>Step 2: 伸びている要因をピックアップする</h3>
+        <p>急成長アカウントを見つけたら、なぜ伸びているかの要因を3つ以上ピックアップします。</p>
+        <h4>チェックポイント</h4>
+        <ul>
+          <li><b>プロフィール:</b> 表示名、bio（自己紹介文）の書き方</li>
+          <li><b>コンセプト:</b> 何者なのか？ ギャップはあるか？</li>
+          <li><b>投稿内容:</b> どんな投稿がバズっているか？ ストーリー性は？</li>
+          <li><b>投稿形式:</b> テキスト主体？ 画像/動画付き？</li>
+          <li><b>経歴:</b> 独自の経験や専門性を打ち出しているか</li>
+          <li><b>投稿頻度:</b> 1日何件投稿しているか</li>
+        </ul>
+        <div class="tip">このツールでの操作: アカウントカードをクリックして投稿者詳細画面へ。ピン留め投稿、バズ投稿を重点的に確認。</div>
+      </div>
+
+      <!-- Step3 -->
+      <div class="help-section" id="concept-step3">
+        <h3>Step 3: ピックアップした要素を少しずらしてコンセプト化</h3>
+        <p>ピックアップした伸びている要因を「少しだけずらして」差別化します。</p>
+        <div class="example">
+          <b>例: 「元博多のキャバ嬢占い師」が伸びている場合</b><br>
+          - 博多弁がウケている → <b>関西弁</b>にずらす<br>
+          - キャバ嬢占い師のギャップ → <b>キャバ嬢霊媒師</b>にずらす<br>
+          - キャバ嬢時代のストーリーが面白い → そのまま使う（自分の経験で）
+        </div>
+        <h4>注意点</h4>
+        <ul>
+          <li>ずらしすぎると本質から離れる → 伸びている要因は残しつつ差別化</li>
+          <li>丸パクリは同じようなアカウントの乱立を招く → 必ず何かしら差別化</li>
+          <li>多くの人が同じコンセプトに集まると飽和する → 早く動くことが重要</li>
+        </ul>
+      </div>
+
+      <!-- 成長スコア -->
+      <div class="help-section" id="metric-growth">
+        <h3>成長スコア</h3>
+        <p>「短期間でフォロワーが増え、かつエンゲージメントが高いアカウント」を見つけるための総合指標です。</p>
+        <div class="formula">
+          成長スコア = フォロワー密度 &times; エンゲージメント品質 &times; 信頼度<br><br>
+          フォロワー密度 = フォロワー数 &divide; アカウント日数<br>
+          エンゲージメント品質 = (平均いいね + 平均リプライ&times;2) &divide; フォロワー数 &times; 100（上限50）<br>
+          信頼度 = min(取得済み投稿数 &divide; 5, 1.0)
+        </div>
+        <h4>各要素の意味</h4>
+        <ul>
+          <li><b>フォロワー密度:</b> 1日あたりのフォロワー数。高い = 短期間で急成長</li>
+          <li><b>エンゲージメント品質:</b> フォロワーに対するいいね・リプライの割合。高い = 投稿が刺さっている</li>
+          <li><b>信頼度:</b> 投稿データが5件未満の場合はスコアを割引。深掘りスキャン後に正確な値になる</li>
+        </ul>
+        <div class="tip">スコアが高いほどコンセプト設計の参考になりやすいアカウントです。ただし投稿数が少ない場合は信頼度が低いため、深掘りスキャンを推奨。</div>
+      </div>
+
+      <!-- ER -->
+      <div class="help-section" id="metric-er">
+        <h3>ER（エンゲージメント率）</h3>
+        <p>1投稿あたり、フォロワーのうち何%が反応したかを示す指標です。</p>
+        <div class="formula">
+          ER(%) = (いいね数 + リプライ数 + リポスト数) &divide; フォロワー数 &times; 100
+        </div>
+        <h4>目安</h4>
+        <ul>
+          <li><b>5%以上:</b> 非常に高い（フォロワー1万人未満のアカウントで多い）</li>
+          <li><b>3〜5%:</b> 高い（中規模アカウントで良好）</li>
+          <li><b>1〜3%:</b> 標準的</li>
+          <li><b>1%未満:</b> 低い（フォロワー数に対してエンゲージメントが弱い）</li>
+        </ul>
+        <div class="tip">ERが高いアカウントは、フォロワー数は少なくても「刺さるコンテンツ」を持っている証拠。コンセプト分析の価値あり。</div>
+      </div>
+
+      <!-- バズ判定 -->
+      <div class="help-section" id="metric-buzz">
+        <h3>バズ判定</h3>
+        <p>投稿が「バズっている」かどうかを、フォロワー規模別の閾値で判定します。</p>
+        <h4>フォロワー規模別の閾値</h4>
+        <ul>
+          <li><b>micro（〜1万人）:</b> いいね500以上 or リプライ50以上、かつ ER 5%以上</li>
+          <li><b>mid（〜10万人）:</b> いいね5,000以上 or リプライ200以上、かつ ER 3%以上</li>
+          <li><b>macro（10万人〜）:</b> いいね50,000以上 or リプライ1,000以上、かつ ER 2%以上</li>
+        </ul>
+        <h4>フォロワー不明時</h4>
+        <p>フォロワー数が未取得の場合は、エンゲージメントスコア 1,500以上でバズ判定。</p>
+      </div>
+
+      <!-- エンゲージメントスコア -->
+      <div class="help-section" id="metric-eng-score">
+        <h3>エンゲージメントスコア（投稿単位）</h3>
+        <p>個別の投稿がどれだけ反応を得ているかの指標です。リプライに最も高い重みを付けています。</p>
+        <div class="formula">
+          スコア = いいね &times; 1.0 + リプライ &times; 3.0 + リポスト &times; 2.5
+        </div>
+        <h4>重み付けの理由</h4>
+        <ul>
+          <li><b>リプライ &times;3.0:</b> コメントを書く行為は最も深いエンゲージメント</li>
+          <li><b>リポスト &times;2.5:</b> 他人に共有する行為は拡散力の指標</li>
+          <li><b>いいね &times;1.0:</b> 最も軽いリアクション</li>
+        </ul>
+      </div>
+
+      <!-- 機能: コンセプト候補 -->
+      <div class="help-section" id="feature-candidate">
+        <h3>コンセプト候補</h3>
+        <p>「コンセプト設計の参考になりそうなアカウント」を自動判定する機能です。成長スコア計算時に以下の条件を全て満たすアカウントに「候補」バッジが付きます。</p>
+        <h4>自動判定条件</h4>
+        <ul>
+          <li>アカウント日数が <b>7〜90日</b>（開設から1週間〜3ヶ月）</li>
+          <li>フォロワー <b>500人以上</b></li>
+          <li>1日あたりフォロワー増 <b>10人以上</b></li>
+          <li>成長スコアが <b>算出済み</b>（投稿データがある）</li>
+        </ul>
+        <h4>「候補のみ」フィルタ</h4>
+        <p>フィルタ欄の「候補のみ」チェックボックスをONにすると、候補バッジが付いたアカウントだけに絞り込めます。</p>
+        <h4>お気に入りとの違い</h4>
+        <ul>
+          <li><b>候補:</b> 条件を満たすと自動でON。成長指標が再計算されると変動する</li>
+          <li><b>お気に入り:</b> 手動でON/OFF。ユーザーの判断で固定</li>
+        </ul>
+        <div class="tip">候補は「機械的にピックアップした有望アカウント」、お気に入りは「自分が気に入ったアカウント」という使い分けです。</div>
+      </div>
+
+      <!-- 機能: 深掘りスキャン -->
+      <div class="help-section" id="feature-deepscan">
+        <h3>深掘りスキャン</h3>
+        <p>投稿データが不足しているアカウント（3件以下）の過去投稿を一括取得する機能です。</p>
+        <h4>なぜ必要か</h4>
+        <p>キーワード検索では、1アカウントにつき検索結果に出てきた投稿しか保存されません。投稿が1〜2件しかない状態では、成長スコアの「信頼度」が低く、正確な評価ができません。</p>
+        <h4>取得されるデータ</h4>
+        <ul>
+          <li>投稿テキスト全文</li>
+          <li>いいね数・リプライ数・リポスト数</li>
+          <li>投稿日時</li>
+          <li>メディア情報（画像/動画/カルーセル）</li>
+          <li>ピン留め投稿の検出</li>
+        </ul>
+        <h4>効果</h4>
+        <ul>
+          <li>成長スコアの信頼度が 0.2〜0.4 → 1.0 に向上</li>
+          <li>平均いいね・平均リプライがより正確な値に</li>
+          <li>コンセプト候補の判定精度が向上</li>
+          <li>品質スコアの計算が可能になる</li>
+        </ul>
+        <h4>実行方法</h4>
+        <p>フィルタ欄の下にある「深掘りスキャン」ボタンを押すと、投稿不足のアカウントを最大件数分だけバックグラウンドで処理します。完了後にページをリロードするとスコアが更新されます。</p>
+      </div>
+
+      <!-- 機能: 急成長フィルタ -->
+      <div class="help-section" id="feature-growthfilter">
+        <h3>急成長フィルタ</h3>
+        <p>キーワード検索・一括巡回時に使えるオプションで、コンセプト設計に関係ないアカウントの投稿を自動除外する機能です。</p>
+        <h4>動作の流れ</h4>
+        <ul>
+          <li>通常通りキーワードで投稿を検索</li>
+          <li>投稿者のプロフィールを取得</li>
+          <li>コンセプト候補の条件（7〜90日、500+フォロワー、F/日10+）を判定</li>
+          <li><b>候補に該当しないアカウントの投稿をDBから自動削除</b></li>
+        </ul>
+        <h4>使い方</h4>
+        <p>「バズ投稿取得」画面または「キーワード一括巡回」画面の検索フォームにある「急成長フィルタ」チェックボックスをONにして実行します。</p>
+        <div class="tip">通常の検索では全投稿を保存するため、不要なデータが多く蓄積されます。急成長フィルタを使うと、コンセプト設計に有用なアカウントの投稿だけが残ります。</div>
+      </div>
+
+      <!-- 機能: 品質スコア -->
+      <div class="help-section" id="feature-quality">
+        <h3>品質スコア（優良アカウント）</h3>
+        <p>アカウントの古さに関係なく、「投稿内容の質が高いアカウント」を見つけるための指標です。成長スコアとは独立した別軸の評価です。</p>
+        <h4>成長スコアとの違い</h4>
+        <ul>
+          <li><b>成長スコア:</b> 短期間でフォロワーが急増 + エンゲージメント高い → アカウント日数が短いほど有利</li>
+          <li><b>品質スコア:</b> 投稿の質が高い + 活発に活動 → アカウント日数は無関係</li>
+        </ul>
+        <p>両方Trueのアカウントもあり得ます。完全に独立した軸です。</p>
+        <h4>計算式（0〜100点）</h4>
+        <div class="formula">
+          品質スコア = エンゲージメント品質 &times; 0.40<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + 直近活動度 &times; 0.25<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + 投稿頻度 &times; 0.20<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + 信頼度 &times; 0.15
+        </div>
+        <h4>(1) エンゲージメント品質（40%）</h4>
+        <p>投稿ごとに「良い投稿」かどうかを判定し、全投稿に対する割合で評価します。</p>
+        <ul>
+          <li><b>micro（〜1万）:</b> スコア100以上 or ER 2.0%以上</li>
+          <li><b>mid（〜10万）:</b> スコア500以上 or ER 1.0%以上</li>
+          <li><b>macro（10万+）:</b> スコア2000以上 or ER 0.5%以上</li>
+        </ul>
+        <h4>(2) 直近活動度（25%）</h4>
+        <p>最新投稿の新しさ（60%）+ 直近30日の投稿数（40%）。最近活発なアカウントほど高スコア。</p>
+        <h4>(3) 投稿頻度（20%）</h4>
+        <p>平均投稿間隔で評価。毎日投稿なら100点、週1なら45点。</p>
+        <h4>(4) 信頼度（15%）</h4>
+        <p>投稿数が多いほど信頼できる評価。10件以上で100点。</p>
+        <h4>「優良」バッジ</h4>
+        <p>品質スコアが <b>50点以上</b> のアカウントに紫の「優良」バッジが表示されます。「優良のみ」フィルタで絞り込むこともできます。</p>
+      </div>
+
+      <!-- 使い方 -->
+      <div class="help-section" id="howto">
+        <h3>リサーチ手順</h3>
+        <h4>1. キーワード検索でバズ投稿を取得</h4>
+        <p>「バズ投稿取得」画面 or 「キーワード一括巡回」画面でジャンルのキーワードを入力。投稿と投稿者を自動収集。</p>
+        <h4>2. 急成長ランキングで候補を絞り込み</h4>
+        <p>この画面で「アカウント日数(若い順)」「最大アカウント日数 90日」「最小フォロワー 500」等でフィルタ。成長スコア上位を確認。</p>
+        <h4>3. 深掘りスキャンで精度を上げる</h4>
+        <p>「深掘りスキャン」ボタンを押して投稿不足アカウントの過去投稿を一括取得。いいね・リプライ・リポスト・投稿日時・メディア情報が補完され、成長スコアの信頼度が1.0に向上。品質スコアの計算もこの段階で正確になります。</p>
+        <h4>4. 投稿者詳細で分析</h4>
+        <p>各アカウントをクリックして詳細画面へ。ピン留め投稿、バズ投稿、bio を分析し、伸びている要因を3つ以上ピックアップ。</p>
+        <h4>5. コンセプトを固める</h4>
+        <p>ピックアップした要因を少しずらして、自分だけのコンセプトを設計。</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
+function openHelp() {
+  document.getElementById('helpModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeHelp(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('helpModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeHelp();
+});
+document.querySelectorAll('.help-nav a[data-section]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('.help-nav a').forEach(function(n) { n.classList.remove('active'); });
+    document.querySelectorAll('.help-section').forEach(function(s) { s.classList.remove('active'); });
+    a.classList.add('active');
+    document.getElementById(a.dataset.section).classList.add('active');
+  });
+});
+
 function recalcER() {
   const msgEl = document.getElementById('recalc-message');
   msgEl.className = 'buzz-msg ok';
@@ -213,6 +563,60 @@ function recalcER() {
       msgEl.className = 'buzz-msg err';
       msgEl.textContent = 'リクエストエラー: ' + err;
     });
+}
+
+function runDeepScan() {
+  const msgEl = document.getElementById('deep-scan-message');
+  const maxAuthors = document.getElementById('deep-scan-max').value || 10;
+  msgEl.className = 'buzz-msg ok';
+  msgEl.textContent = '深掘りスキャンを開始しています...';
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('max_authors', maxAuthors);
+
+  fetch('{% url "console:buzz_run_deep_scan" %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        msgEl.className = 'buzz-msg ok';
+        msgEl.textContent = data.message;
+        if (data.job_id) {
+          pollDeepScanStatus(data.job_id);
+        }
+      } else {
+        msgEl.className = 'buzz-msg err';
+        msgEl.textContent = data.error || 'エラーが発生しました';
+      }
+    })
+    .catch(err => {
+      msgEl.className = 'buzz-msg err';
+      msgEl.textContent = 'リクエストエラー: ' + err;
+    });
+}
+
+function pollDeepScanStatus(jobId) {
+  const msgEl = document.getElementById('deep-scan-message');
+  const poll = setInterval(function() {
+    fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'COMPLETED') {
+          clearInterval(poll);
+          msgEl.className = 'buzz-msg ok';
+          msgEl.textContent = '深掘りスキャン完了: 新規 ' + (data.result_count || 0) + ' 件の投稿を取得しました。ページをリロードしてスコアを確認してください。';
+        } else if (data.status === 'FAILED') {
+          clearInterval(poll);
+          msgEl.className = 'buzz-msg err';
+          msgEl.textContent = '深掘りスキャン失敗: ' + (data.error_message || '不明なエラー');
+        } else {
+          msgEl.textContent = '深掘りスキャン実行中... (ジョブID: ' + jobId + ')';
+        }
+      })
+      .catch(function() {
+        // ポーリングエラーは無視
+      });
+  }, 5000);
 }
 </script>
 {% endblock %}

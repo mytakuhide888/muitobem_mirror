@@ -40,6 +40,10 @@ class Command(BaseCommand):
             choices=['recent', 'default'],
             help='検索結果の並び順: recent=新しい順, default=おすすめ順（デフォルト: recent）',
         )
+        parser.add_argument(
+            '--growth-filter', action='store_true',
+            help='急成長フィルタ: コンセプト候補に該当しないアカウントの投稿を除外する',
+        )
 
     def _recalc_author_posts(self, author):
         """投稿者のフォロワー数が判明した後、全投稿の ER / バズ判定を再計算"""
@@ -67,6 +71,7 @@ class Command(BaseCommand):
         job = None
         keywords = opts.get('keywords') or []
         max_profile_fetch = opts['max_profile_fetch']
+        growth_filter = opts.get('growth_filter', False)
 
         # ジョブ ID 指定の場合
         if opts['job_id']:
@@ -203,12 +208,22 @@ class Command(BaseCommand):
                         if author.followers_count:
                             self._recalc_author_posts(author)
 
-                        self.stdout.write(
-                            f"  @{author.username}: "
-                            f"followers={author.followers_count}, "
-                            f"score={author.growth_score}, "
-                            f"f/day={author.followers_per_day}"
-                        )
+                        # 急成長フィルタ: 候補でないアカウントの投稿を削除
+                        if growth_filter and not author.is_concept_candidate:
+                            removed = THBuzzPost.objects.filter(author=author).count()
+                            THBuzzPost.objects.filter(author=author).delete()
+                            total_new_posts = max(total_new_posts - removed, 0)
+                            self.stdout.write(
+                                f"  @{author.username}: 候補外 → 投稿{removed}件を除外"
+                            )
+                        else:
+                            self.stdout.write(
+                                f"  @{author.username}: "
+                                f"followers={author.followers_count}, "
+                                f"score={author.growth_score}, "
+                                f"f/day={author.followers_per_day}"
+                                f"{' [候補]' if author.is_concept_candidate else ''}"
+                            )
                     except Exception as e:
                         logger.warning("プロフィール取得失敗 @%s: %s", author.username, e)
                         self.stdout.write(f"  @{author.username}: 取得失敗 - {e}")

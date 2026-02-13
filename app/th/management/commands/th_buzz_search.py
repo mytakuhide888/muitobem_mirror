@@ -44,6 +44,10 @@ class Command(BaseCommand):
             choices=['recent', 'default'],
             help='検索結果の並び順: recent=新しい順, default=おすすめ順（デフォルト: recent）',
         )
+        parser.add_argument(
+            '--growth-filter', action='store_true',
+            help='急成長フィルタ: コンセプト候補に該当しないアカウントの投稿を除外する',
+        )
 
     def _recalc_author_posts(self, author):
         """投稿者のフォロワー数が判明した後、全投稿の ER / バズ判定を再計算"""
@@ -89,6 +93,7 @@ class Command(BaseCommand):
             self.stderr.write("キーワードを指定してください (-k または --job-id)")
             return
 
+        growth_filter = opts.get('growth_filter', False)
         self.stdout.write(f"検索キーワード: {keywords}")
         logger.info("[CMD] th_buzz_search 開始: keywords=%s, job_id=%s", keywords, opts.get('job_id'))
         total_count = 0
@@ -205,6 +210,12 @@ class Command(BaseCommand):
                                 # フォロワー数が判明したので ER/バズ判定を再計算
                                 if author.followers_count:
                                     self._recalc_author_posts(author)
+                                # 急成長フィルタ: 候補でないアカウントの投稿を削除
+                                if growth_filter and not author.is_concept_candidate:
+                                    removed = THBuzzPost.objects.filter(author=author).count()
+                                    THBuzzPost.objects.filter(author=author).delete()
+                                    total_count = max(total_count - removed, 0)
+                                    self.stdout.write(f"  @{username}: 候補外 → 投稿{removed}件を除外")
                             except Exception as e:
                                 logger.warning("プロフィール取得失敗 @%s: %s", username, e)
 

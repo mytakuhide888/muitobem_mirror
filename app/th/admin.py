@@ -37,16 +37,18 @@ class THWebhookEventAdmin(TimeStampedAdminMixin):
 class THBuzzAuthorAdmin(admin.ModelAdmin):
     list_display = (
         'username', 'display_name', 'followers_count',
-        'growth_score', 'followers_per_day', 'account_age_days',
-        'avg_likes', 'is_verified', 'updated_at',
+        'growth_score', 'quality_score', 'followers_per_day', 'account_age_days',
+        'avg_likes', 'is_verified', 'is_concept_candidate', 'is_quality_account', 'updated_at',
     )
     search_fields = ('username', 'display_name', 'category_tags')
-    list_filter = ('is_verified', 'category_tags')
+    list_filter = ('is_verified', 'is_concept_candidate', 'is_quality_account', 'category_tags')
     readonly_fields = (
         'first_scraped_at', 'updated_at',
         'growth_score', 'followers_per_day', 'account_age_days',
         'total_post_count', 'earliest_post_at', 'latest_post_at',
-        'avg_likes', 'avg_replies',
+        'avg_likes', 'avg_replies', 'is_concept_candidate',
+        'quality_score', 'is_quality_account', 'good_post_ratio',
+        'recent_post_count', 'avg_post_interval_days',
     )
     fieldsets = (
         ('基本情報', {
@@ -61,6 +63,13 @@ class THBuzzAuthorAdmin(admin.ModelAdmin):
                 'growth_score', 'followers_per_day', 'account_age_days',
                 'total_post_count', 'avg_likes', 'avg_replies',
                 'earliest_post_at', 'latest_post_at',
+                'is_concept_candidate',
+            ),
+        }),
+        ('品質指標（自動計算）', {
+            'fields': (
+                'quality_score', 'is_quality_account', 'good_post_ratio',
+                'recent_post_count', 'avg_post_interval_days',
             ),
         }),
         ('分類・メモ', {

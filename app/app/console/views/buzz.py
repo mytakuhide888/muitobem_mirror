@@ -382,6 +382,8 @@ def buzz_run_search(request):
         sort_order = request.POST.get('sort_order', 'recent')
         if sort_order in ('recent', 'default'):
             cmd.extend(['--sort-order', sort_order])
+        if request.POST.get('growth_filter'):
+            cmd.append('--growth-filter')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
@@ -538,6 +540,8 @@ def buzz_growth_ranking(request):
     max_age_days = request.GET.get('max_age_days', '')
     category = request.GET.get('category', '')
     q = request.GET.get('q', '')
+    candidates_only = request.GET.get('candidates_only', '')
+    quality_only = request.GET.get('quality_only', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -546,6 +550,7 @@ def buzz_growth_ranking(request):
         'account_age_days', '-account_age_days',
         'avg_likes', '-avg_likes',
         'updated_at', '-updated_at',
+        'quality_score', '-quality_score',
     }
     if sort_by not in allowed_sorts:
         sort_by = '-growth_score'
@@ -574,6 +579,10 @@ def buzz_growth_ranking(request):
             pass
     if category:
         qs = qs.filter(category_tags__icontains=category)
+    if candidates_only:
+        qs = qs.filter(is_concept_candidate=True)
+    if quality_only:
+        qs = qs.filter(is_quality_account=True)
 
     qs = qs.order_by(sort_by)
 
@@ -591,11 +600,20 @@ def buzz_growth_ranking(request):
                 all_tags.add(tag)
     all_tags = sorted(all_tags)
 
+    # 深掘り対象アカウント数（投稿不足のアカウント）
+    deep_scan_target_count = THBuzzAuthor.objects.filter(
+        followers_count__isnull=False,
+        followers_count__gt=0,
+    ).filter(
+        Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
+    ).count()
+
     ctx = {
         'title': '急成長アカウントランキング',
         'page_obj': page_obj,
         'all_tags': all_tags,
         'total_count': paginator.count,
+        'deep_scan_target_count': deep_scan_target_count,
         # 現在のフィルタ値
         'current_sort': sort_by,
         'current_min_followers': min_followers,
@@ -603,6 +621,10 @@ def buzz_growth_ranking(request):
         'current_max_age_days': max_age_days,
         'current_category': category,
         'current_q': q,
+        'current_candidates_only': bool(candidates_only),
+        'current_candidates_only_str': '1' if candidates_only else '',
+        'current_quality_only': bool(quality_only),
+        'current_quality_only_str': '1' if quality_only else '',
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
 
@@ -667,6 +689,8 @@ def buzz_run_keyword_scan(request):
         sort_order = request.POST.get('sort_order', 'recent')
         if sort_order in ('recent', 'default'):
             cmd.extend(['--sort-order', sort_order])
+        if request.POST.get('growth_filter'):
+            cmd.append('--growth-filter')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_keyword_scan_stdout.log', 'a')
@@ -793,6 +817,65 @@ def buzz_recalc_er(request):
         })
     except Exception as e:
         logger.exception("buzz_recalc_er エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
+def buzz_run_deep_scan(request):
+    """投稿不足アカウントの深掘りスキャンジョブを開始する API"""
+    try:
+        max_authors = int(request.POST.get('max_authors', 10))
+        max_authors = max(1, min(max_authors, 50))
+
+        # 深掘り対象数を確認
+        target_count = THBuzzAuthor.objects.filter(
+            followers_count__isnull=False,
+            followers_count__gt=0,
+        ).filter(
+            Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
+        ).count()
+
+        if target_count == 0:
+            return JsonResponse({
+                'ok': True,
+                'message': '深掘り対象のアカウントがありません（全アカウントの投稿が十分です）',
+                'job_id': None,
+            })
+
+        # ジョブレコード作成
+        job = THBuzzSearchJob.objects.create(
+            job_type='keyword',
+            keywords=json.dumps(['deep_scan'], ensure_ascii=False),
+            status='RUNNING',
+            started_at=timezone.now(),
+        )
+
+        # バックグラウンドで深掘りスキャンコマンドを起動
+        cmd = [
+            sys.executable, 'manage.py', 'th_buzz_deep_scan',
+            '--job-id', str(job.id),
+            '--max-authors', str(max_authors),
+        ]
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_deep_scan_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_deep_scan_stderr.log', 'a')
+        subprocess.Popen(
+            cmd,
+            cwd=str(settings.BASE_DIR),
+            stdout=log_out,
+            stderr=log_err,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'message': f'深掘りスキャンを開始しました (ID: {job.id}, 対象: 最大{max_authors}件 / {target_count}件)',
+            'job_id': job.id,
+        })
+
+    except Exception as e:
+        logger.exception("buzz_run_deep_scan エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 

@@ -124,6 +124,9 @@
           <option value="default">おすすめ順</option>
         </select>
       </div>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
+        <input type="checkbox" id="buzz-growth-filter"> 急成長フィルタ
+      </label>
       <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
       <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
     </div>
@@ -530,6 +533,9 @@ function runSearch(scheduled) {
     fd.append('exclude_replies', '1');
   }
   fd.append('sort_order', document.getElementById('buzz-sort-order').value);
+  if (document.getElementById('buzz-growth-filter').checked) {
+    fd.append('growth_filter', '1');
+  }
 
   msgEl.className = 'buzz-msg ok';
   msgEl.textContent = '処理中...';
