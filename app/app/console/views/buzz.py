@@ -143,18 +143,25 @@ def buzz_search(request):
         .order_by('search_keyword')
     )
 
-    # ─── stale ジョブ検出: 30分以上 RUNNING のジョブを FAILED に ───
-    stale_cutoff = timezone.now() - timedelta(minutes=30)
+    # ─── stale ジョブ検出: 3時間以上 RUNNING のジョブを終了扱いに ───
+    stale_cutoff = timezone.now() - timedelta(hours=3)
     stale_jobs = THBuzzSearchJob.objects.filter(
         status='RUNNING', started_at__lt=stale_cutoff,
     )
-    stale_count = stale_jobs.update(
-        status='FAILED',
-        completed_at=timezone.now(),
-        error_message='タイムアウト: 30分以上実行中のため自動終了',
-    )
-    if stale_count:
-        logger.warning("stale ジョブ %d件を FAILED に更新", stale_count)
+    for stale_job in stale_jobs:
+        if stale_job.result_count and stale_job.result_count > 0:
+            # 途中結果があれば部分完了として COMPLETED にする
+            stale_job.status = 'COMPLETED'
+            stale_job.completed_at = timezone.now()
+            stale_job.error_message = f'タイムアウト（3時間超過）: 途中まで {stale_job.result_count} 件取得済みで部分完了'
+            stale_job.save(update_fields=['status', 'completed_at', 'error_message'])
+        else:
+            stale_job.status = 'FAILED'
+            stale_job.completed_at = timezone.now()
+            stale_job.error_message = 'タイムアウト: 3時間以上実行中のため自動終了'
+            stale_job.save(update_fields=['status', 'completed_at', 'error_message'])
+    if stale_jobs.exists():
+        logger.warning("stale ジョブを検出・更新")
 
     # ─── 最近のジョブ ───
     recent_jobs = THBuzzSearchJob.objects.order_by('-created_at')[:10]

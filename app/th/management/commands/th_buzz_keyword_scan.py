@@ -186,6 +186,14 @@ class Command(BaseCommand):
                         if not author.followers_count:
                             authors_to_fetch.add(author.pk)
 
+                    # キーワード処理完了ごとに途中経過を保存
+                    if job and total_new_posts > 0:
+                        try:
+                            job.result_count = total_new_posts
+                            job.save(update_fields=['result_count'])
+                        except Exception:
+                            pass
+
                 # ─── Step 2: 新規投稿者のプロフィール取得 ───
                 fetch_targets = list(authors_to_fetch)[:max_profile_fetch]
                 self.stdout.write(f"\n--- プロフィール取得: {len(fetch_targets)}/{len(authors_to_fetch)} 件 ---")
@@ -199,6 +207,7 @@ class Command(BaseCommand):
                         author.followers_count = profile.get('followers_count')
                         author.following_count = profile.get('following_count')
                         author.is_verified = profile.get('is_verified', False)
+                        author.profile_pic_url = profile.get('profile_pic_url', '') or author.profile_pic_url
                         author.raw_json = profile
                         author.save()
 
@@ -256,11 +265,19 @@ class Command(BaseCommand):
                                 error_msg = f"[SESSION] {session_info['message']}\n\n元エラー: {error_msg}"
                         except Exception:
                             pass
-                        job.status = 'FAILED'
-                        job.completed_at = timezone.now()
-                        job.error_message = error_msg
-                        job.error_traceback = error_tb
-                        job.save(update_fields=['status', 'completed_at', 'error_message', 'error_traceback'])
+                        if total_new_posts > 0:
+                            job.status = 'COMPLETED'
+                            job.completed_at = timezone.now()
+                            job.result_count = total_new_posts
+                            job.error_message = f'部分完了（{total_new_posts}件取得後にエラー）: {error_msg}'
+                            job.error_traceback = error_tb
+                            job.save(update_fields=['status', 'completed_at', 'result_count', 'error_message', 'error_traceback'])
+                        else:
+                            job.status = 'FAILED'
+                            job.completed_at = timezone.now()
+                            job.error_message = error_msg
+                            job.error_traceback = error_tb
+                            job.save(update_fields=['status', 'completed_at', 'error_message', 'error_traceback'])
                     elif job.status == 'RUNNING':
                         job.status = 'COMPLETED'
                         job.completed_at = timezone.now()

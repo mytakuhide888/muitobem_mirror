@@ -610,6 +610,7 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
         'following_count': None,
         'is_verified': False,
         'profile_url': f"{THREADS_BASE}/@{username}",
+        'profile_pic_url': '',
     }
 
     # SSR JSON からユーザー情報を探す
@@ -654,6 +655,14 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
     iv = re.search(r'"is_verified":(true|false)', chunk)
     if iv:
         profile['is_verified'] = iv.group(1) == 'true'
+
+    # profile_pic_url
+    pic = re.search(r'"profile_pic_url":"((?:[^"\\]|\\.)*)"', chunk)
+    if pic:
+        try:
+            profile['profile_pic_url'] = json.loads('"' + pic.group(1) + '"')
+        except (json.JSONDecodeError, ValueError):
+            profile['profile_pic_url'] = pic.group(1)
 
     # meta description からの bio 取得（フォールバック）
     if not profile['bio']:

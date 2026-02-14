@@ -62,6 +62,25 @@
   .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
 
+  /* お気に入り/対象外ボタン */
+  .gr-card-actions { display:flex; gap:6px; margin-top:8px; }
+  .gr-fav-btn { cursor:pointer; font-size:18px; color:#ccc; background:none; border:none; padding:0; }
+  .gr-fav-btn.active { color:#f5a623; }
+  .gr-excl-btn { cursor:pointer; font-size:11px; padding:2px 8px; border-radius:10px; border:none; background:#e9ecef; color:#999; }
+  .gr-excl-btn.active { background:#dc3545; color:#fff; }
+
+  /* プロフィール画像 */
+  .gr-author-row { display:flex; align-items:center; gap:8px; }
+  .gr-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+
+  /* チェックボックス */
+  .gr-card-wrapper { display:flex; align-items:flex-start; gap:6px; }
+  .gr-card-check { margin-top:18px; flex-shrink:0; width:16px; height:16px; cursor:pointer; }
+
+  /* 一括操作バー */
+  .gr-bulk-bar { display:none; position:sticky; bottom:0; background:#fff; border-top:2px solid #007bff; padding:10px 16px; z-index:100; box-shadow:0 -2px 8px rgba(0,0,0,.1); align-items:center; gap:12px; }
+  .gr-bulk-bar.active { display:flex; }
+
   .gr-metrics { display:flex; gap:12px; margin:10px 0; flex-wrap:wrap; }
   .gr-metric { text-align:center; min-width:60px; }
   .gr-metric .val { font-size:16px; font-weight:bold; display:block; }
@@ -191,65 +210,81 @@
 <!-- カード一覧 -->
 <div class="gr-cards">
   {% for author in page_obj %}
-  <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}">
-    <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
-    <h3>
-      <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">
-        {{ author.display_name|default:author.username }}
-      </a>
-      {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
-      {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
-      {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
-      {% if author.is_excluded %}<span class="excluded-badge">対象外</span>{% endif %}
-    </h3>
-    <div class="username">
-      <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
-    </div>
+  <div class="gr-card-wrapper">
+    <input type="checkbox" class="gr-card-check" data-author-id="{{ author.pk }}" onchange="updateBulkBar()">
+    <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}" data-author-id="{{ author.pk }}">
+      <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+      <div class="gr-author-row">
+        {% if author.profile_pic_url %}
+        <img class="gr-avatar" src="{{ author.profile_pic_url }}" alt="@{{ author.username }}" onerror="this.style.display='none'">
+        {% endif %}
+        <div>
+          <h3>
+            <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">
+              {{ author.display_name|default:author.username }}
+            </a>
+            {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+            {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
+            {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
+            {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
+            {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;" id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
+          </h3>
+          <div class="username">
+            <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+          </div>
+        </div>
+      </div>
 
-    <div class="gr-metrics">
-      <div class="gr-metric">
-        <span class="val highlight">{{ author.growth_score|floatformat:1 }}</span>
-        <span class="lbl">成長スコア</span>
+      <div class="gr-metrics">
+        <div class="gr-metric">
+          <span class="val highlight">{{ author.growth_score|floatformat:1 }}</span>
+          <span class="lbl">成長スコア</span>
+        </div>
+        <div class="gr-metric">
+          <span class="val">{{ author.followers_count|default:"-" }}</span>
+          <span class="lbl">フォロワー</span>
+        </div>
+        <div class="gr-metric">
+          <span class="val">{{ author.followers_per_day|floatformat:1|default:"-" }}</span>
+          <span class="lbl">F/日</span>
+        </div>
+        <div class="gr-metric">
+          <span class="val">{{ author.account_age_days|default:"-" }}</span>
+          <span class="lbl">日数</span>
+        </div>
+        <div class="gr-metric">
+          <span class="val">{{ author.avg_likes|floatformat:0|default:"-" }}</span>
+          <span class="lbl">平均いいね</span>
+        </div>
+        <div class="gr-metric">
+          <span class="val">{{ author.total_post_count|default:"-" }}</span>
+          <span class="lbl">投稿数</span>
+        </div>
+        {% if author.quality_score %}
+        <div class="gr-metric">
+          <span class="val" style="color:#6f42c1;">{{ author.quality_score|floatformat:1 }}</span>
+          <span class="lbl">品質</span>
+        </div>
+        {% endif %}
       </div>
-      <div class="gr-metric">
-        <span class="val">{{ author.followers_count|default:"-" }}</span>
-        <span class="lbl">フォロワー</span>
-      </div>
-      <div class="gr-metric">
-        <span class="val">{{ author.followers_per_day|floatformat:1|default:"-" }}</span>
-        <span class="lbl">F/日</span>
-      </div>
-      <div class="gr-metric">
-        <span class="val">{{ author.account_age_days|default:"-" }}</span>
-        <span class="lbl">日数</span>
-      </div>
-      <div class="gr-metric">
-        <span class="val">{{ author.avg_likes|floatformat:0|default:"-" }}</span>
-        <span class="lbl">平均いいね</span>
-      </div>
-      <div class="gr-metric">
-        <span class="val">{{ author.total_post_count|default:"-" }}</span>
-        <span class="lbl">投稿数</span>
-      </div>
-      {% if author.quality_score %}
-      <div class="gr-metric">
-        <span class="val" style="color:#6f42c1;">{{ author.quality_score|floatformat:1 }}</span>
-        <span class="lbl">品質</span>
+
+      {% if author.bio %}
+      <div class="gr-bio">{{ author.bio }}</div>
+      {% endif %}
+
+      {% if author.category_tags %}
+      <div class="gr-tags">
+        {% for tag in author.category_tags.split %}
+        <span>{{ tag }}</span>
+        {% endfor %}
       </div>
       {% endif %}
-    </div>
 
-    {% if author.bio %}
-    <div class="gr-bio">{{ author.bio }}</div>
-    {% endif %}
-
-    {% if author.category_tags %}
-    <div class="gr-tags">
-      {% for tag in author.category_tags.split %}
-      <span>{{ tag }}</span>
-      {% endfor %}
+      <div class="gr-card-actions">
+        <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
+        <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
+      </div>
     </div>
-    {% endif %}
   </div>
   {% empty %}
   <p style="color:#999; padding:24px; text-align:center; grid-column:1/-1;">
@@ -257,6 +292,14 @@
     <a href="{% url 'console:buzz_keyword_scan' %}">キーワード一括巡回</a>で投稿者を取得してください。
   </p>
   {% endfor %}
+</div>
+
+<!-- 一括操作バー -->
+<div class="gr-bulk-bar" id="bulkBar">
+  <span id="bulk-count">0件選択</span>
+  <button class="buzz-btn buzz-btn-secondary" onclick="bulkExclude(true)">一括: 対象外にする</button>
+  <button class="buzz-btn buzz-btn-primary" onclick="bulkExclude(false)">一括: 対象外から外す</button>
+  <button class="buzz-btn" onclick="clearChecks()" style="background:#eee;">選択解除</button>
 </div>
 
 <!-- ページネーション -->
@@ -706,6 +749,97 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// ─── お気に入り/対象外/一括操作 ───
+var csrfToken = '{{ csrf_token }}';
+var toggleFavUrl = '{% url "console:buzz_toggle_favorite" pk=0 %}';
+var toggleExclUrl = '{% url "console:buzz_toggle_excluded" pk=0 %}';
+var bulkExcludeUrl = '{% url "console:buzz_bulk_exclude" %}';
+
+function toggleFav(authorId, btn) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', csrfToken);
+  fetch(toggleFavUrl.replace('/0/', '/' + authorId + '/'), { method:'POST', body:fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        btn.classList.toggle('active', data.is_favorited);
+        btn.innerHTML = data.is_favorited ? '&#9733;' : '&#9734;';
+        // お気に入りバッジ更新
+        var badge = document.getElementById('fav-badge-' + authorId);
+        if (data.is_favorited && !badge) {
+          var h3 = btn.closest('.gr-card').querySelector('h3');
+          var span = document.createElement('span');
+          span.className = 'candidate-badge';
+          span.style.background = '#f5a623';
+          span.id = 'fav-badge-' + authorId;
+          span.textContent = 'お気に入り';
+          h3.appendChild(span);
+        } else if (!data.is_favorited && badge) {
+          badge.remove();
+        }
+      }
+    });
+}
+
+function toggleExcl(authorId, btn) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', csrfToken);
+  fetch(toggleExclUrl.replace('/0/', '/' + authorId + '/'), { method:'POST', body:fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        btn.classList.toggle('active', data.is_excluded);
+        var card = document.getElementById('card-' + authorId);
+        card.classList.toggle('excluded-card', data.is_excluded);
+        // 対象外バッジ更新
+        var badge = document.getElementById('excl-badge-' + authorId);
+        if (data.is_excluded && !badge) {
+          var h3 = card.querySelector('h3');
+          var span = document.createElement('span');
+          span.className = 'excluded-badge';
+          span.id = 'excl-badge-' + authorId;
+          span.textContent = '対象外';
+          h3.appendChild(span);
+        } else if (!data.is_excluded && badge) {
+          badge.remove();
+        }
+      }
+    });
+}
+
+function bulkExclude(exclude) {
+  var checks = document.querySelectorAll('.gr-card-check:checked');
+  var ids = [];
+  for (var i = 0; i < checks.length; i++) {
+    ids.push(parseInt(checks[i].dataset.authorId));
+  }
+  if (!ids.length) return;
+  fetch(bulkExcludeUrl, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'X-CSRFToken':csrfToken},
+    body: JSON.stringify({author_ids: ids, exclude: exclude})
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) location.reload();
+    });
+}
+
+function updateBulkBar() {
+  var checked = document.querySelectorAll('.gr-card-check:checked').length;
+  var bar = document.getElementById('bulkBar');
+  bar.classList.toggle('active', checked > 0);
+  document.getElementById('bulk-count').textContent = checked + '件選択';
+}
+
+function clearChecks() {
+  var checks = document.querySelectorAll('.gr-card-check:checked');
+  for (var i = 0; i < checks.length; i++) {
+    checks[i].checked = false;
+  }
+  updateBulkBar();
 }
 </script>
 {% endblock %}

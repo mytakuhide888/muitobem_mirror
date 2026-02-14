@@ -108,6 +108,7 @@ class THBuzzAuthor(models.Model):
     following_count = models.IntegerField('フォロー数', null=True, blank=True)
     is_verified = models.BooleanField('認証バッジ', default=False)
     profile_url = models.URLField('プロフィールURL', blank=True, default='')
+    profile_pic_url = models.URLField('プロフィール画像URL', max_length=500, blank=True, default='')
     raw_json = models.JSONField('取得時の生データ', default=dict, blank=True)
     first_scraped_at = models.DateTimeField('初回取得日時', auto_now_add=True)
     updated_at = models.DateTimeField('最終更新', auto_now=True)
