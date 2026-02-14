@@ -29,8 +29,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--max-authors', type=int, default=10,
-            help='1回の実行で処理するアカウント数の上限（デフォルト: 10）',
+            '--max-authors', type=int, default=30,
+            help='1回の実行で処理するアカウント数の上限（デフォルト: 30）',
         )
         parser.add_argument(
             '--job-id', type=int, default=None,
@@ -139,21 +139,34 @@ class Command(BaseCommand):
                 self.stderr.write(f"ジョブ ID {opts['job_id']} が見つかりません")
                 return
 
-        # 深掘り対象: 投稿数がPOSTS_THRESHOLD以下かつフォロワー数が既知のアカウント
-        targets = THBuzzAuthor.objects.filter(
-            followers_count__isnull=False,
-            followers_count__gt=0,
-            total_post_count__lte=POSTS_THRESHOLD,
-        ).order_by('-growth_score', '-followers_count')[:max_authors]
+        # 深掘り対象: フォロワー不明 OR 投稿不足のアカウント
+        from django.db.models import Q
 
-        # total_post_count が NULL のアカウントも対象
-        targets_null = THBuzzAuthor.objects.filter(
-            followers_count__isnull=False,
-            followers_count__gt=0,
-            total_post_count__isnull=True,
-        ).order_by('-followers_count')[:max(max_authors - targets.count(), 0)]
+        # 1. フォロワー未取得アカウント（最優先: プロフィールすら取れていない）
+        no_followers = list(
+            THBuzzAuthor.objects.filter(
+                Q(followers_count__isnull=True) | Q(followers_count=0),
+                is_excluded=False,
+            ).order_by('-updated_at')[:max_authors]
+        )
 
-        all_targets = list(targets) + list(targets_null)
+        remaining = max_authors - len(no_followers)
+
+        # 2. フォロワー既知 + 投稿不足（投稿数がPOSTS_THRESHOLD以下 or NULL）
+        if remaining > 0:
+            low_posts = list(
+                THBuzzAuthor.objects.filter(
+                    followers_count__isnull=False,
+                    followers_count__gt=0,
+                    is_excluded=False,
+                ).filter(
+                    Q(total_post_count__lte=POSTS_THRESHOLD) | Q(total_post_count__isnull=True)
+                ).order_by('-growth_score', '-followers_count')[:remaining]
+            )
+        else:
+            low_posts = []
+
+        all_targets = no_followers + low_posts
         all_targets = all_targets[:max_authors]
 
         if not all_targets:

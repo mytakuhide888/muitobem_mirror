@@ -60,6 +60,7 @@
   .gr-card .candidate-badge { display:inline-block; background:#28a745; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card .quality-badge { display:inline-block; background:#6f42c1; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
+  .gr-card .fortune-badge { display:inline-block; background:#e65100; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
 
   /* カード上部行: ランク + バッジ + ボタン */
@@ -178,6 +179,16 @@
       </label>
     </div>
     <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="fortune_only" value="1" {% if current_fortune_only %}checked{% endif %}>
+        占い関連のみ
+      </label>
+    </div>
+    <div>
+      <label>最小占いスコア</label>
+      <input type="number" name="min_fortune_score" value="{{ current_min_fortune_score }}" step="0.1" placeholder="例: 20">
+    </div>
+    <div>
       <label>ソート</label>
       <select name="sort">
         <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
@@ -186,6 +197,7 @@
         <option value="account_age_days" {% if current_sort == "account_age_days" %}selected{% endif %}>アカウント日数(若い順)</option>
         <option value="-avg_likes" {% if current_sort == "-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
         <option value="-quality_score" {% if current_sort == "-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
+        <option value="-fortune_relevance_score" {% if current_sort == "-fortune_relevance_score" %}selected{% endif %}>占い適合スコア(高い順)</option>
         <option value="-updated_at" {% if current_sort == "-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
       </select>
     </div>
@@ -221,7 +233,9 @@
           {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
           {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
           {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
+          {% if author.fortune_relevance_score %}<span class="fortune-badge" title="占い適合スコア: {{ author.fortune_relevance_score|floatformat:1 }}">占い{{ author.fortune_relevance_score|floatformat:0 }}</span>{% endif %}
           {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
+          {% if author.auto_excluded_reason %}<span class="excluded-badge" style="background:#fd7e14;" title="{{ author.auto_excluded_reason }}">自動除外</span>{% endif %}
           {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;" id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
         </div>
         <div class="gr-card-actions">
@@ -276,6 +290,12 @@
           <span class="lbl">品質</span>
         </div>
         {% endif %}
+        {% if author.fortune_relevance_score %}
+        <div class="gr-metric">
+          <span class="val" style="color:#e65100;">{{ author.fortune_relevance_score|floatformat:1 }}</span>
+          <span class="lbl">占い適合</span>
+        </div>
+        {% endif %}
       </div>
 
       {% if author.bio %}
@@ -286,6 +306,14 @@
       <div class="gr-tags">
         {% for tag in author.category_tags.split %}
         <span>{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if author.genre_tags %}
+      <div class="gr-tags">
+        {% for tag in author.genre_tags %}
+        <span style="background:#fff3e0; color:#e65100;">{{ tag }}</span>
         {% endfor %}
       </div>
       {% endif %}
@@ -309,7 +337,7 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str %}
+{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str|add:"&fortune_only="|add:current_fortune_only_str|add:"&min_fortune_score="|add:current_min_fortune_score %}
 <div class="gr-pagination">
   {% if page_obj.has_previous %}
     <a href="?page=1{{ fp }}">&laquo; 最初</a>

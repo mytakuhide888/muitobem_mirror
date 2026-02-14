@@ -135,6 +135,15 @@ class THBuzzAuthor(models.Model):
     recent_post_count = models.IntegerField('直近30日の投稿数', null=True, blank=True)
     avg_post_interval_days = models.FloatField('平均投稿間隔(日)', null=True, blank=True)
 
+    # ─── 占いリサーチ適合指標 ───
+    fortune_relevance_score = models.FloatField('占い適合スコア', null=True, blank=True,
+        help_text='ジャンル適合度 + マネタイズ度の加重スコア (0-100)')
+    genre_tags = models.JSONField('ジャンルタグ', default=list, blank=True,
+        help_text='自動検出: ["占い","タロット","スピリチュアル"...]')
+    monetization_signals = models.JSONField('マネタイズシグナル', default=list, blank=True,
+        help_text='検出: ["STORES","LINE","有料鑑定"...]')
+    auto_excluded_reason = models.CharField('自動対象外理由', max_length=200, blank=True, default='')
+
     class Meta:
         db_table = 'meta_th_buzz_authors'
         verbose_name = 'Threadsバズ投稿者'
@@ -148,6 +157,7 @@ class THBuzzAuthor(models.Model):
             models.Index(fields=['-quality_score'], name='bza_quality_score_desc'),
             models.Index(fields=['followers_count'], name='bza_followers_count'),
             models.Index(fields=['account_age_days'], name='bza_account_age_days'),
+            models.Index(fields=['-fortune_relevance_score'], name='bza_fortune_score_desc'),
         ]
 
     def __str__(self):
@@ -230,12 +240,24 @@ class THBuzzAuthor(models.Model):
         # 品質スコアの計算
         self._update_quality_stats()
 
+        # ─── 占い属性分類 ───
+        try:
+            from th.services.fortune_classifier import update_author_fortune_classification
+            update_author_fortune_classification(self)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                'Fortune classification failed for @%s: %s', self.username, e
+            )
+
         self.save(update_fields=[
             'total_post_count', 'earliest_post_at', 'latest_post_at',
             'avg_likes', 'avg_replies', 'account_age_days',
             'followers_per_day', 'growth_score', 'is_concept_candidate',
             'quality_score', 'is_quality_account', 'good_post_ratio',
             'recent_post_count', 'avg_post_interval_days',
+            'fortune_relevance_score', 'genre_tags', 'monetization_signals',
+            'auto_excluded_reason',
         ])
 
     def _calc_growth_score(self):

@@ -608,6 +608,8 @@ def buzz_growth_ranking(request):
     candidates_only = request.GET.get('candidates_only', '')
     quality_only = request.GET.get('quality_only', '')
     include_excluded = request.GET.get('include_excluded', '')
+    fortune_only = request.GET.get('fortune_only', '')
+    min_fortune_score = request.GET.get('min_fortune_score', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -617,6 +619,7 @@ def buzz_growth_ranking(request):
         'avg_likes', '-avg_likes',
         'updated_at', '-updated_at',
         'quality_score', '-quality_score',
+        'fortune_relevance_score', '-fortune_relevance_score',
     }
     if sort_by not in allowed_sorts:
         sort_by = '-growth_score'
@@ -649,6 +652,13 @@ def buzz_growth_ranking(request):
         qs = qs.filter(is_concept_candidate=True)
     if quality_only:
         qs = qs.filter(is_quality_account=True)
+    if fortune_only:
+        qs = qs.filter(fortune_relevance_score__isnull=False, fortune_relevance_score__gt=0)
+    if min_fortune_score:
+        try:
+            qs = qs.filter(fortune_relevance_score__gte=float(min_fortune_score))
+        except (ValueError, TypeError):
+            pass
     if not include_excluded:
         qs = qs.filter(is_excluded=False)
 
@@ -668,13 +678,23 @@ def buzz_growth_ranking(request):
                 all_tags.add(tag)
     all_tags = sorted(all_tags)
 
-    # 深掘り対象アカウント数（投稿不足のアカウント）
-    deep_scan_target_count = THBuzzAuthor.objects.filter(
-        followers_count__isnull=False,
-        followers_count__gt=0,
-    ).filter(
-        Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
-    ).count()
+    # 深掘り対象アカウント数（フォロワー不明 + 投稿不足のアカウント）
+    deep_scan_target_count = (
+        # フォロワー不明
+        THBuzzAuthor.objects.filter(
+            Q(followers_count__isnull=True) | Q(followers_count=0),
+            is_excluded=False,
+        ).count()
+        +
+        # フォロワー既知 + 投稿不足
+        THBuzzAuthor.objects.filter(
+            followers_count__isnull=False,
+            followers_count__gt=0,
+            is_excluded=False,
+        ).filter(
+            Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
+        ).count()
+    )
 
     ctx = {
         'title': '急成長アカウントランキング',
@@ -695,6 +715,9 @@ def buzz_growth_ranking(request):
         'current_quality_only_str': '1' if quality_only else '',
         'current_include_excluded': include_excluded,
         'current_include_excluded_str': '1' if include_excluded else '',
+        'current_fortune_only': bool(fortune_only),
+        'current_fortune_only_str': '1' if fortune_only else '',
+        'current_min_fortune_score': min_fortune_score,
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
 

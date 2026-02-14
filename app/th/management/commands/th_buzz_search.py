@@ -100,6 +100,8 @@ class Command(BaseCommand):
         total_count = 0
         error_occurred = None
         error_tb = ''
+        # 同一実行内でプロフィール取得済みのユーザーを追跡
+        profile_fetched = set()
 
         try:
             with ThreadsBuzzScraper() as scraper:
@@ -196,8 +198,9 @@ class Command(BaseCommand):
                             total_count += 1
                             self.stdout.write(f"  保存: @{username} - {text[:30]}")
 
-                        # 投稿者プロフィールを非同期的に取得（初回のみ）
-                        if not author.followers_count:
+                        # 投稿者プロフィールを取得（同一実行内で未取得のアカウントのみ）
+                        if username not in profile_fetched:
+                            profile_fetched.add(username)
                             try:
                                 profile = scraper.fetch_author_profile(username)
                                 author.display_name = profile.get('display_name') or author.display_name
@@ -208,7 +211,7 @@ class Command(BaseCommand):
                                 author.profile_pic_url = profile.get('profile_pic_url', '') or author.profile_pic_url
                                 author.raw_json = profile
                                 author.save()
-                                # 成長指標を初期計算
+                                # 成長指標を計算（占い分類も含む）
                                 author.update_growth_stats()
                                 # フォロワー数が判明したので ER/バズ判定を再計算
                                 if author.followers_count:
