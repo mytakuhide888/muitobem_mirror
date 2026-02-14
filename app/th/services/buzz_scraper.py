@@ -656,13 +656,41 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
     if iv:
         profile['is_verified'] = iv.group(1) == 'true'
 
-    # profile_pic_url
-    pic = re.search(r'"profile_pic_url":"((?:[^"\\]|\\.)*)"', chunk)
-    if pic:
-        try:
-            profile['profile_pic_url'] = json.loads('"' + pic.group(1) + '"')
-        except (json.JSONDecodeError, ValueError):
-            profile['profile_pic_url'] = pic.group(1)
+    # profile_pic_url — SSR JSON から抽出（複数キー名に対応）
+    for pic_key in ['profile_pic_url', 'hd_profile_pic_url_info']:
+        pic = re.search(rf'"{pic_key}"\s*:\s*"((?:[^"\\]|\\.)*)"', chunk)
+        if pic:
+            try:
+                profile['profile_pic_url'] = json.loads('"' + pic.group(1) + '"')
+            except (json.JSONDecodeError, ValueError):
+                profile['profile_pic_url'] = pic.group(1)
+            break
+    # hd_profile_pic_versions から URL を抽出（フォールバック）
+    if not profile['profile_pic_url']:
+        hd = re.search(r'"hd_profile_pic_versions"\s*:\s*\[.*?"url"\s*:\s*"((?:[^"\\]|\\.)*)"', chunk)
+        if hd:
+            try:
+                profile['profile_pic_url'] = json.loads('"' + hd.group(1) + '"')
+            except (json.JSONDecodeError, ValueError):
+                profile['profile_pic_url'] = hd.group(1)
+
+    # フォールバック: HTML の <img> タグから「のプロフィール写真」alt を持つ画像を取得
+    if not profile['profile_pic_url']:
+        img_pat = re.compile(
+            r'<img[^>]+alt="[^"]*' + re.escape(username) + r'[^"]*(?:プロフィール写真|profile\s*photo|profile\s*picture)[^"]*"[^>]+src="([^"]+)"',
+            re.IGNORECASE,
+        )
+        img_m = img_pat.search(html)
+        if not img_m:
+            # src が alt より先にある場合
+            img_pat2 = re.compile(
+                r'<img[^>]+src="([^"]+)"[^>]+alt="[^"]*' + re.escape(username) + r'[^"]*(?:プロフィール写真|profile\s*photo|profile\s*picture)[^"]*"',
+                re.IGNORECASE,
+            )
+            img_m = img_pat2.search(html)
+        if img_m:
+            raw_url = img_m.group(1).replace('&amp;', '&')
+            profile['profile_pic_url'] = raw_url
 
     # meta description からの bio 取得（フォールバック）
     if not profile['bio']:

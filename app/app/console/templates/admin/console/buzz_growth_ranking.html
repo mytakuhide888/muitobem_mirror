@@ -49,7 +49,7 @@
   .gr-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:12px; }
   .gr-card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); position:relative; }
   .gr-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
-  .gr-card .rank { position:absolute; top:12px; right:16px; font-size:24px; font-weight:bold; color:#dee2e6; }
+  .gr-card .rank { font-size:24px; font-weight:bold; color:#dee2e6; line-height:1; }
   .gr-card .rank.top3 { color:#ffd43b; }
   .gr-card h3 { margin:0 0 4px; font-size:16px; }
   .gr-card h3 a { color:#333; text-decoration:none; }
@@ -62,9 +62,9 @@
   .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
 
-  /* お気に入り/対象外ボタン */
-  .gr-card-actions { display:flex; gap:6px; margin-top:8px; }
-  .gr-fav-btn { cursor:pointer; font-size:18px; color:#ccc; background:none; border:none; padding:0; }
+  /* お気に入り/対象外ボタン — カード上部右寄せ */
+  .gr-card-actions { position:absolute; top:12px; right:16px; display:flex; align-items:center; gap:6px; }
+  .gr-fav-btn { cursor:pointer; font-size:18px; color:#ccc; background:none; border:none; padding:0; line-height:1; }
   .gr-fav-btn.active { color:#f5a623; }
   .gr-excl-btn { cursor:pointer; font-size:11px; padding:2px 8px; border-radius:10px; border:none; background:#e9ecef; color:#999; }
   .gr-excl-btn.active { background:#dc3545; color:#fff; }
@@ -213,7 +213,11 @@
   <div class="gr-card-wrapper">
     <input type="checkbox" class="gr-card-check" data-author-id="{{ author.pk }}" onchange="updateBulkBar()">
     <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}" data-author-id="{{ author.pk }}">
-      <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+      <div class="gr-card-actions">
+        <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
+        <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
+        <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+      </div>
       <div class="gr-author-row">
         {% if author.profile_pic_url %}
         <img class="gr-avatar" src="{{ author.profile_pic_url }}" alt="@{{ author.username }}" onerror="this.style.display='none'">
@@ -279,11 +283,6 @@
         {% endfor %}
       </div>
       {% endif %}
-
-      <div class="gr-card-actions">
-        <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
-        <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
-      </div>
     </div>
   </div>
   {% empty %}
