@@ -1,129 +1,726 @@
 {% extends "admin/console/base.html" %}
 
 {% block title %}急成長アカウントランキング{% endblock %}
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 急成長ランキング</div>{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 急成長ランキング</div>
+{% endblock %}
 
 {% block content %}
 <style>
-  .gr-header { font-size:18px; font-weight:bold; margin:0 0 12px; }
-  .gr-header small { font-size:13px; color:#666; font-weight:normal; margin-left:8px; }
+  .gr-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 12px;
+  }
 
-  .gr-filters { background:#f8f9fa; border-radius:8px; padding:12px 16px; margin-bottom:16px; }
-  .gr-filters form { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
-  .gr-filters label { font-size:12px; display:block; margin-bottom:2px; color:#666; }
-  .gr-filters input, .gr-filters select { padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px; }
-  .gr-filters input[type="number"] { width:90px; }
-  .gr-filters input[type="text"] { width:150px; }
+  .gr-header small {
+    font-size: 13px;
+    color: #666;
+    font-weight: normal;
+    margin-left: 8px;
+  }
 
-  .buzz-btn { padding:6px 14px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
-  .buzz-btn-primary { background:#007bff; color:#fff; }
-  .buzz-btn-primary:hover { background:#0069d9; }
-  .buzz-btn-secondary { background:#6c757d; color:#fff !important; text-decoration:none; display:inline-block; }
-  .buzz-btn-warning { background:#ffc107; color:#212529; }
-  .buzz-btn-warning:hover { background:#e0a800; }
-  .buzz-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
-  .buzz-msg.ok { background:#d4edda; color:#155724; display:block; }
-  .buzz-msg.err { background:#f8d7da; color:#721c24; display:block; }
+  .gr-filters {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+
+  .gr-filters form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .gr-filters label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 2px;
+    color: #666;
+  }
+
+  .gr-filters input,
+  .gr-filters select {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .gr-filters input[type="number"] {
+    width: 90px;
+  }
+
+  .gr-filters input[type="text"] {
+    width: 150px;
+  }
+
+  .buzz-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .buzz-btn-primary {
+    background: #007bff;
+    color: #fff;
+  }
+
+  .buzz-btn-primary:hover {
+    background: #0069d9;
+  }
+
+  .buzz-btn-secondary {
+    background: #6c757d;
+    color: #fff !important;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .buzz-btn-warning {
+    background: #ffc107;
+    color: #212529;
+  }
+
+  .buzz-btn-warning:hover {
+    background: #e0a800;
+  }
+
+  .buzz-msg {
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .buzz-msg.ok {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+  }
+
+  .buzz-msg.err {
+    background: #f8d7da;
+    color: #721c24;
+    display: block;
+  }
 
   /* エラー詳細モーダル */
-  .error-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:10000; justify-content:center; align-items:center; }
-  .error-modal-overlay.active { display:flex; }
-  .error-modal { background:#fff; border-radius:12px; max-width:700px; width:92%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.25); }
-  .error-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid #eee; }
-  .error-modal-header h4 { margin:0; font-size:15px; }
-  .error-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:0 4px; line-height:1; }
-  .error-modal-close:hover { color:#333; }
-  .error-modal-body { padding:20px; }
-  .error-badge { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; font-weight:bold; color:#fff; margin-bottom:12px; }
-  .error-badge-SESSION { background:#e65100; }
-  .error-badge-BLOCKED { background:#c62828; }
-  .error-badge-TIMEOUT { background:#f57f17; }
-  .error-badge-NETWORK { background:#1565c0; }
-  .error-badge-UNKNOWN { background:#6c757d; }
-  .error-remedy { background:#e7f5ff; border-left:3px solid #007bff; padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; margin:10px 0; white-space:pre-line; line-height:1.7; }
-  .error-message-text { background:#f8f9fa; border-radius:6px; padding:10px 14px; font-size:13px; margin:10px 0; white-space:pre-wrap; word-break:break-all; }
-  .error-tb-details { margin:10px 0; }
-  .error-tb-details summary { cursor:pointer; font-size:13px; color:#007bff; }
-  .error-tb-details pre { background:#1e1e1e; color:#d4d4d4; border-radius:6px; padding:12px; font-size:12px; overflow-x:auto; margin-top:8px; white-space:pre-wrap; word-break:break-all; }
+  .error-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+  }
 
-  .gr-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:12px; }
-  .gr-card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); position:relative; }
-  .gr-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
-  .gr-card .rank { font-size:24px; font-weight:bold; color:#dee2e6; line-height:1; }
-  .gr-card .rank.top3 { color:#ffd43b; }
-  .gr-card h3 { margin:0 0 4px; font-size:16px; }
-  .gr-card h3 a { color:#333; text-decoration:none; }
-  .gr-card h3 a:hover { color:#007bff; }
-  .gr-card .username { color:#007bff; font-size:13px; margin-bottom:8px; }
-  .gr-card .username a { color:#007bff; text-decoration:none; }
-  .gr-card .verified { display:inline-block; background:#1da1f2; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
-  .gr-card .candidate-badge { display:inline-block; background:#28a745; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
-  .gr-card .quality-badge { display:inline-block; background:#6f42c1; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
-  .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
-  .gr-card .fortune-badge { display:inline-block; background:#e65100; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
-  .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
+  .error-modal-overlay.active {
+    display: flex;
+  }
+
+  .error-modal {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+  }
+
+  .error-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .error-modal-header h4 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .error-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #999;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .error-modal-close:hover {
+    color: #333;
+  }
+
+  .error-modal-body {
+    padding: 20px;
+  }
+
+  .error-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  .error-badge-SESSION {
+    background: #e65100;
+  }
+
+  .error-badge-BLOCKED {
+    background: #c62828;
+  }
+
+  .error-badge-TIMEOUT {
+    background: #f57f17;
+  }
+
+  .error-badge-NETWORK {
+    background: #1565c0;
+  }
+
+  .error-badge-UNKNOWN {
+    background: #6c757d;
+  }
+
+  .error-remedy {
+    background: #e7f5ff;
+    border-left: 3px solid #007bff;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    margin: 10px 0;
+    white-space: pre-line;
+    line-height: 1.7;
+  }
+
+  .error-message-text {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin: 10px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .error-tb-details {
+    margin: 10px 0;
+  }
+
+  .error-tb-details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: #007bff;
+  }
+
+  .error-tb-details pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin-top: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .gr-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 12px;
+  }
+
+  .gr-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    position: relative;
+  }
+
+  .gr-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+  }
+
+  .gr-card .rank {
+    font-size: 24px;
+    font-weight: bold;
+    color: #dee2e6;
+    line-height: 1;
+  }
+
+  .gr-card .rank.top3 {
+    color: #ffd43b;
+  }
+
+  .gr-card h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+  }
+
+  .gr-card h3 a {
+    color: #333;
+    text-decoration: none;
+  }
+
+  .gr-card h3 a:hover {
+    color: #007bff;
+  }
+
+  .gr-card .username {
+    color: #007bff;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .gr-card .username a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .gr-card .verified {
+    display: inline-block;
+    background: #1da1f2;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  .gr-card .candidate-badge {
+    display: inline-block;
+    background: #28a745;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  .gr-card .quality-badge {
+    display: inline-block;
+    background: #6f42c1;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  .gr-card .excluded-badge {
+    display: inline-block;
+    background: #dc3545;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  .gr-card .fortune-badge {
+    display: inline-block;
+    background: #e65100;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  .gr-card.excluded-card {
+    opacity: 0.5;
+    background: #f0f0f0;
+  }
 
   /* カード上部行: ランク + バッジ + ボタン */
-  .gr-card-top-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
-  .gr-badges { display:flex; align-items:center; gap:4px; flex-wrap:wrap; flex:1; }
-  .gr-card-actions { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
-  .gr-fav-btn { cursor:pointer; font-size:18px; color:#ccc; background:none; border:none; padding:0; line-height:1; }
-  .gr-fav-btn.active { color:#f5a623; }
-  .gr-excl-btn { cursor:pointer; font-size:11px; padding:2px 8px; border-radius:10px; border:none; background:#e9ecef; color:#999; }
-  .gr-excl-btn.active { background:#dc3545; color:#fff; }
+  .gr-card-top-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .gr-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .gr-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .gr-fav-btn {
+    cursor: pointer;
+    font-size: 18px;
+    color: #ccc;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .gr-fav-btn.active {
+    color: #f5a623;
+  }
+
+  .gr-excl-btn {
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: none;
+    background: #e9ecef;
+    color: #999;
+  }
+
+  .gr-excl-btn.active {
+    background: #dc3545;
+    color: #fff;
+  }
 
   /* プロフィール画像 */
-  .gr-author-row { display:flex; align-items:center; gap:8px; }
-  .gr-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+  .gr-author-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gr-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
 
   /* チェックボックス */
-  .gr-card-wrapper { display:flex; align-items:flex-start; gap:6px; }
-  .gr-card-check { margin-top:18px; flex-shrink:0; width:16px; height:16px; cursor:pointer; }
+  .gr-card-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .gr-card-check {
+    margin-top: 18px;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
 
   /* 一括操作バー */
-  .gr-bulk-bar { display:none; position:sticky; bottom:0; background:#fff; border-top:2px solid #007bff; padding:10px 16px; z-index:100; box-shadow:0 -2px 8px rgba(0,0,0,.1); align-items:center; gap:12px; }
-  .gr-bulk-bar.active { display:flex; }
+  .gr-bulk-bar {
+    display: none;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 2px solid #007bff;
+    padding: 10px 16px;
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .1);
+    align-items: center;
+    gap: 12px;
+  }
 
-  .gr-metrics { display:flex; gap:12px; margin:10px 0; flex-wrap:wrap; }
-  .gr-metric { text-align:center; min-width:60px; }
-  .gr-metric .val { font-size:16px; font-weight:bold; display:block; }
-  .gr-metric .val.highlight { color:#e03131; }
-  .gr-metric .lbl { font-size:10px; color:#666; }
+  .gr-bulk-bar.active {
+    display: flex;
+  }
 
-  .gr-bio { font-size:12px; color:#555; line-height:1.5; margin:8px 0; max-height:3em; overflow:hidden; white-space:pre-wrap; }
-  .gr-latest-post { font-size:12px; color:#888; background:#f8f9fa; border-radius:4px; padding:6px 8px; margin-top:8px; max-height:2.4em; overflow:hidden; }
-  .gr-latest-post::before { content:"最新投稿: "; font-weight:bold; }
-  .gr-tags { margin-top:8px; }
-  .gr-tags span { display:inline-block; background:#e9ecef; color:#495057; padding:1px 8px; border-radius:10px; font-size:11px; margin-right:4px; }
+  .gr-metrics {
+    display: flex;
+    gap: 12px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+  }
 
-  .gr-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
-  .gr-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
-  .gr-pagination a:hover { background:#e9ecef; }
-  .gr-pagination .current { padding:4px 10px; background:#007bff; color:#fff; border-radius:4px; }
+  .gr-metric {
+    text-align: center;
+    min-width: 60px;
+  }
+
+  .gr-metric .val {
+    font-size: 16px;
+    font-weight: bold;
+    display: block;
+  }
+
+  .gr-metric .val.highlight {
+    color: #e03131;
+  }
+
+  .gr-metric .lbl {
+    font-size: 10px;
+    color: #666;
+  }
+
+  .gr-bio {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    margin: 8px 0;
+    max-height: 3em;
+    overflow: hidden;
+    white-space: pre-wrap;
+  }
+
+  .gr-latest-post {
+    font-size: 12px;
+    color: #888;
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-top: 8px;
+    max-height: 2.4em;
+    overflow: hidden;
+  }
+
+  .gr-latest-post::before {
+    content: "最新投稿: ";
+    font-weight: bold;
+  }
+
+  .gr-tags {
+    margin-top: 8px;
+  }
+
+  .gr-tags span {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+
+  .gr-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .gr-pagination a {
+    padding: 4px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .gr-pagination a:hover {
+    background: #e9ecef;
+  }
+
+  .gr-pagination .current {
+    padding: 4px 10px;
+    background: #007bff;
+    color: #fff;
+    border-radius: 4px;
+  }
 
   /* ヘルプモーダル */
-  .help-icon { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#6c757d; color:#fff !important; font-size:14px; font-weight:bold; cursor:pointer; text-decoration:none; margin-left:8px; vertical-align:middle; line-height:1; }
-  .help-icon:hover { background:#495057; }
-  .help-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:9999; justify-content:center; align-items:center; }
-  .help-overlay.active { display:flex; }
-  .help-modal { background:#fff; border-radius:12px; max-width:860px; width:92%; max-height:85vh; display:flex; box-shadow:0 8px 30px rgba(0,0,0,.25); overflow:hidden; }
-  .help-nav { width:200px; min-width:200px; background:#f8f9fa; border-right:1px solid #eee; padding:16px 0; overflow-y:auto; }
-  .help-nav a { display:block; padding:8px 16px; font-size:13px; color:#333; text-decoration:none; border-left:3px solid transparent; }
-  .help-nav a:hover { background:#e9ecef; }
-  .help-nav a.active { background:#e7f1ff; border-left-color:#007bff; color:#007bff; font-weight:bold; }
-  .help-nav .nav-group { font-size:11px; color:#999; padding:12px 16px 4px; text-transform:uppercase; letter-spacing:.5px; }
-  .help-body { flex:1; overflow-y:auto; padding:24px; }
-  .help-body .help-section { display:none; }
-  .help-body .help-section.active { display:block; }
-  .help-body h3 { margin:0 0 12px; font-size:17px; color:#333; border-bottom:2px solid #007bff; padding-bottom:6px; }
-  .help-body h4 { margin:16px 0 8px; font-size:14px; color:#495057; }
-  .help-body p { font-size:13px; line-height:1.8; color:#444; margin:0 0 10px; }
-  .help-body ul { font-size:13px; line-height:1.8; color:#444; margin:0 0 10px; padding-left:20px; }
-  .help-body .formula { background:#f1f3f5; border-radius:6px; padding:10px 14px; font-family:monospace; font-size:13px; margin:8px 0; line-height:1.6; }
-  .help-body .tip { background:#e7f5ff; border-left:3px solid #007bff; padding:8px 12px; border-radius:0 6px 6px 0; font-size:12px; margin:10px 0; }
-  .help-body .example { background:#fff3cd; border-left:3px solid #ffc107; padding:8px 12px; border-radius:0 6px 6px 0; font-size:12px; margin:10px 0; }
-  .help-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:22px; cursor:pointer; color:#999; z-index:1; }
-  .help-close:hover { color:#333; }
+  .help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #6c757d;
+    color: #fff !important;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 8px;
+    vertical-align: middle;
+    line-height: 1;
+  }
+
+  .help-icon:hover {
+    background: #495057;
+  }
+
+  .help-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .help-overlay.active {
+    display: flex;
+  }
+
+  .help-modal {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 860px;
+    width: 92%;
+    max-height: 85vh;
+    display: flex;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+    overflow: hidden;
+  }
+
+  .help-nav {
+    width: 200px;
+    min-width: 200px;
+    background: #f8f9fa;
+    border-right: 1px solid #eee;
+    padding: 16px 0;
+    overflow-y: auto;
+  }
+
+  .help-nav a {
+    display: block;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+  }
+
+  .help-nav a:hover {
+    background: #e9ecef;
+  }
+
+  .help-nav a.active {
+    background: #e7f1ff;
+    border-left-color: #007bff;
+    color: #007bff;
+    font-weight: bold;
+  }
+
+  .help-nav .nav-group {
+    font-size: 11px;
+    color: #999;
+    padding: 12px 16px 4px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .help-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+
+  .help-body .help-section {
+    display: none;
+  }
+
+  .help-body .help-section.active {
+    display: block;
+  }
+
+  .help-body h3 {
+    margin: 0 0 12px;
+    font-size: 17px;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 6px;
+  }
+
+  .help-body h4 {
+    margin: 16px 0 8px;
+    font-size: 14px;
+    color: #495057;
+  }
+
+  .help-body p {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #444;
+    margin: 0 0 10px;
+  }
+
+  .help-body ul {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #444;
+    margin: 0 0 10px;
+    padding-left: 20px;
+  }
+
+  .help-body .formula {
+    background: #f1f3f5;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 13px;
+    margin: 8px 0;
+    line-height: 1.6;
+  }
+
+  .help-body .tip {
+    background: #e7f5ff;
+    border-left: 3px solid #007bff;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    margin: 10px 0;
+  }
+
+  .help-body .example {
+    background: #fff3cd;
+    border-left: 3px solid #ffc107;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    margin: 10px 0;
+  }
+
+  .help-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #999;
+    z-index: 1;
+  }
+
+  .help-close:hover {
+    color: #333;
+  }
 </style>
 
 <h2 class="gr-header">
@@ -156,7 +753,7 @@
       <select name="category">
         <option value="">全て</option>
         {% for tag in all_tags %}
-        <option value="{{ tag }}" {% if tag == current_category %}selected{% endif %}>{{ tag }}</option>
+        <option value="{{ tag }}" {% if tag==current_category %}selected{% endif %}>{{ tag }}</option>
         {% endfor %}
       </select>
     </div>
@@ -185,25 +782,37 @@
       </label>
     </div>
     <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="has_memo" value="1" {% if current_has_memo %}checked{% endif %}>
+        メモ付きのみ
+      </label>
+    </div>
+    <div>
       <label>最小占いスコア</label>
-      <input type="number" name="min_fortune_score" value="{{ current_min_fortune_score }}" step="0.1" placeholder="例: 20">
+      <input type="number" name="min_fortune_score" value="{{ current_min_fortune_score }}" step="0.1"
+        placeholder="例: 20">
     </div>
     <div>
       <label>ソート</label>
       <select name="sort">
-        <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
-        <option value="-followers_per_day" {% if current_sort == "-followers_per_day" %}selected{% endif %}>フォロワー増/日(多い順)</option>
-        <option value="-followers_count" {% if current_sort == "-followers_count" %}selected{% endif %}>フォロワー数(多い順)</option>
-        <option value="account_age_days" {% if current_sort == "account_age_days" %}selected{% endif %}>アカウント日数(若い順)</option>
-        <option value="-avg_likes" {% if current_sort == "-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
-        <option value="-quality_score" {% if current_sort == "-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
-        <option value="-fortune_relevance_score" {% if current_sort == "-fortune_relevance_score" %}selected{% endif %}>占い適合スコア(高い順)</option>
-        <option value="-updated_at" {% if current_sort == "-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
+        <option value="-growth_score" {% if current_sort=="-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
+        <option value="-followers_per_day" {% if current_sort=="-followers_per_day" %}selected{% endif %}>フォロワー増/日(多い順)
+        </option>
+        <option value="-followers_count" {% if current_sort=="-followers_count" %}selected{% endif %}>フォロワー数(多い順)
+        </option>
+        <option value="account_age_days" {% if current_sort=="account_age_days" %}selected{% endif %}>アカウント日数(若い順)
+        </option>
+        <option value="-avg_likes" {% if current_sort=="-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
+        <option value="-quality_score" {% if current_sort=="-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
+        <option value="-fortune_relevance_score" {% if current_sort=="-fortune_relevance_score" %}selected{% endif %}>
+          占い適合スコア(高い順)</option>
+        <option value="-updated_at" {% if current_sort=="-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
       </select>
     </div>
     <div>
       <button type="submit" class="buzz-btn buzz-btn-primary">絞り込み</button>
-      <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary" style="margin-left:4px;">リセット</a>
+      <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary"
+        style="margin-left:4px;">リセット</a>
     </div>
   </form>
   <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -211,11 +820,13 @@
     <span id="recalc-message" class="buzz-msg" style="margin:0;"></span>
   </div>
   <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count == 0 %}disabled style="opacity:.5"{% endif %}>
+    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count==0 %}disabled
+      style="opacity:.5" {% endif %}>
       深掘りスキャン（投稿不足 {{ deep_scan_target_count }}件）
     </button>
     <label style="font-size:12px; color:#666;">
-      最大件数: <input type="number" id="deep-scan-max" value="10" min="1" max="50" style="width:60px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
+      最大件数: <input type="number" id="deep-scan-max" value="10" min="1" max="50"
+        style="width:60px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; font-size:12px;">
     </label>
     <span id="deep-scan-message" class="buzz-msg" style="margin:0;"></span>
   </div>
@@ -226,26 +837,36 @@
   {% for author in page_obj %}
   <div class="gr-card-wrapper">
     <input type="checkbox" class="gr-card-check" data-author-id="{{ author.pk }}" onchange="updateBulkBar()">
-    <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}" data-author-id="{{ author.pk }}">
+    <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}"
+      data-author-id="{{ author.pk }}">
       <div class="gr-card-top-row">
-        <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+        <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{
+          forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
         <div class="gr-badges" id="badges-{{ author.pk }}">
           {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
           {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
           {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
-          {% if author.fortune_relevance_score %}<span class="fortune-badge" title="占い適合スコア: {{ author.fortune_relevance_score|floatformat:1 }}">占い{{ author.fortune_relevance_score|floatformat:0 }}</span>{% endif %}
+          {% if author.fortune_relevance_score %}<span class="fortune-badge"
+            title="占い適合スコア: {{ author.fortune_relevance_score|floatformat:1 }}">占い{{
+            author.fortune_relevance_score|floatformat:0 }}</span>{% endif %}
           {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
-          {% if author.auto_excluded_reason %}<span class="excluded-badge" style="background:#fd7e14;" title="{{ author.auto_excluded_reason }}">自動除外</span>{% endif %}
-          {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;" id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
+          {% if author.auto_excluded_reason %}<span class="excluded-badge" style="background:#fd7e14;"
+            title="{{ author.auto_excluded_reason }}">自動除外</span>{% endif %}
+          {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;"
+            id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
         </div>
         <div class="gr-card-actions">
-          <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
-          <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
+          <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}"
+            onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else
+            %}&#9734;{% endif %}</button>
+          <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}"
+            onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
         </div>
       </div>
       <div class="gr-author-row">
         {% if author.profile_pic_url %}
-        <img class="gr-avatar" src="{{ author.profile_pic_url }}" alt="@{{ author.username }}" onerror="this.style.display='none'">
+        <img class="gr-avatar" src="{{ author.profile_pic_url }}" alt="@{{ author.username }}"
+          onerror="this.style.display='none'">
         {% endif %}
         <div>
           <h3>
@@ -254,7 +875,8 @@
             </a>
           </h3>
           <div class="username">
-            <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+            <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username
+              }}</a>
           </div>
         </div>
       </div>
@@ -337,16 +959,18 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str|add:"&fortune_only="|add:current_fortune_only_str|add:"&min_fortune_score="|add:current_min_fortune_score %}
+{% with
+fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str|add:"&fortune_only="|add:current_fortune_only_str|add:"&min_fortune_score="|add:current_min_fortune_score|add:"&has_memo="|add:current_has_memo_str
+%}
 <div class="gr-pagination">
   {% if page_obj.has_previous %}
-    <a href="?page=1{{ fp }}">&laquo; 最初</a>
-    <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  <a href="?page=1{{ fp }}">&laquo; 最初</a>
+  <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
   {% endif %}
   <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
+  <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
   {% endif %}
 </div>
 {% endwith %}
@@ -624,7 +1248,8 @@
         <h4>2. 急成長ランキングで候補を絞り込み</h4>
         <p>この画面で「アカウント日数(若い順)」「最大アカウント日数 90日」「最小フォロワー 500」等でフィルタ。成長スコア上位を確認。</p>
         <h4>3. 深掘りスキャンで精度を上げる</h4>
-        <p>「深掘りスキャン」ボタンを押して投稿不足アカウントの過去投稿を一括取得。いいね・リプライ・リポスト・投稿日時・メディア情報が補完され、成長スコアの信頼度が1.0に向上。品質スコアの計算もこの段階で正確になります。</p>
+        <p>「深掘りスキャン」ボタンを押して投稿不足アカウントの過去投稿を一括取得。いいね・リプライ・リポスト・投稿日時・メディア情報が補完され、成長スコアの信頼度が1.0に向上。品質スコアの計算もこの段階で正確になります。
+        </p>
         <h4>4. 投稿者詳細で分析</h4>
         <p>各アカウントをクリックして詳細画面へ。ピン留め投稿、バズ投稿、bio を分析し、伸びている要因を3つ以上ピックアップ。</p>
         <h4>5. コンセプトを固める</h4>
@@ -636,252 +1261,252 @@
 </div>
 
 <script>
-function openHelp() {
-  document.getElementById('helpModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-function closeHelp(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('helpModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeHelp(); closeErrorModal(); }
-});
-document.querySelectorAll('.help-nav a[data-section]').forEach(function(a) {
-  a.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.querySelectorAll('.help-nav a').forEach(function(n) { n.classList.remove('active'); });
-    document.querySelectorAll('.help-section').forEach(function(s) { s.classList.remove('active'); });
-    a.classList.add('active');
-    document.getElementById(a.dataset.section).classList.add('active');
+  function openHelp() {
+    document.getElementById('helpModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeHelp(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('helpModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeHelp(); closeErrorModal(); }
   });
-});
-
-function recalcER() {
-  const msgEl = document.getElementById('recalc-message');
-  msgEl.className = 'buzz-msg ok';
-  msgEl.textContent = '再計算中...';
-
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-  fetch('{% url "console:buzz_recalc_er" %}', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        msgEl.className = 'buzz-msg ok';
-        msgEl.textContent = data.message;
-      } else {
-        msgEl.className = 'buzz-msg err';
-        msgEl.textContent = data.error || 'エラーが発生しました';
-      }
-    })
-    .catch(err => {
-      msgEl.className = 'buzz-msg err';
-      msgEl.textContent = 'リクエストエラー: ' + err;
+  document.querySelectorAll('.help-nav a[data-section]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      document.querySelectorAll('.help-nav a').forEach(function (n) { n.classList.remove('active'); });
+      document.querySelectorAll('.help-section').forEach(function (s) { s.classList.remove('active'); });
+      a.classList.add('active');
+      document.getElementById(a.dataset.section).classList.add('active');
     });
-}
+  });
 
-function runDeepScan() {
-  const msgEl = document.getElementById('deep-scan-message');
-  const maxAuthors = document.getElementById('deep-scan-max').value || 10;
-  msgEl.className = 'buzz-msg ok';
-  msgEl.textContent = '深掘りスキャンを開始しています...';
+  function recalcER() {
+    const msgEl = document.getElementById('recalc-message');
+    msgEl.className = 'buzz-msg ok';
+    msgEl.textContent = '再計算中...';
 
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  fd.append('max_authors', maxAuthors);
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-  fetch('{% url "console:buzz_run_deep_scan" %}', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        msgEl.className = 'buzz-msg ok';
-        msgEl.textContent = data.message;
-        if (data.job_id) {
-          pollDeepScanStatus(data.job_id);
+    fetch('{% url "console:buzz_recalc_er" %}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          msgEl.className = 'buzz-msg ok';
+          msgEl.textContent = data.message;
+        } else {
+          msgEl.className = 'buzz-msg err';
+          msgEl.textContent = data.error || 'エラーが発生しました';
         }
-      } else {
+      })
+      .catch(err => {
         msgEl.className = 'buzz-msg err';
-        msgEl.textContent = data.error || 'エラーが発生しました';
-      }
-    })
-    .catch(err => {
-      msgEl.className = 'buzz-msg err';
-      msgEl.textContent = 'リクエストエラー: ' + err;
-    });
-}
+        msgEl.textContent = 'リクエストエラー: ' + err;
+      });
+  }
 
-function pollDeepScanStatus(jobId) {
-  const msgEl = document.getElementById('deep-scan-message');
-  const poll = setInterval(function() {
+  function runDeepScan() {
+    const msgEl = document.getElementById('deep-scan-message');
+    const maxAuthors = document.getElementById('deep-scan-max').value || 10;
+    msgEl.className = 'buzz-msg ok';
+    msgEl.textContent = '深掘りスキャンを開始しています...';
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fd.append('max_authors', maxAuthors);
+
+    fetch('{% url "console:buzz_run_deep_scan" %}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          msgEl.className = 'buzz-msg ok';
+          msgEl.textContent = data.message;
+          if (data.job_id) {
+            pollDeepScanStatus(data.job_id);
+          }
+        } else {
+          msgEl.className = 'buzz-msg err';
+          msgEl.textContent = data.error || 'エラーが発生しました';
+        }
+      })
+      .catch(err => {
+        msgEl.className = 'buzz-msg err';
+        msgEl.textContent = 'リクエストエラー: ' + err;
+      });
+  }
+
+  function pollDeepScanStatus(jobId) {
+    const msgEl = document.getElementById('deep-scan-message');
+    const poll = setInterval(function () {
+      fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'COMPLETED') {
+            clearInterval(poll);
+            msgEl.className = 'buzz-msg ok';
+            msgEl.textContent = '深掘りスキャン完了: 新規 ' + (data.result_count || 0) + ' 件の投稿を取得しました。ページをリロードしてスコアを確認してください。';
+          } else if (data.status === 'FAILED') {
+            clearInterval(poll);
+            msgEl.className = 'buzz-msg err';
+            msgEl.innerHTML = '深掘りスキャン失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
+              ' <a href="#" onclick="showJobError(' + jobId + '); return false;" style="color:#007bff;">詳細を見る</a>';
+          } else {
+            msgEl.textContent = '深掘りスキャン実行中... (ジョブID: ' + jobId + ')';
+          }
+        })
+        .catch(function () {
+          // ポーリングエラーは無視
+        });
+    }, 5000);
+  }
+
+  const ERROR_CATEGORY_LABELS = {
+    SESSION: 'セッション切れ',
+    BLOCKED: 'アクセス制限',
+    TIMEOUT: 'タイムアウト',
+    NETWORK: '接続エラー',
+    UNKNOWN: '不明なエラー',
+  };
+
+  function showJobError(jobId) {
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status === 'COMPLETED') {
-          clearInterval(poll);
-          msgEl.className = 'buzz-msg ok';
-          msgEl.textContent = '深掘りスキャン完了: 新規 ' + (data.result_count || 0) + ' 件の投稿を取得しました。ページをリロードしてスコアを確認してください。';
-        } else if (data.status === 'FAILED') {
-          clearInterval(poll);
-          msgEl.className = 'buzz-msg err';
-          msgEl.innerHTML = '深掘りスキャン失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
-            ' <a href="#" onclick="showJobError(' + jobId + '); return false;" style="color:#007bff;">詳細を見る</a>';
-        } else {
-          msgEl.textContent = '深掘りスキャン実行中... (ジョブID: ' + jobId + ')';
+        if (data.status !== 'FAILED') return;
+        const category = data.error_category || 'UNKNOWN';
+        const label = ERROR_CATEGORY_LABELS[category] || category;
+        const remedy = data.remedy || '';
+        const msg = data.error_message || '';
+        const tbText = data.error_traceback || '';
+
+        let html = '<span class="error-badge error-badge-' + category + '">' + label + '</span>';
+        if (remedy) {
+          html += '<div class="error-remedy">' + escapeHtml(remedy) + '</div>';
         }
+        html += '<div class="error-message-text">' + escapeHtml(msg) + '</div>';
+        if (tbText) {
+          html += '<details class="error-tb-details"><summary>トレースバック（詳細）</summary><pre>' + escapeHtml(tbText) + '</pre></details>';
+        }
+        document.getElementById('errorModalBody').innerHTML = html;
+        document.getElementById('errorModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
       })
-      .catch(function() {
-        // ポーリングエラーは無視
+      .catch(err => alert('エラー詳細の取得に失敗しました: ' + err));
+  }
+
+  function closeErrorModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('errorModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ─── プロフィール画像をプロキシ経由に変換（CDN CORP 回避） ───
+  var mediaProxyUrl = '{% url "console:buzz_media_proxy" %}';
+  document.querySelectorAll('.gr-avatar').forEach(function (img) {
+    var src = img.getAttribute('src');
+    if (src && src.indexOf('cdninstagram.com/') !== -1) {
+      img.src = mediaProxyUrl + '?url=' + encodeURIComponent(src);
+    }
+  });
+
+  // ─── お気に入り/対象外/一括操作 ───
+  var csrfToken = '{{ csrf_token }}';
+  var toggleFavUrl = '{% url "console:buzz_toggle_favorite" pk=0 %}';
+  var toggleExclUrl = '{% url "console:buzz_toggle_excluded" pk=0 %}';
+  var bulkExcludeUrl = '{% url "console:buzz_bulk_exclude" %}';
+
+  function toggleFav(authorId, btn) {
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch(toggleFavUrl.replace('/0/', '/' + authorId + '/'), { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          btn.classList.toggle('active', data.is_favorited);
+          btn.innerHTML = data.is_favorited ? '&#9733;' : '&#9734;';
+          // お気に入りバッジ更新
+          var badge = document.getElementById('fav-badge-' + authorId);
+          if (data.is_favorited && !badge) {
+            var badges = document.getElementById('badges-' + authorId);
+            var span = document.createElement('span');
+            span.className = 'candidate-badge';
+            span.style.background = '#f5a623';
+            span.id = 'fav-badge-' + authorId;
+            span.textContent = 'お気に入り';
+            badges.appendChild(span);
+          } else if (!data.is_favorited && badge) {
+            badge.remove();
+          }
+        }
       });
-  }, 5000);
-}
+  }
 
-const ERROR_CATEGORY_LABELS = {
-  SESSION: 'セッション切れ',
-  BLOCKED: 'アクセス制限',
-  TIMEOUT: 'タイムアウト',
-  NETWORK: '接続エラー',
-  UNKNOWN: '不明なエラー',
-};
+  function toggleExcl(authorId, btn) {
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrfToken);
+    fetch(toggleExclUrl.replace('/0/', '/' + authorId + '/'), { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          btn.classList.toggle('active', data.is_excluded);
+          var card = document.getElementById('card-' + authorId);
+          card.classList.toggle('excluded-card', data.is_excluded);
+          // 対象外バッジ更新
+          var badge = document.getElementById('excl-badge-' + authorId);
+          if (data.is_excluded && !badge) {
+            var badges = document.getElementById('badges-' + authorId);
+            var span = document.createElement('span');
+            span.className = 'excluded-badge';
+            span.id = 'excl-badge-' + authorId;
+            span.textContent = '対象外';
+            badges.appendChild(span);
+          } else if (!data.is_excluded && badge) {
+            badge.remove();
+          }
+        }
+      });
+  }
 
-function showJobError(jobId) {
-  fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
-    .then(r => r.json())
-    .then(data => {
-      if (data.status !== 'FAILED') return;
-      const category = data.error_category || 'UNKNOWN';
-      const label = ERROR_CATEGORY_LABELS[category] || category;
-      const remedy = data.remedy || '';
-      const msg = data.error_message || '';
-      const tbText = data.error_traceback || '';
-
-      let html = '<span class="error-badge error-badge-' + category + '">' + label + '</span>';
-      if (remedy) {
-        html += '<div class="error-remedy">' + escapeHtml(remedy) + '</div>';
-      }
-      html += '<div class="error-message-text">' + escapeHtml(msg) + '</div>';
-      if (tbText) {
-        html += '<details class="error-tb-details"><summary>トレースバック（詳細）</summary><pre>' + escapeHtml(tbText) + '</pre></details>';
-      }
-      document.getElementById('errorModalBody').innerHTML = html;
-      document.getElementById('errorModal').classList.add('active');
-      document.body.style.overflow = 'hidden';
+  function bulkExclude(exclude) {
+    var checks = document.querySelectorAll('.gr-card-check:checked');
+    var ids = [];
+    for (var i = 0; i < checks.length; i++) {
+      ids.push(parseInt(checks[i].dataset.authorId));
+    }
+    if (!ids.length) return;
+    fetch(bulkExcludeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ author_ids: ids, exclude: exclude })
     })
-    .catch(err => alert('エラー詳細の取得に失敗しました: ' + err));
-}
-
-function closeErrorModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('errorModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// ─── プロフィール画像をプロキシ経由に変換（CDN CORP 回避） ───
-var mediaProxyUrl = '{% url "console:buzz_media_proxy" %}';
-document.querySelectorAll('.gr-avatar').forEach(function(img) {
-  var src = img.getAttribute('src');
-  if (src && src.indexOf('cdninstagram.com/') !== -1) {
-    img.src = mediaProxyUrl + '?url=' + encodeURIComponent(src);
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) location.reload();
+      });
   }
-});
 
-// ─── お気に入り/対象外/一括操作 ───
-var csrfToken = '{{ csrf_token }}';
-var toggleFavUrl = '{% url "console:buzz_toggle_favorite" pk=0 %}';
-var toggleExclUrl = '{% url "console:buzz_toggle_excluded" pk=0 %}';
-var bulkExcludeUrl = '{% url "console:buzz_bulk_exclude" %}';
-
-function toggleFav(authorId, btn) {
-  var fd = new FormData();
-  fd.append('csrfmiddlewaretoken', csrfToken);
-  fetch(toggleFavUrl.replace('/0/', '/' + authorId + '/'), { method:'POST', body:fd })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        btn.classList.toggle('active', data.is_favorited);
-        btn.innerHTML = data.is_favorited ? '&#9733;' : '&#9734;';
-        // お気に入りバッジ更新
-        var badge = document.getElementById('fav-badge-' + authorId);
-        if (data.is_favorited && !badge) {
-          var badges = document.getElementById('badges-' + authorId);
-          var span = document.createElement('span');
-          span.className = 'candidate-badge';
-          span.style.background = '#f5a623';
-          span.id = 'fav-badge-' + authorId;
-          span.textContent = 'お気に入り';
-          badges.appendChild(span);
-        } else if (!data.is_favorited && badge) {
-          badge.remove();
-        }
-      }
-    });
-}
-
-function toggleExcl(authorId, btn) {
-  var fd = new FormData();
-  fd.append('csrfmiddlewaretoken', csrfToken);
-  fetch(toggleExclUrl.replace('/0/', '/' + authorId + '/'), { method:'POST', body:fd })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        btn.classList.toggle('active', data.is_excluded);
-        var card = document.getElementById('card-' + authorId);
-        card.classList.toggle('excluded-card', data.is_excluded);
-        // 対象外バッジ更新
-        var badge = document.getElementById('excl-badge-' + authorId);
-        if (data.is_excluded && !badge) {
-          var badges = document.getElementById('badges-' + authorId);
-          var span = document.createElement('span');
-          span.className = 'excluded-badge';
-          span.id = 'excl-badge-' + authorId;
-          span.textContent = '対象外';
-          badges.appendChild(span);
-        } else if (!data.is_excluded && badge) {
-          badge.remove();
-        }
-      }
-    });
-}
-
-function bulkExclude(exclude) {
-  var checks = document.querySelectorAll('.gr-card-check:checked');
-  var ids = [];
-  for (var i = 0; i < checks.length; i++) {
-    ids.push(parseInt(checks[i].dataset.authorId));
+  function updateBulkBar() {
+    var checked = document.querySelectorAll('.gr-card-check:checked').length;
+    var bar = document.getElementById('bulkBar');
+    bar.classList.toggle('active', checked > 0);
+    document.getElementById('bulk-count').textContent = checked + '件選択';
   }
-  if (!ids.length) return;
-  fetch(bulkExcludeUrl, {
-    method:'POST',
-    headers:{'Content-Type':'application/json', 'X-CSRFToken':csrfToken},
-    body: JSON.stringify({author_ids: ids, exclude: exclude})
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) location.reload();
-    });
-}
 
-function updateBulkBar() {
-  var checked = document.querySelectorAll('.gr-card-check:checked').length;
-  var bar = document.getElementById('bulkBar');
-  bar.classList.toggle('active', checked > 0);
-  document.getElementById('bulk-count').textContent = checked + '件選択';
-}
-
-function clearChecks() {
-  var checks = document.querySelectorAll('.gr-card-check:checked');
-  for (var i = 0; i < checks.length; i++) {
-    checks[i].checked = false;
+  function clearChecks() {
+    var checks = document.querySelectorAll('.gr-card-check:checked');
+    for (var i = 0; i < checks.length; i++) {
+      checks[i].checked = false;
+    }
+    updateBulkBar();
   }
-  updateBulkBar();
-}
 </script>
 {% endblock %}

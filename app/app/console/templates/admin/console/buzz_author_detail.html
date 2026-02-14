@@ -1,138 +1,739 @@
 {% extends "admin/console/base.html" %}
 
 {% block title %}投稿者詳細{% endblock %}
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細</div>{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細</div>{%
+endblock %}
 
 {% block content %}
 <style>
   /* ─── 上段: プロフィール + ピン留め ─── */
-  .ad-top-row { display:flex; gap:16px; margin-bottom:16px; align-items:flex-start; }
-  .ad-top-row > .author-profile { flex:1; min-width:0; }
-  .ad-top-row > .pinned-section { flex:1; min-width:0; max-width:50%; }
+  .ad-top-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
 
-  .author-profile { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .author-profile h2 { margin:0 0 4px; font-size:20px; }
-  .author-profile .username { color:#007bff; font-size:16px; margin-bottom:12px; }
-  .author-profile .username a { color:#007bff; text-decoration:none; }
-  .author-profile .verified { display:inline-block; background:#1da1f2; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:8px; }
-  .author-stats { display:flex; gap:24px; margin:12px 0; }
-  .author-stats .stat { text-align:center; }
-  .author-stats .stat-value { font-size:20px; font-weight:bold; display:block; }
-  .author-stats .stat-label { font-size:12px; color:#666; }
-  .author-bio { margin:12px 0; padding:12px; background:#f8f9fa; border-radius:6px; font-size:14px; line-height:1.6; white-space:pre-wrap; }
-  .author-actions { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .author-actions .buzz-btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
-  .author-actions .buzz-btn-primary { background:#007bff; color:#fff; }
-  .author-actions .buzz-btn-primary:hover { background:#0069d9; }
-  .author-actions a.buzz-btn-secondary { background:#495057; color:#fff !important; text-decoration:none; display:inline-block; padding:8px 16px; border:none; border-radius:6px; font-size:14px; }
-  .author-msg { padding:8px 12px; margin:8px 0; border-radius:4px; font-size:13px; display:none; }
-  .author-msg.ok { background:#d4edda; color:#155724; display:block; }
-  .author-msg.err { background:#f8d7da; color:#721c24; display:block; }
+  .ad-top-row>.author-profile {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ad-top-row>.pinned-section {
+    flex: 1;
+    min-width: 0;
+    max-width: 50%;
+  }
+
+  .author-profile {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  }
+
+  .author-profile h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+  }
+
+  .author-profile .username {
+    color: #007bff;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .author-profile .username a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .author-profile .verified {
+    display: inline-block;
+    background: #1da1f2;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 8px;
+  }
+
+  .author-stats {
+    display: flex;
+    gap: 24px;
+    margin: 12px 0;
+  }
+
+  .author-stats .stat {
+    text-align: center;
+  }
+
+  .author-stats .stat-value {
+    font-size: 20px;
+    font-weight: bold;
+    display: block;
+  }
+
+  .author-stats .stat-label {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .author-bio {
+    margin: 12px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .author-actions {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .author-actions .buzz-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .author-actions .buzz-btn-primary {
+    background: #007bff;
+    color: #fff;
+  }
+
+  .author-actions .buzz-btn-primary:hover {
+    background: #0069d9;
+  }
+
+  .author-actions a.buzz-btn-secondary {
+    background: #495057;
+    color: #fff !important;
+    text-decoration: none;
+    display: inline-block;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .author-msg {
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .author-msg.ok {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+  }
+
+  .author-msg.err {
+    background: #f8d7da;
+    color: #721c24;
+    display: block;
+  }
 
   /* ─── ピン留め投稿 ─── */
-  .pinned-section { background:#fffbea; border:1px solid #ffe082; border-radius:8px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .pinned-section h3 { margin:0 0 12px; font-size:15px; color:#e65100; }
-  .pinned-item { background:#fff; border-radius:6px; padding:12px; margin-bottom:8px; border:1px solid #fff3e0; cursor:pointer; }
-  .pinned-item:last-child { margin-bottom:0; }
-  .pinned-item:hover { background:#fff8e1; }
-  .pinned-item .pin-text { font-size:13px; line-height:1.6; white-space:pre-wrap; max-height:4.8em; overflow:hidden; }
-  .pinned-item .pin-meta { font-size:11px; color:#888; margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; }
+  .pinned-section {
+    background: #fffbea;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  }
+
+  .pinned-section h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    color: #e65100;
+  }
+
+  .pinned-item {
+    background: #fff;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #fff3e0;
+    cursor: pointer;
+  }
+
+  .pinned-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .pinned-item:hover {
+    background: #fff8e1;
+  }
+
+  .pinned-item .pin-text {
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 4.8em;
+    overflow: hidden;
+  }
+
+  .pinned-item .pin-meta {
+    font-size: 11px;
+    color: #888;
+    margin-top: 6px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
   /* ─── フィルタ ─── */
-  .ad-filters { background:#f8f9fa; border-radius:8px; padding:12px 16px; margin-bottom:16px; }
-  .ad-filters form { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
-  .ad-filters label { font-size:12px; display:block; margin-bottom:2px; color:#666; }
-  .ad-filters input, .ad-filters select { padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px; }
-  .ad-filters .range-group { display:flex; align-items:center; gap:2px; }
-  .ad-filters .range-group input[type="number"] { width:70px; }
-  .ad-filters .range-sep { font-size:12px; color:#999; padding:0 1px; }
+  .ad-filters {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+
+  .ad-filters form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .ad-filters label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 2px;
+    color: #666;
+  }
+
+  .ad-filters input,
+  .ad-filters select {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .ad-filters .range-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .ad-filters .range-group input[type="number"] {
+    width: 70px;
+  }
+
+  .ad-filters .range-sep {
+    font-size: 12px;
+    color: #999;
+    padding: 0 1px;
+  }
 
   /* ─── 投稿テーブル ─── */
-  .ad-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-  .ad-table th { background:#f1f3f5; padding:8px 10px; font-size:12px; text-align:left; white-space:nowrap; border-bottom:2px solid #dee2e6; }
-  .ad-table td { padding:8px 10px; font-size:13px; border-bottom:1px solid #eee; vertical-align:top; }
-  .ad-table tr:hover { background:#f8f9fa; }
-  .ad-table .text-col { max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
-  .ad-table .text-col:hover { color:#007bff; }
-  .ad-table .num { text-align:right; font-family:monospace; }
-  .viral-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
-  .viral-yes { background:#ffd43b; color:#333; }
-  .media-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:bold; margin-right:4px; }
-  .media-image { background:#e3f2fd; color:#1565c0; }
-  .media-video { background:#fce4ec; color:#c62828; }
-  .media-carousel { background:#e8f5e9; color:#2e7d32; }
-  .pinned-badge { display:inline-block; background:#fff3e0; color:#e65100; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:bold; }
-  .quality-badge-lg { display:inline-block; background:#6f42c1; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:8px; }
+  .ad-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  }
+
+  .ad-table th {
+    background: #f1f3f5;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .ad-table td {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+
+  .ad-table tr:hover {
+    background: #f8f9fa;
+  }
+
+  .ad-table .text-col {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .ad-table .text-col:hover {
+    color: #007bff;
+  }
+
+  .ad-table .num {
+    text-align: right;
+    font-family: monospace;
+  }
+
+  .viral-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .viral-yes {
+    background: #ffd43b;
+    color: #333;
+  }
+
+  .media-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 4px;
+  }
+
+  .media-image {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  .media-video {
+    background: #fce4ec;
+    color: #c62828;
+  }
+
+  .media-carousel {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .pinned-badge {
+    display: inline-block;
+    background: #fff3e0;
+    color: #e65100;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .quality-badge-lg {
+    display: inline-block;
+    background: #6f42c1;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 8px;
+  }
 
   /* 品質スコア内訳 */
-  .quality-breakdown { background:#fff; border-radius:8px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px; }
-  .quality-breakdown h3 { margin:0 0 12px; font-size:15px; color:#6f42c1; }
-  .quality-bars { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; }
-  .quality-bar-item { }
-  .quality-bar-label { font-size:12px; color:#555; margin-bottom:4px; display:flex; justify-content:space-between; }
-  .quality-bar-track { background:#e9ecef; border-radius:4px; height:8px; overflow:hidden; }
-  .quality-bar-fill { height:100%; border-radius:4px; transition:width .3s; }
-  .quality-summary { display:flex; gap:20px; margin-bottom:12px; flex-wrap:wrap; }
-  .quality-summary .qs-item { text-align:center; }
-  .quality-summary .qs-val { font-size:22px; font-weight:bold; display:block; color:#6f42c1; }
-  .quality-summary .qs-lbl { font-size:11px; color:#666; }
+  .quality-breakdown {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    margin-bottom: 16px;
+  }
+
+  .quality-breakdown h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    color: #6f42c1;
+  }
+
+  .quality-bars {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .quality-bar-item {}
+
+  .quality-bar-label {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .quality-bar-track {
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .quality-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width .3s;
+  }
+
+  .quality-summary {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .quality-summary .qs-item {
+    text-align: center;
+  }
+
+  .quality-summary .qs-val {
+    font-size: 22px;
+    font-weight: bold;
+    display: block;
+    color: #6f42c1;
+  }
+
+  .quality-summary .qs-lbl {
+    font-size: 11px;
+    color: #666;
+  }
 
   /* ─── ページネーション ─── */
-  .ad-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
-  .ad-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
-  .ad-pagination a:hover { background:#e9ecef; }
-  .ad-pagination .current { padding:4px 10px; border:1px solid #007bff; border-radius:4px; background:#007bff; color:#fff; }
+  .ad-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    font-size: 13px;
+  }
 
-  .buzz-btn-primary-sm { padding:4px 12px; font-size:13px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
-  .buzz-btn-secondary-sm { padding:4px 12px; font-size:13px; background:#6c757d; color:#fff !important; border:none; border-radius:6px; cursor:pointer; text-decoration:none !important; display:inline-block; }
-  .link-btn { display:inline-block; padding:2px 8px; background:#e9ecef; border-radius:4px; font-size:11px; white-space:nowrap; color:#007bff !important; text-decoration:none !important; }
-  .link-btn:hover { background:#dee2e6; }
+  .ad-pagination a {
+    padding: 4px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .ad-pagination a:hover {
+    background: #e9ecef;
+  }
+
+  .ad-pagination .current {
+    padding: 4px 10px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    background: #007bff;
+    color: #fff;
+  }
+
+  .buzz-btn-primary-sm {
+    padding: 4px 12px;
+    font-size: 13px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .buzz-btn-secondary-sm {
+    padding: 4px 12px;
+    font-size: 13px;
+    background: #6c757d;
+    color: #fff !important;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none !important;
+    display: inline-block;
+  }
+
+  .link-btn {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    color: #007bff !important;
+    text-decoration: none !important;
+  }
+
+  .link-btn:hover {
+    background: #dee2e6;
+  }
 
   /* ─── 投稿モーダル ─── */
-  .post-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:9999; justify-content:center; align-items:center; }
-  .post-modal-overlay.active { display:flex; }
-  .post-modal { background:#fff; border-radius:12px; max-width:680px; width:90%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.25); }
-  .post-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid #eee; }
-  .post-modal-header h4 { margin:0; font-size:15px; }
-  .post-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:0 4px; line-height:1; }
-  .post-modal-close:hover { color:#333; }
-  .post-modal-body { padding:20px; }
-  .post-modal-text { font-size:14px; line-height:1.8; white-space:pre-wrap; margin-bottom:16px; }
-  .post-modal-media { margin-bottom:16px; }
-  .post-modal-media img { max-width:100%; border-radius:8px; margin-bottom:8px; }
-  .post-modal-media video { max-width:100%; border-radius:8px; }
-  .post-modal-media .carousel-wrap { display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; }
-  .post-modal-media .carousel-wrap img { max-width:300px; max-height:300px; object-fit:cover; border-radius:8px; flex-shrink:0; }
-  .post-modal-stats { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:#555; padding:12px 0; border-top:1px solid #eee; }
-  .post-modal-stats span { white-space:nowrap; }
-  .post-modal-link { margin-top:8px; }
-  .post-modal-link a { color:#007bff; font-size:13px; }
+  .post-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .post-modal-overlay.active {
+    display: flex;
+  }
+
+  .post-modal {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 680px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+  }
+
+  .post-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .post-modal-header h4 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .post-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #999;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .post-modal-close:hover {
+    color: #333;
+  }
+
+  .post-modal-body {
+    padding: 20px;
+  }
+
+  .post-modal-text {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 16px;
+  }
+
+  .post-modal-media {
+    margin-bottom: 16px;
+  }
+
+  .post-modal-media img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .post-modal-media video {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .post-modal-media .carousel-wrap {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .post-modal-media .carousel-wrap img {
+    max-width: 300px;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .post-modal-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: #555;
+    padding: 12px 0;
+    border-top: 1px solid #eee;
+  }
+
+  .post-modal-stats span {
+    white-space: nowrap;
+  }
+
+  .post-modal-link {
+    margin-top: 8px;
+  }
+
+  .post-modal-link a {
+    color: #007bff;
+    font-size: 13px;
+  }
 
   /* エラー詳細モーダル */
-  .error-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:10000; justify-content:center; align-items:center; }
-  .error-modal-overlay.active { display:flex; }
-  .error-modal { background:#fff; border-radius:12px; max-width:700px; width:92%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.25); }
-  .error-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid #eee; }
-  .error-modal-header h4 { margin:0; font-size:15px; }
-  .error-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:0 4px; line-height:1; }
-  .error-modal-close:hover { color:#333; }
-  .error-modal-body { padding:20px; }
-  .error-badge { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; font-weight:bold; color:#fff; margin-bottom:12px; }
-  .error-badge-SESSION { background:#e65100; }
-  .error-badge-BLOCKED { background:#c62828; }
-  .error-badge-TIMEOUT { background:#f57f17; }
-  .error-badge-NETWORK { background:#1565c0; }
-  .error-badge-UNKNOWN { background:#6c757d; }
-  .error-remedy { background:#e7f5ff; border-left:3px solid #007bff; padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; margin:10px 0; white-space:pre-line; line-height:1.7; }
-  .error-message-text { background:#f8f9fa; border-radius:6px; padding:10px 14px; font-size:13px; margin:10px 0; white-space:pre-wrap; word-break:break-all; }
-  .error-tb-details { margin:10px 0; }
-  .error-tb-details summary { cursor:pointer; font-size:13px; color:#007bff; }
-  .error-tb-details pre { background:#1e1e1e; color:#d4d4d4; border-radius:6px; padding:12px; font-size:12px; overflow-x:auto; margin-top:8px; white-space:pre-wrap; word-break:break-all; }
+  .error-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, .5);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .error-modal-overlay.active {
+    display: flex;
+  }
+
+  .error-modal {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+  }
+
+  .error-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .error-modal-header h4 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .error-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #999;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .error-modal-close:hover {
+    color: #333;
+  }
+
+  .error-modal-body {
+    padding: 20px;
+  }
+
+  .error-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  .error-badge-SESSION {
+    background: #e65100;
+  }
+
+  .error-badge-BLOCKED {
+    background: #c62828;
+  }
+
+  .error-badge-TIMEOUT {
+    background: #f57f17;
+  }
+
+  .error-badge-NETWORK {
+    background: #1565c0;
+  }
+
+  .error-badge-UNKNOWN {
+    background: #6c757d;
+  }
+
+  .error-remedy {
+    background: #e7f5ff;
+    border-left: 3px solid #007bff;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    margin: 10px 0;
+    white-space: pre-line;
+    line-height: 1.7;
+  }
+
+  .error-message-text {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin: 10px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .error-tb-details {
+    margin: 10px 0;
+  }
+
+  .error-tb-details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: #007bff;
+  }
+
+  .error-tb-details pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin-top: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 </style>
 
 <!-- Cookie 警告 -->
 {% if session_warning %}
-<div style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px;">
+<div
+  style="background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:6px; padding:10px 16px; margin-bottom:12px; font-size:13px;">
   {{ session_warning }}
 </div>
 {% endif %}
@@ -143,18 +744,24 @@
   <div class="author-profile">
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
       {% if author.profile_pic_url %}
-      <img src="{{ author.profile_pic_url }}" alt="@{{ author.username }}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;" onerror="this.style.display='none'">
+      <img src="{{ author.profile_pic_url }}" alt="@{{ author.username }}"
+        style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;"
+        onerror="this.style.display='none'">
       {% endif %}
       <div>
         <h2 style="margin:0 0 4px;">
           {{ author.display_name|default:author.username }}
           {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
           {% if author.is_quality_account %}<span class="quality-badge-lg">優良</span>{% endif %}
-          <a href="#" id="fav-toggle" onclick="toggleFavorite(event)" title="お気に入り" style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{% if author.is_favorited %}★{% else %}☆{% endif %}</a>
-          <a href="#" id="excluded-toggle" onclick="toggleExcluded(event)" title="対象外" style="text-decoration:none; font-size:13px; margin-left:10px; cursor:pointer; padding:2px 8px; border-radius:10px; {% if author.is_excluded %}background:#dc3545; color:#fff;{% else %}background:#e9ecef; color:#999;{% endif %}">対象外</a>
+          <a href="#" id="fav-toggle" onclick="toggleFavorite(event)" title="お気に入り"
+            style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{%
+            if author.is_favorited %}★{% else %}☆{% endif %}</a>
+          <a href="#" id="excluded-toggle" onclick="toggleExcluded(event)" title="対象外"
+            style="text-decoration:none; font-size:13px; margin-left:10px; cursor:pointer; padding:2px 8px; border-radius:10px; {% if author.is_excluded %}background:#dc3545; color:#fff;{% else %}background:#e9ecef; color:#999;{% endif %}">対象外</a>
         </h2>
         <div class="username">
-          <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
+          <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username
+            }}</a>
         </div>
       </div>
     </div>
@@ -201,7 +808,8 @@
       <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
         <input type="checkbox" id="exclude-replies" checked> リプライを除外
       </label>
-      <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn-secondary" style="padding:8px 16px; border-radius:6px; font-size:14px;">この投稿者で検索結果を絞り込み</a>
+      <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn-secondary"
+        style="padding:8px 16px; border-radius:6px; font-size:14px;">この投稿者で検索結果を絞り込み</a>
     </div>
     <div id="author-message" class="author-msg"></div>
 
@@ -225,19 +833,189 @@
         {% if post.engagement_score %}<span>スコア: {{ post.engagement_score|floatformat:1 }}</span>{% endif %}
         {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
         {% if post.media_type == 'image' %}
-          <span class="media-badge media-image">画像</span>
+        <span class="media-badge media-image">画像</span>
         {% elif post.media_type == 'video' %}
-          <span class="media-badge media-video">動画</span>
+        <span class="media-badge media-video">動画</span>
         {% elif post.media_type == 'carousel' %}
-          <span class="media-badge media-carousel">複数画像</span>
+        <span class="media-badge media-carousel">複数画像</span>
         {% endif %}
-        {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:11px;" onclick="event.stopPropagation()">元投稿</a></span>{% endif %}
+        {% if post.post_url %}<span><a href="{{ post.post_url }}" target="_blank" rel="noopener" style="font-size:11px;"
+            onclick="event.stopPropagation()">元投稿</a></span>{% endif %}
       </div>
     </div>
     {% endfor %}
   </div>
   {% endif %}
 </div>
+
+<!-- コンセプト分析メモ -->
+<div
+  style="background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:16px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="margin:0; font-size:15px; color:#495057;">📝 コンセプト分析メモ</h3>
+    <span id="memo-status" style="font-size:12px; color:#999;"></span>
+  </div>
+
+  <!-- 伸びている要因チェックリスト -->
+  <div style="background:#f8f9fa; border-radius:6px; padding:12px 16px; margin-bottom:12px;">
+    <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">伸びている要因（参考ポイント）</div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="投稿頻度が高い" style="display:none;"
+          onchange="updateTagStyle(this)"> 投稿頻度が高い
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="ビジュアルが魅力的" style="display:none;"
+          onchange="updateTagStyle(this)"> ビジュアルが魅力的
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="キャラが立っている" style="display:none;"
+          onchange="updateTagStyle(this)"> キャラが立っている
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="文章が読みやすい" style="display:none;"
+          onchange="updateTagStyle(this)"> 文章が読みやすい
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="CTA/導線が明確" style="display:none;"
+          onchange="updateTagStyle(this)"> CTA/導線が明確
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="専門性/権威性が高い" style="display:none;"
+          onchange="updateTagStyle(this)"> 専門性/権威性が高い
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="トレンド/時事に敏感" style="display:none;"
+          onchange="updateTagStyle(this)"> トレンド/時事に敏感
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="コミュニティ形成力" style="display:none;"
+          onchange="updateTagStyle(this)"> コミュニティ形成力
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="マネタイズ導線あり" style="display:none;"
+          onchange="updateTagStyle(this)"> マネタイズ導線あり
+      </label>
+      <label class="memo-tag"
+        style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:14px; font-size:12px; cursor:pointer; border:1px solid #dee2e6; background:#fff; transition:all .2s;">
+        <input type="checkbox" class="growth-factor" value="独自の世界観" style="display:none;"
+          onchange="updateTagStyle(this)"> 独自の世界観
+      </label>
+    </div>
+  </div>
+
+  <!-- 自由記述メモ -->
+  <textarea id="memo-text" rows="5" placeholder="このアカウントの特徴、参考にしたいポイント、コンセプト設計へのメモなどを自由に記入..."
+    style="width:100%; padding:10px 12px; border:1px solid #dee2e6; border-radius:6px; font-size:13px; line-height:1.6; resize:vertical; font-family:inherit; box-sizing:border-box;">{{ author.memo }}</textarea>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+    <button onclick="saveMemo()" class="buzz-btn buzz-btn-primary" style="padding:6px 20px; font-size:13px;">💾
+      メモを保存</button>
+    <span style="font-size:11px; color:#999;">Ctrl+S でも保存できます</span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // ─── メモの初期化: タグをパース ───
+    var memoText = document.getElementById('memo-text');
+    var rawMemo = memoText.value;
+
+    // メモ先頭の [タグ] を検出してチェックリストに反映
+    var tagPattern = /^\[factors:\s*(.+?)\]\n?/;
+    var tagMatch = rawMemo.match(tagPattern);
+    if (tagMatch) {
+      var savedFactors = tagMatch[1].split(',').map(function (s) { return s.trim(); });
+      document.querySelectorAll('.growth-factor').forEach(function (cb) {
+        if (savedFactors.indexOf(cb.value) !== -1) {
+          cb.checked = true;
+          updateTagStyle(cb);
+        }
+      });
+      // タグ行をテキストエリアから除去して表示
+      memoText.value = rawMemo.replace(tagPattern, '');
+    }
+
+    // ─── Ctrl+S で保存 ───
+    memoText.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveMemo();
+      }
+    });
+  })();
+
+  function updateTagStyle(checkbox) {
+    var label = checkbox.parentElement;
+    if (checkbox.checked) {
+      label.style.background = '#e7f5ff';
+      label.style.borderColor = '#74c0fc';
+      label.style.color = '#1971c2';
+      label.style.fontWeight = 'bold';
+    } else {
+      label.style.background = '#fff';
+      label.style.borderColor = '#dee2e6';
+      label.style.color = '';
+      label.style.fontWeight = '';
+    }
+  }
+
+  function saveMemo() {
+    var statusEl = document.getElementById('memo-status');
+    statusEl.textContent = '保存中...';
+    statusEl.style.color = '#007bff';
+
+    // チェックされたタグを収集
+    var factors = [];
+    document.querySelectorAll('.growth-factor:checked').forEach(function (cb) {
+      factors.push(cb.value);
+    });
+
+    // メモ本文を取得
+    var text = document.getElementById('memo-text').value.trim();
+
+    // タグがある場合は先頭行に埋め込み
+    var fullMemo = '';
+    if (factors.length > 0) {
+      fullMemo = '[factors: ' + factors.join(', ') + ']\n' + text;
+    } else {
+      fullMemo = text;
+    }
+
+    fetch('{% url "console:buzz_save_memo" pk=author.pk %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ memo: fullMemo })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          statusEl.textContent = '✅ 保存しました';
+          statusEl.style.color = '#2b8a3e';
+          setTimeout(function () { statusEl.textContent = ''; }, 3000);
+        } else {
+          statusEl.textContent = '❌ 保存に失敗しました';
+          statusEl.style.color = '#c92a2a';
+        }
+      })
+      .catch(function (err) {
+        statusEl.textContent = '❌ エラー: ' + err;
+        statusEl.style.color = '#c92a2a';
+      });
+  }
+</script>
 
 <!-- 品質スコア内訳 -->
 {% if author.quality_score %}
@@ -307,13 +1085,14 @@
   </div>
 </div>
 <script>
-(function(){
-  // 品質スコアの内訳をバーで表示（サーバーサイドで個別スコアは保存していないため、
-  // 総合スコアと利用可能なメタデータから概算表示）
-  var goodRatio = {{ author.good_post_ratio|default:"0" }};
-  var recentCount = {{ author.recent_post_count|default:"0" }};
-  var avgInterval = {{ author.avg_post_interval_days|default:"999" }};
-  var totalPosts = {{ author.total_post_count|default:"0" }};
+  (function () {
+    // 品質スコアの内訳をバーで表示（サーバーサイドで個別スコアは保存していないため、
+    // 総合スコアと利用可能なメタデータから概算表示）
+    var goodRatio = {{ author.good_post_ratio|default: "0"
+  }};
+  var recentCount = {{ author.recent_post_count|default: "0" }};
+  var avgInterval = {{ author.avg_post_interval_days|default: "999" }};
+  var totalPosts = {{ author.total_post_count|default: "0" }};
 
   // エンゲージメント品質
   var engScore;
@@ -352,7 +1131,7 @@
   document.getElementById('qbar-recency').style.width = Math.min(recencyScore, 100) + '%';
   document.getElementById('qbar-freq').style.width = Math.min(freqScore, 100) + '%';
   document.getElementById('qbar-conf').style.width = Math.min(confScore, 100) + '%';
-})();
+}) ();
 </script>
 {% endif %}
 
@@ -367,7 +1146,7 @@
       <label>バズのみ</label>
       <select name="viral">
         <option value="">全て</option>
-        <option value="1" {% if current_viral == "1" %}selected{% endif %}>バズのみ</option>
+        <option value="1" {% if current_viral=="1" %}selected{% endif %}>バズのみ</option>
       </select>
     </div>
     <div>
@@ -413,13 +1192,14 @@
     <div>
       <label>ソート</label>
       <select name="sort">
-        <option value="-scraped_at" {% if current_sort == "-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
-        <option value="-posted_at" {% if current_sort == "-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
-        <option value="-engagement_score" {% if current_sort == "-engagement_score" %}selected{% endif %}>バズスコア(高い順)</option>
-        <option value="-like_count" {% if current_sort == "-like_count" %}selected{% endif %}>いいね数(多い順)</option>
-        <option value="-impressions" {% if current_sort == "-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
-        <option value="-engagement_rate" {% if current_sort == "-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
-        <option value="-reply_count" {% if current_sort == "-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
+        <option value="-scraped_at" {% if current_sort=="-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
+        <option value="-posted_at" {% if current_sort=="-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
+        <option value="-engagement_score" {% if current_sort=="-engagement_score" %}selected{% endif %}>バズスコア(高い順)
+        </option>
+        <option value="-like_count" {% if current_sort=="-like_count" %}selected{% endif %}>いいね数(多い順)</option>
+        <option value="-impressions" {% if current_sort=="-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
+        <option value="-engagement_rate" {% if current_sort=="-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
+        <option value="-reply_count" {% if current_sort=="-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
       </select>
     </div>
     <button type="submit" class="buzz-btn-primary-sm">絞り込み</button>
@@ -456,13 +1236,13 @@
       </td>
       <td style="white-space:nowrap;">
         {% if post.media_type == 'image' %}
-          <span class="media-badge media-image">画像</span>
+        <span class="media-badge media-image">画像</span>
         {% elif post.media_type == 'video' %}
-          <span class="media-badge media-video">動画</span>
+        <span class="media-badge media-video">動画</span>
         {% elif post.media_type == 'carousel' %}
-          <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
+        <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
         {% else %}
-          <span style="color:#ccc; font-size:11px;">-</span>
+        <span style="color:#ccc; font-size:11px;">-</span>
         {% endif %}
       </td>
       <td class="num">{{ post.like_count }}</td>
@@ -475,28 +1255,33 @@
       <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
       <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
       <td style="white-space:nowrap;">
-        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
+        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{%
+        endif %}
       </td>
     </tr>
     {% endfor %}
     {% if not page_obj.object_list %}
-    <tr><td colspan="12" style="color:#999; text-align:center; padding:24px;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</td></tr>
+    <tr>
+      <td colspan="12" style="color:#999; text-align:center; padding:24px;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</td>
+    </tr>
     {% endif %}
   </tbody>
 </table>
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
+{% with
+fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max
+%}
 <div class="ad-pagination">
   {% if page_obj.has_previous %}
-    <a href="?page=1{{ fp }}">&laquo; 最初</a>
-    <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  <a href="?page=1{{ fp }}">&laquo; 最初</a>
+  <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
   {% endif %}
   <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
-    <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
+  <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
   {% endif %}
 </div>
 {% endwith %}
@@ -531,323 +1316,323 @@
 </div>
 
 <script>
-// 投稿データを JS オブジェクトとして埋め込み
-const POST_DATA = {
+  // 投稿データを JS オブジェクトとして埋め込み
+  const POST_DATA = {
   {% for post in page_obj %}
-  {{ post.pk }}: {
+  { { post.pk } }: {
     text: '',
-    like: {{ post.like_count }},
-    reply: {{ post.reply_count }},
-    repost: {{ post.repost_count }},
-    imp: {{ post.impressions|default:"null" }},
-    score: {{ post.engagement_score|default:"null" }},
-    er: {{ post.engagement_rate|default:"null" }},
-    viral: {{ post.is_viral|yesno:"true,false" }},
+      like: { { post.like_count } },
+    reply: { { post.reply_count } },
+    repost: { { post.repost_count } },
+    imp: { { post.impressions |default: "null" } },
+    score: { { post.engagement_score |default: "null" } },
+    er: { { post.engagement_rate |default: "null" } },
+    viral: { { post.is_viral | yesno: "true,false" } },
     posted: '{{ post.posted_at|date:"Y/m/d H:i"|default:"" }}',
-    scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
-    url: '{{ post.post_url|default:"" }}',
-    pinned: {{ post.raw_json.is_pinned|yesno:"true,false" }},
+      scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
+        url: '{{ post.post_url|default:"" }}',
+          pinned: { { post.raw_json.is_pinned | yesno: "true,false" } },
     mediaType: '{{ post.media_type|default:"" }}',
-    mediaUrls: {{ post.media_urls_json|safe }},
+      mediaUrls: { { post.media_urls_json | safe } },
   },
   {% endfor %}
   {% for post in pinned_posts %}
   {% if not post.pk in page_obj.object_list %}
-  {{ post.pk }}: {
+  { { post.pk } }: {
     text: '',
-    like: {{ post.like_count }},
-    reply: {{ post.reply_count }},
-    repost: {{ post.repost_count }},
-    imp: {{ post.impressions|default:"null" }},
-    score: {{ post.engagement_score|default:"null" }},
-    er: {{ post.engagement_rate|default:"null" }},
-    viral: {{ post.is_viral|yesno:"true,false" }},
+      like: { { post.like_count } },
+    reply: { { post.reply_count } },
+    repost: { { post.repost_count } },
+    imp: { { post.impressions |default: "null" } },
+    score: { { post.engagement_score |default: "null" } },
+    er: { { post.engagement_rate |default: "null" } },
+    viral: { { post.is_viral | yesno: "true,false" } },
     posted: '{{ post.posted_at|date:"Y/m/d H:i"|default:"" }}',
-    scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
-    url: '{{ post.post_url|default:"" }}',
-    pinned: true,
-    mediaType: '{{ post.media_type|default:"" }}',
-    mediaUrls: {{ post.media_urls_json|safe }},
+      scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
+        url: '{{ post.post_url|default:"" }}',
+          pinned: true,
+            mediaType: '{{ post.media_type|default:"" }}',
+              mediaUrls: { { post.media_urls_json | safe } },
   },
   {% endif %}
   {% endfor %}
 };
 
-// テキストデータは escapejs で安全に埋め込むのが難しいため、hidden要素から取得
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('[data-post-text]').forEach(function(el) {
-    const pk = el.dataset.postPk;
-    if (POST_DATA[pk]) {
-      POST_DATA[pk].text = el.textContent;
+  // テキストデータは escapejs で安全に埋め込むのが難しいため、hidden要素から取得
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-post-text]').forEach(function (el) {
+      const pk = el.dataset.postPk;
+      if (POST_DATA[pk]) {
+        POST_DATA[pk].text = el.textContent;
+      }
+    });
+  });
+
+  // Instagram CDN の CORP ヘッダー回避用プロキシ
+  const MEDIA_PROXY_URL = '{% url "console:buzz_media_proxy" %}';
+  function proxyUrl(url) {
+    if (!url) return '';
+    if (url.indexOf('cdninstagram.com/') !== -1) {
+      return MEDIA_PROXY_URL + '?url=' + encodeURIComponent(url);
+    }
+    return url;
+  }
+
+  // プロフィール画像をプロキシ経由に変換
+  document.querySelectorAll('.author-profile img[alt^="@"]').forEach(function (img) {
+    var src = img.getAttribute('src');
+    if (src && src.indexOf('cdninstagram.com/') !== -1) {
+      img.src = proxyUrl(src);
     }
   });
-});
 
-// Instagram CDN の CORP ヘッダー回避用プロキシ
-const MEDIA_PROXY_URL = '{% url "console:buzz_media_proxy" %}';
-function proxyUrl(url) {
-  if (!url) return '';
-  if (url.indexOf('cdninstagram.com/') !== -1) {
-    return MEDIA_PROXY_URL + '?url=' + encodeURIComponent(url);
-  }
-  return url;
-}
+  function openPostModal(postId) {
+    const d = POST_DATA[postId];
+    if (!d) return;
 
-// プロフィール画像をプロキシ経由に変換
-document.querySelectorAll('.author-profile img[alt^="@"]').forEach(function(img) {
-  var src = img.getAttribute('src');
-  if (src && src.indexOf('cdninstagram.com/') !== -1) {
-    img.src = proxyUrl(src);
-  }
-});
+    // デバッグ: メディアデータの確認
+    console.log('[PostModal] id=' + postId, 'mediaType=' + d.mediaType,
+      'mediaUrls=', d.mediaUrls, 'type=' + typeof d.mediaUrls,
+      'length=' + (d.mediaUrls ? d.mediaUrls.length : 'N/A'));
 
-function openPostModal(postId) {
-  const d = POST_DATA[postId];
-  if (!d) return;
+    // テキストが空の場合は hidden 要素から再取得を試みる
+    let text = d.text;
+    const hiddenEl = document.querySelector('[data-post-pk="' + postId + '"]');
+    if (hiddenEl) text = hiddenEl.textContent;
 
-  // デバッグ: メディアデータの確認
-  console.log('[PostModal] id=' + postId, 'mediaType=' + d.mediaType,
-    'mediaUrls=', d.mediaUrls, 'type=' + typeof d.mediaUrls,
-    'length=' + (d.mediaUrls ? d.mediaUrls.length : 'N/A'));
+    const modal = document.getElementById('postModal');
+    const titleEl = document.getElementById('modalTitle');
+    const textEl = document.getElementById('modalText');
+    const mediaEl = document.getElementById('modalMedia');
+    const statsEl = document.getElementById('modalStats');
+    const linkEl = document.getElementById('modalLink');
 
-  // テキストが空の場合は hidden 要素から再取得を試みる
-  let text = d.text;
-  const hiddenEl = document.querySelector('[data-post-pk="' + postId + '"]');
-  if (hiddenEl) text = hiddenEl.textContent;
+    // タイトル
+    let title = '投稿詳細';
+    if (d.pinned) title = '投稿詳細（ピン留め）';
+    titleEl.textContent = title;
 
-  const modal = document.getElementById('postModal');
-  const titleEl = document.getElementById('modalTitle');
-  const textEl = document.getElementById('modalText');
-  const mediaEl = document.getElementById('modalMedia');
-  const statsEl = document.getElementById('modalStats');
-  const linkEl = document.getElementById('modalLink');
+    // テキスト
+    textEl.textContent = text;
 
-  // タイトル
-  let title = '投稿詳細';
-  if (d.pinned) title = '投稿詳細（ピン留め）';
-  titleEl.textContent = title;
-
-  // テキスト
-  textEl.textContent = text;
-
-  // メディア
-  mediaEl.innerHTML = '';
-  if (d.mediaType && d.mediaType !== 'text' && (!d.mediaUrls || d.mediaUrls.length === 0)) {
-    mediaEl.innerHTML = '<p style="color:#999; font-size:12px;">[' + d.mediaType + ' 投稿: メディアURL未取得 - 再スクレイプが必要です]</p>';
-  } else if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
-    if (d.mediaType === 'carousel') {
-      const wrap = document.createElement('div');
-      wrap.className = 'carousel-wrap';
-      d.mediaUrls.forEach(function(m) {
-        if (m.type === 'video') {
-          const v = document.createElement('video');
-          v.src = proxyUrl(m.url); v.controls = true;
-          v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
-          wrap.appendChild(v);
-        } else {
-          const img = document.createElement('img');
-          img.src = proxyUrl(m.url); img.loading = 'lazy';
-          wrap.appendChild(img);
-        }
-      });
-      mediaEl.appendChild(wrap);
-    } else if (d.mediaType === 'video') {
-      d.mediaUrls.forEach(function(m) {
-        if (m.type === 'video') {
-          const v = document.createElement('video');
-          v.src = proxyUrl(m.url); v.controls = true;
-          mediaEl.appendChild(v);
-        } else if (m.type === 'thumbnail') {
+    // メディア
+    mediaEl.innerHTML = '';
+    if (d.mediaType && d.mediaType !== 'text' && (!d.mediaUrls || d.mediaUrls.length === 0)) {
+      mediaEl.innerHTML = '<p style="color:#999; font-size:12px;">[' + d.mediaType + ' 投稿: メディアURL未取得 - 再スクレイプが必要です]</p>';
+    } else if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
+      if (d.mediaType === 'carousel') {
+        const wrap = document.createElement('div');
+        wrap.className = 'carousel-wrap';
+        d.mediaUrls.forEach(function (m) {
+          if (m.type === 'video') {
+            const v = document.createElement('video');
+            v.src = proxyUrl(m.url); v.controls = true;
+            v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
+            wrap.appendChild(v);
+          } else {
+            const img = document.createElement('img');
+            img.src = proxyUrl(m.url); img.loading = 'lazy';
+            wrap.appendChild(img);
+          }
+        });
+        mediaEl.appendChild(wrap);
+      } else if (d.mediaType === 'video') {
+        d.mediaUrls.forEach(function (m) {
+          if (m.type === 'video') {
+            const v = document.createElement('video');
+            v.src = proxyUrl(m.url); v.controls = true;
+            mediaEl.appendChild(v);
+          } else if (m.type === 'thumbnail') {
+            const img = document.createElement('img');
+            img.src = proxyUrl(m.url); img.loading = 'lazy';
+            mediaEl.appendChild(img);
+          }
+        });
+      } else if (d.mediaType === 'image') {
+        d.mediaUrls.forEach(function (m) {
           const img = document.createElement('img');
           img.src = proxyUrl(m.url); img.loading = 'lazy';
           mediaEl.appendChild(img);
-        }
-      });
-    } else if (d.mediaType === 'image') {
-      d.mediaUrls.forEach(function(m) {
-        const img = document.createElement('img');
-        img.src = proxyUrl(m.url); img.loading = 'lazy';
-        mediaEl.appendChild(img);
-      });
-    }
-  }
-
-  // 統計
-  let stats = '';
-  stats += '<span>いいね: <b>' + d.like + '</b></span>';
-  stats += '<span>リプライ: <b>' + d.reply + '</b></span>';
-  stats += '<span>リポスト: <b>' + d.repost + '</b></span>';
-  if (d.imp !== null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
-  if (d.score !== null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
-  if (d.er !== null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
-  if (d.viral) stats += '<span class="viral-badge viral-yes">BUZZ</span>';
-  if (d.posted) stats += '<span>投稿: ' + d.posted + '</span>';
-  stats += '<span>取得: ' + d.scraped + '</span>';
-  statsEl.innerHTML = stats;
-
-  // リンク
-  if (d.url) {
-    linkEl.innerHTML = '<a href="' + d.url + '" target="_blank" rel="noopener">元投稿を開く</a>';
-  } else {
-    linkEl.innerHTML = '';
-  }
-
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closePostModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('postModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closePostModal(); closeErrorModal(); }
-});
-
-function fetchAuthorPosts() {
-  const msgEl = document.getElementById('author-message');
-  msgEl.className = 'author-msg ok';
-  msgEl.textContent = '投稿取得を開始しています...';
-
-  const fd = new FormData();
-  fd.append('author_id', '{{ author.pk }}');
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  if (document.getElementById('exclude-replies').checked) {
-    fd.append('exclude_replies', '1');
-  }
-
-  fetch('{% url "console:buzz_fetch_author_posts" %}', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        msgEl.className = 'author-msg ok';
-        msgEl.textContent = data.message + ' バックグラウンドで処理中です。';
-        if (data.job_id) {
-          pollAuthorJobStatus(data.job_id);
-        }
-      } else {
-        msgEl.className = 'author-msg err';
-        msgEl.textContent = data.error || 'エラーが発生しました';
+        });
       }
-    })
-    .catch(err => {
-      msgEl.className = 'author-msg err';
-      msgEl.textContent = 'リクエストエラー: ' + err;
-    });
-}
+    }
 
-function pollAuthorJobStatus(jobId) {
-  const msgEl = document.getElementById('author-message');
-  const interval = setInterval(() => {
+    // 統計
+    let stats = '';
+    stats += '<span>いいね: <b>' + d.like + '</b></span>';
+    stats += '<span>リプライ: <b>' + d.reply + '</b></span>';
+    stats += '<span>リポスト: <b>' + d.repost + '</b></span>';
+    if (d.imp !== null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
+    if (d.score !== null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
+    if (d.er !== null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
+    if (d.viral) stats += '<span class="viral-badge viral-yes">BUZZ</span>';
+    if (d.posted) stats += '<span>投稿: ' + d.posted + '</span>';
+    stats += '<span>取得: ' + d.scraped + '</span>';
+    statsEl.innerHTML = stats;
+
+    // リンク
+    if (d.url) {
+      linkEl.innerHTML = '<a href="' + d.url + '" target="_blank" rel="noopener">元投稿を開く</a>';
+    } else {
+      linkEl.innerHTML = '';
+    }
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePostModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('postModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closePostModal(); closeErrorModal(); }
+  });
+
+  function fetchAuthorPosts() {
+    const msgEl = document.getElementById('author-message');
+    msgEl.className = 'author-msg ok';
+    msgEl.textContent = '投稿取得を開始しています...';
+
+    const fd = new FormData();
+    fd.append('author_id', '{{ author.pk }}');
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    if (document.getElementById('exclude-replies').checked) {
+      fd.append('exclude_replies', '1');
+    }
+
+    fetch('{% url "console:buzz_fetch_author_posts" %}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          msgEl.className = 'author-msg ok';
+          msgEl.textContent = data.message + ' バックグラウンドで処理中です。';
+          if (data.job_id) {
+            pollAuthorJobStatus(data.job_id);
+          }
+        } else {
+          msgEl.className = 'author-msg err';
+          msgEl.textContent = data.error || 'エラーが発生しました';
+        }
+      })
+      .catch(err => {
+        msgEl.className = 'author-msg err';
+        msgEl.textContent = 'リクエストエラー: ' + err;
+      });
+  }
+
+  function pollAuthorJobStatus(jobId) {
+    const msgEl = document.getElementById('author-message');
+    const interval = setInterval(() => {
+      fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'COMPLETED') {
+            clearInterval(interval);
+            msgEl.className = 'author-msg ok';
+            msgEl.textContent = '完了: ' + data.result_count + '件取得しました。ページを更新してください。';
+          } else if (data.status === 'FAILED') {
+            clearInterval(interval);
+            msgEl.className = 'author-msg err';
+            msgEl.innerHTML = '失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
+              ' <a href="#" onclick="showJobError(' + jobId + '); return false;" style="color:#007bff;">詳細を見る</a>';
+          } else {
+            msgEl.textContent = '投稿取得中... (ジョブID: ' + jobId + ')';
+          }
+        })
+        .catch(() => clearInterval(interval));
+    }, 3000);
+  }
+
+  const ERROR_CATEGORY_LABELS = {
+    SESSION: 'セッション切れ',
+    BLOCKED: 'アクセス制限',
+    TIMEOUT: 'タイムアウト',
+    NETWORK: '接続エラー',
+    UNKNOWN: '不明なエラー',
+  };
+
+  function showJobError(jobId) {
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status === 'COMPLETED') {
-          clearInterval(interval);
-          msgEl.className = 'author-msg ok';
-          msgEl.textContent = '完了: ' + data.result_count + '件取得しました。ページを更新してください。';
-        } else if (data.status === 'FAILED') {
-          clearInterval(interval);
-          msgEl.className = 'author-msg err';
-          msgEl.innerHTML = '失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
-            ' <a href="#" onclick="showJobError(' + jobId + '); return false;" style="color:#007bff;">詳細を見る</a>';
-        } else {
-          msgEl.textContent = '投稿取得中... (ジョブID: ' + jobId + ')';
+        if (data.status !== 'FAILED') return;
+        const category = data.error_category || 'UNKNOWN';
+        const label = ERROR_CATEGORY_LABELS[category] || category;
+        const remedy = data.remedy || '';
+        const msg = data.error_message || '';
+        const tbText = data.error_traceback || '';
+
+        let html = '<span class="error-badge error-badge-' + category + '">' + label + '</span>';
+        if (remedy) {
+          html += '<div class="error-remedy">' + escapeHtml(remedy) + '</div>';
+        }
+        html += '<div class="error-message-text">' + escapeHtml(msg) + '</div>';
+        if (tbText) {
+          html += '<details class="error-tb-details"><summary>トレースバック（詳細）</summary><pre>' + escapeHtml(tbText) + '</pre></details>';
+        }
+        document.getElementById('errorModalBody').innerHTML = html;
+        document.getElementById('errorModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(err => alert('エラー詳細の取得に失敗しました: ' + err));
+  }
+
+  function closeErrorModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('errorModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function toggleFavorite(e) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "console:buzz_toggle_favorite" pk=author.pk %}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          const el = document.getElementById('fav-toggle');
+          if (data.is_favorited) {
+            el.textContent = '\u2605';
+            el.style.color = '#f5a623';
+          } else {
+            el.textContent = '\u2606';
+            el.style.color = '#ccc';
+          }
         }
       })
-      .catch(() => clearInterval(interval));
-  }, 3000);
-}
+      .catch(err => console.error('toggleFavorite error:', err));
+  }
 
-const ERROR_CATEGORY_LABELS = {
-  SESSION: 'セッション切れ',
-  BLOCKED: 'アクセス制限',
-  TIMEOUT: 'タイムアウト',
-  NETWORK: '接続エラー',
-  UNKNOWN: '不明なエラー',
-};
-
-function showJobError(jobId) {
-  fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
-    .then(r => r.json())
-    .then(data => {
-      if (data.status !== 'FAILED') return;
-      const category = data.error_category || 'UNKNOWN';
-      const label = ERROR_CATEGORY_LABELS[category] || category;
-      const remedy = data.remedy || '';
-      const msg = data.error_message || '';
-      const tbText = data.error_traceback || '';
-
-      let html = '<span class="error-badge error-badge-' + category + '">' + label + '</span>';
-      if (remedy) {
-        html += '<div class="error-remedy">' + escapeHtml(remedy) + '</div>';
-      }
-      html += '<div class="error-message-text">' + escapeHtml(msg) + '</div>';
-      if (tbText) {
-        html += '<details class="error-tb-details"><summary>トレースバック（詳細）</summary><pre>' + escapeHtml(tbText) + '</pre></details>';
-      }
-      document.getElementById('errorModalBody').innerHTML = html;
-      document.getElementById('errorModal').classList.add('active');
-      document.body.style.overflow = 'hidden';
-    })
-    .catch(err => alert('エラー詳細の取得に失敗しました: ' + err));
-}
-
-function closeErrorModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('errorModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function toggleFavorite(e) {
-  e.preventDefault();
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  fetch('{% url "console:buzz_toggle_favorite" pk=author.pk %}', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        const el = document.getElementById('fav-toggle');
-        if (data.is_favorited) {
-          el.textContent = '\u2605';
-          el.style.color = '#f5a623';
-        } else {
-          el.textContent = '\u2606';
-          el.style.color = '#ccc';
+  function toggleExcluded(e) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "console:buzz_toggle_excluded" pk=author.pk %}', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          const el = document.getElementById('excluded-toggle');
+          if (data.is_excluded) {
+            el.style.background = '#dc3545';
+            el.style.color = '#fff';
+          } else {
+            el.style.background = '#e9ecef';
+            el.style.color = '#999';
+          }
         }
-      }
-    })
-    .catch(err => console.error('toggleFavorite error:', err));
-}
-
-function toggleExcluded(e) {
-  e.preventDefault();
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  fetch('{% url "console:buzz_toggle_excluded" pk=author.pk %}', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        const el = document.getElementById('excluded-toggle');
-        if (data.is_excluded) {
-          el.style.background = '#dc3545';
-          el.style.color = '#fff';
-        } else {
-          el.style.background = '#e9ecef';
-          el.style.color = '#999';
-        }
-      }
-    })
-    .catch(err => console.error('toggleExcluded error:', err));
-}
+      })
+      .catch(err => console.error('toggleExcluded error:', err));
+  }
 </script>
 
 <!-- 投稿テキストを hidden 要素に格納（JS で安全に取得するため） -->

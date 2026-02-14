@@ -610,6 +610,7 @@ def buzz_growth_ranking(request):
     include_excluded = request.GET.get('include_excluded', '')
     fortune_only = request.GET.get('fortune_only', '')
     min_fortune_score = request.GET.get('min_fortune_score', '')
+    has_memo = request.GET.get('has_memo', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -659,6 +660,8 @@ def buzz_growth_ranking(request):
             qs = qs.filter(fortune_relevance_score__gte=float(min_fortune_score))
         except (ValueError, TypeError):
             pass
+    if has_memo:
+        qs = qs.exclude(memo='')
     if not include_excluded:
         qs = qs.filter(is_excluded=False)
 
@@ -718,6 +721,8 @@ def buzz_growth_ranking(request):
         'current_fortune_only': bool(fortune_only),
         'current_fortune_only_str': '1' if fortune_only else '',
         'current_min_fortune_score': min_fortune_score,
+        'current_has_memo': bool(has_memo),
+        'current_has_memo_str': '1' if has_memo else '',
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
 
@@ -889,6 +894,21 @@ def buzz_toggle_excluded(request, pk):
     author.is_excluded = not author.is_excluded
     author.save(update_fields=['is_excluded'])
     return JsonResponse({'ok': True, 'is_excluded': author.is_excluded})
+
+
+@staff_member_required
+@require_POST
+def buzz_save_memo(request, pk):
+    """投稿者のメモを保存する API"""
+    author = get_object_or_404(THBuzzAuthor, pk=pk)
+    try:
+        body = json.loads(request.body)
+        memo = body.get('memo', '')
+    except (json.JSONDecodeError, AttributeError):
+        memo = request.POST.get('memo', '')
+    author.memo = memo
+    author.save(update_fields=['memo'])
+    return JsonResponse({'ok': True, 'memo': author.memo})
 
 
 @staff_member_required

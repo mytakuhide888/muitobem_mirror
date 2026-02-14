@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/buzz/job-status/<int:pk>/",     buzz_views.buzz_job_status,        name="buzz_job_status"),
     path("api/buzz/author-favorite/<int:pk>/", buzz_views.buzz_toggle_favorite,   name="buzz_toggle_favorite"),
     path("api/buzz/author-exclude/<int:pk>/", buzz_views.buzz_toggle_excluded,   name="buzz_toggle_excluded"),
+    path("api/buzz/author-memo/<int:pk>/",    buzz_views.buzz_save_memo,         name="buzz_save_memo"),
     path("api/buzz/bulk-exclude/",            buzz_views.buzz_bulk_exclude,       name="buzz_bulk_exclude"),
 
     # 急成長アカウント発見
