@@ -62,8 +62,10 @@
   .gr-card .excluded-badge { display:inline-block; background:#dc3545; color:#fff; padding:1px 6px; border-radius:8px; font-size:10px; margin-left:4px; }
   .gr-card.excluded-card { opacity:0.5; background:#f0f0f0; }
 
-  /* お気に入り/対象外ボタン — カード上部右寄せ */
-  .gr-card-actions { position:absolute; top:12px; right:16px; display:flex; align-items:center; gap:6px; }
+  /* カード上部行: ランク + バッジ + ボタン */
+  .gr-card-top-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .gr-badges { display:flex; align-items:center; gap:4px; flex-wrap:wrap; flex:1; }
+  .gr-card-actions { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
   .gr-fav-btn { cursor:pointer; font-size:18px; color:#ccc; background:none; border:none; padding:0; line-height:1; }
   .gr-fav-btn.active { color:#f5a623; }
   .gr-excl-btn { cursor:pointer; font-size:11px; padding:2px 8px; border-radius:10px; border:none; background:#e9ecef; color:#999; }
@@ -213,10 +215,19 @@
   <div class="gr-card-wrapper">
     <input type="checkbox" class="gr-card-check" data-author-id="{{ author.pk }}" onchange="updateBulkBar()">
     <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}" data-author-id="{{ author.pk }}">
-      <div class="gr-card-actions">
-        <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
-        <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
+      <div class="gr-card-top-row">
         <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+        <div class="gr-badges" id="badges-{{ author.pk }}">
+          {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
+          {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
+          {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
+          {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
+          {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;" id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
+        </div>
+        <div class="gr-card-actions">
+          <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}" onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
+          <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}" onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
+        </div>
       </div>
       <div class="gr-author-row">
         {% if author.profile_pic_url %}
@@ -227,11 +238,6 @@
             <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">
               {{ author.display_name|default:author.username }}
             </a>
-            {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
-            {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
-            {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
-            {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
-            {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;" id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
           </h3>
           <div class="username">
             <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
@@ -777,13 +783,13 @@ function toggleFav(authorId, btn) {
         // お気に入りバッジ更新
         var badge = document.getElementById('fav-badge-' + authorId);
         if (data.is_favorited && !badge) {
-          var h3 = btn.closest('.gr-card').querySelector('h3');
+          var badges = document.getElementById('badges-' + authorId);
           var span = document.createElement('span');
           span.className = 'candidate-badge';
           span.style.background = '#f5a623';
           span.id = 'fav-badge-' + authorId;
           span.textContent = 'お気に入り';
-          h3.appendChild(span);
+          badges.appendChild(span);
         } else if (!data.is_favorited && badge) {
           badge.remove();
         }
@@ -804,12 +810,12 @@ function toggleExcl(authorId, btn) {
         // 対象外バッジ更新
         var badge = document.getElementById('excl-badge-' + authorId);
         if (data.is_excluded && !badge) {
-          var h3 = card.querySelector('h3');
+          var badges = document.getElementById('badges-' + authorId);
           var span = document.createElement('span');
           span.className = 'excluded-badge';
           span.id = 'excl-badge-' + authorId;
           span.textContent = '対象外';
-          h3.appendChild(span);
+          badges.appendChild(span);
         } else if (!data.is_excluded && badge) {
           badge.remove();
         }
