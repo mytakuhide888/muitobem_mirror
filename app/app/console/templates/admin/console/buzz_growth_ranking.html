@@ -750,6 +750,15 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ─── プロフィール画像をプロキシ経由に変換（CDN CORP 回避） ───
+var mediaProxyUrl = '{% url "console:buzz_media_proxy" %}';
+document.querySelectorAll('.gr-avatar').forEach(function(img) {
+  var src = img.getAttribute('src');
+  if (src && src.indexOf('cdninstagram.com/') !== -1) {
+    img.src = mediaProxyUrl + '?url=' + encodeURIComponent(src);
+  }
+});
+
 // ─── お気に入り/対象外/一括操作 ───
 var csrfToken = '{{ csrf_token }}';
 var toggleFavUrl = '{% url "console:buzz_toggle_favorite" pk=0 %}';

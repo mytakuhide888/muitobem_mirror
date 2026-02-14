@@ -593,6 +593,14 @@ function proxyUrl(url) {
   return url;
 }
 
+// プロフィール画像をプロキシ経由に変換
+document.querySelectorAll('.author-profile img[alt^="@"]').forEach(function(img) {
+  var src = img.getAttribute('src');
+  if (src && src.indexOf('cdninstagram.com/') !== -1) {
+    img.src = proxyUrl(src);
+  }
+});
+
 function openPostModal(postId) {
   const d = POST_DATA[postId];
   if (!d) return;

@@ -600,6 +600,27 @@ def _parse_ssr_post(post: Dict, item: Optional[Dict] = None) -> Optional[Dict]:
     }
 
 
+def _extract_profile_pic_from_html(html: str, username: str) -> str:
+    """HTML の <img> タグからプロフィール画像URLを抽出する。
+    alt 属性に「{username}のプロフィール写真」や「profile photo」を含む img を探す。
+    """
+    esc = re.escape(username)
+    # パターン1: alt が src より前
+    img_m = re.search(
+        r'<img[^>]+alt="[^"]*' + esc + r'[^"]*(?:プロフィール写真|profile\s*pic)[^"]*"[^>]+src="([^"]+)"',
+        html, re.IGNORECASE,
+    )
+    # パターン2: src が alt より前
+    if not img_m:
+        img_m = re.search(
+            r'<img[^>]+src="([^"]+)"[^>]+alt="[^"]*' + esc + r'[^"]*(?:プロフィール写真|profile\s*pic)[^"]*"',
+            html, re.IGNORECASE,
+        )
+    if img_m:
+        return img_m.group(1).replace('&amp;', '&')
+    return ''
+
+
 def _extract_profile_from_html(html: str, username: str) -> Dict:
     """ページ HTML からプロフィール情報を抽出"""
     profile = {
@@ -617,80 +638,71 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
     # "username":"<target>" の前後にプロフィールデータがある
     pattern = rf'"username":"{re.escape(username)}"'
     match = re.search(pattern, html)
-    if not match:
-        return profile
+    if match:
+        # ユーザーオブジェクトを囲むブロックを広めに取得
+        start = max(0, match.start() - 3000)
+        end = min(len(html), match.end() + 8000)
+        chunk = html[start:end]
 
-    # ユーザーオブジェクトを囲むブロックを広めに取得
-    start = max(0, match.start() - 2000)
-    end = min(len(html), match.end() + 5000)
-    chunk = html[start:end]
+        # full_name
+        fn = re.search(r'"full_name":"((?:[^"\\]|\\.)*)"', chunk)
+        if fn:
+            try:
+                profile['display_name'] = json.loads('"' + fn.group(1) + '"')
+            except (json.JSONDecodeError, ValueError):
+                profile['display_name'] = fn.group(1)
 
-    # full_name
-    fn = re.search(r'"full_name":"((?:[^"\\]|\\.)*)"', chunk)
-    if fn:
-        try:
-            profile['display_name'] = json.loads('"' + fn.group(1) + '"')
-        except (json.JSONDecodeError, ValueError):
-            profile['display_name'] = fn.group(1)
+        # bio (biography)
+        bio = re.search(r'"biography":"((?:[^"\\]|\\.)*)"', chunk)
+        if bio:
+            try:
+                profile['bio'] = json.loads('"' + bio.group(1) + '"')
+            except (json.JSONDecodeError, ValueError):
+                profile['bio'] = bio.group(1)
 
-    # bio (biography)
-    bio = re.search(r'"biography":"((?:[^"\\]|\\.)*)"', chunk)
-    if bio:
-        try:
-            profile['bio'] = json.loads('"' + bio.group(1) + '"')
-        except (json.JSONDecodeError, ValueError):
-            profile['bio'] = bio.group(1)
+        # follower_count
+        fc = re.search(r'"follower_count":(\d+)', chunk)
+        if fc:
+            profile['followers_count'] = int(fc.group(1))
 
-    # follower_count
-    fc = re.search(r'"follower_count":(\d+)', chunk)
-    if fc:
-        profile['followers_count'] = int(fc.group(1))
+        # following_count
+        fgc = re.search(r'"following_count":(\d+)', chunk)
+        if fgc:
+            profile['following_count'] = int(fgc.group(1))
 
-    # following_count
-    fgc = re.search(r'"following_count":(\d+)', chunk)
-    if fgc:
-        profile['following_count'] = int(fgc.group(1))
+        # is_verified
+        iv = re.search(r'"is_verified":(true|false)', chunk)
+        if iv:
+            profile['is_verified'] = iv.group(1) == 'true'
 
-    # is_verified
-    iv = re.search(r'"is_verified":(true|false)', chunk)
-    if iv:
-        profile['is_verified'] = iv.group(1) == 'true'
-
-    # profile_pic_url — SSR JSON から抽出（複数キー名に対応）
-    for pic_key in ['profile_pic_url', 'hd_profile_pic_url_info']:
-        pic = re.search(rf'"{pic_key}"\s*:\s*"((?:[^"\\]|\\.)*)"', chunk)
+        # profile_pic_url — SSR JSON から抽出
+        # (A) "profile_pic_url":"<url>" （文字列値）
+        pic = re.search(r'"profile_pic_url"\s*:\s*"(https?://[^"]+)"', chunk)
         if pic:
             try:
                 profile['profile_pic_url'] = json.loads('"' + pic.group(1) + '"')
             except (json.JSONDecodeError, ValueError):
                 profile['profile_pic_url'] = pic.group(1)
-            break
-    # hd_profile_pic_versions から URL を抽出（フォールバック）
-    if not profile['profile_pic_url']:
-        hd = re.search(r'"hd_profile_pic_versions"\s*:\s*\[.*?"url"\s*:\s*"((?:[^"\\]|\\.)*)"', chunk)
-        if hd:
-            try:
-                profile['profile_pic_url'] = json.loads('"' + hd.group(1) + '"')
-            except (json.JSONDecodeError, ValueError):
-                profile['profile_pic_url'] = hd.group(1)
+        # (B) "hd_profile_pic_url_info":{"url":"<url>",...} （オブジェクト値）
+        if not profile['profile_pic_url']:
+            hd_info = re.search(r'"hd_profile_pic_url_info"\s*:\s*\{[^}]*"url"\s*:\s*"(https?://[^"]+)"', chunk)
+            if hd_info:
+                try:
+                    profile['profile_pic_url'] = json.loads('"' + hd_info.group(1) + '"')
+                except (json.JSONDecodeError, ValueError):
+                    profile['profile_pic_url'] = hd_info.group(1)
+        # (C) "hd_profile_pic_versions":[{...,"url":"<url>"},...] （配列値）
+        if not profile['profile_pic_url']:
+            hd_ver = re.search(r'"hd_profile_pic_versions"\s*:\s*\[[^\]]*"url"\s*:\s*"(https?://[^"]+)"', chunk)
+            if hd_ver:
+                try:
+                    profile['profile_pic_url'] = json.loads('"' + hd_ver.group(1) + '"')
+                except (json.JSONDecodeError, ValueError):
+                    profile['profile_pic_url'] = hd_ver.group(1)
 
-    # フォールバック: HTML の <img> タグから「のプロフィール写真」alt を持つ画像を取得
+    # フォールバック: HTML <img> タグから抽出（SSR JSON が見つからなくても実行）
     if not profile['profile_pic_url']:
-        img_pat = re.compile(
-            r'<img[^>]+alt="[^"]*' + re.escape(username) + r'[^"]*(?:プロフィール写真|profile\s*photo|profile\s*picture)[^"]*"[^>]+src="([^"]+)"',
-            re.IGNORECASE,
-        )
-        img_m = img_pat.search(html)
-        if not img_m:
-            # src が alt より先にある場合
-            img_pat2 = re.compile(
-                r'<img[^>]+src="([^"]+)"[^>]+alt="[^"]*' + re.escape(username) + r'[^"]*(?:プロフィール写真|profile\s*photo|profile\s*picture)[^"]*"',
-                re.IGNORECASE,
-            )
-            img_m = img_pat2.search(html)
-        if img_m:
-            raw_url = img_m.group(1).replace('&amp;', '&')
-            profile['profile_pic_url'] = raw_url
+        profile['profile_pic_url'] = _extract_profile_pic_from_html(html, username)
 
     # meta description からの bio 取得（フォールバック）
     if not profile['bio']:
@@ -939,8 +951,9 @@ class ThreadsBuzzScraper:
             logger.warning("[DEBUG] プロフィールページ: ログインウォールの可能性")
 
         profile = _extract_profile_from_html(html, username)
-        logger.info("[DEBUG] プロフィール抽出結果: display_name=%s, followers=%s, following=%s",
-                    profile.get('display_name'), profile.get('followers_count'), profile.get('following_count'))
+        logger.info("[DEBUG] プロフィール抽出結果: display_name=%s, followers=%s, following=%s, profile_pic_url=%s",
+                    profile.get('display_name'), profile.get('followers_count'), profile.get('following_count'),
+                    (profile.get('profile_pic_url') or '')[:80])
 
         # 参加日を取得（モーダル経由）
         joined_at = self._extract_join_date()
