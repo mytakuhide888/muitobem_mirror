@@ -9,12 +9,13 @@ Threads バズ投稿検索コマンド
 """
 import json
 import logging
+import traceback as tb
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from th.models import THBuzzAuthor, THBuzzPost, THBuzzSearchJob
-from th.services.buzz_scraper import ThreadsBuzzScraper, ViralityDetector
+from th.services.buzz_scraper import ThreadsBuzzScraper, ViralityDetector, check_session_validity
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class Command(BaseCommand):
         logger.info("[CMD] th_buzz_search 開始: keywords=%s, job_id=%s", keywords, opts.get('job_id'))
         total_count = 0
         error_occurred = None
+        error_tb = ''
 
         try:
             with ThreadsBuzzScraper() as scraper:
@@ -223,6 +225,7 @@ class Command(BaseCommand):
             logger.exception("バズ検索エラー")
             self.stderr.write(f"エラー: {e}")
             error_occurred = e
+            error_tb = tb.format_exc()
 
         finally:
             # ジョブステータスを確実に更新
@@ -230,10 +233,19 @@ class Command(BaseCommand):
                 try:
                     job.refresh_from_db()
                     if error_occurred:
+                        # セッション状態も診断して付加
+                        error_msg = str(error_occurred)
+                        try:
+                            session_info = check_session_validity()
+                            if not session_info['valid']:
+                                error_msg = f"[SESSION] {session_info['message']}\n\n元エラー: {error_msg}"
+                        except Exception:
+                            pass
                         job.status = 'FAILED'
                         job.completed_at = timezone.now()
-                        job.error_message = str(error_occurred)
-                        job.save(update_fields=['status', 'completed_at', 'error_message'])
+                        job.error_message = error_msg
+                        job.error_traceback = error_tb
+                        job.save(update_fields=['status', 'completed_at', 'error_message', 'error_traceback'])
                     elif job.status == 'RUNNING':
                         job.status = 'COMPLETED'
                         job.completed_at = timezone.now()

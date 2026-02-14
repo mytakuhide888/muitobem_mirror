@@ -516,6 +516,7 @@ class THBuzzSearchJob(models.Model):
     completed_at = models.DateTimeField('完了日時', null=True, blank=True)
     result_count = models.IntegerField('取得件数', default=0)
     error_message = models.TextField('エラーメッセージ', blank=True, default='')
+    error_traceback = models.TextField('エラートレースバック', blank=True, default='')
     created_at = models.DateTimeField('作成日時', auto_now_add=True)
 
     class Meta:

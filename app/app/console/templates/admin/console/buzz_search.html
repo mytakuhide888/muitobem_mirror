@@ -64,6 +64,29 @@
   .status-RUNNING { color:#007bff; font-weight:bold; }
   .status-COMPLETED { color:#28a745; }
   .status-FAILED { color:#dc3545; }
+  .status-FAILED-link { color:#dc3545; cursor:pointer; text-decoration:underline; }
+  .status-FAILED-link:hover { color:#a71d2a; }
+
+  /* エラー詳細モーダル */
+  .error-modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:10000; justify-content:center; align-items:center; }
+  .error-modal-overlay.active { display:flex; }
+  .error-modal { background:#fff; border-radius:12px; max-width:700px; width:92%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 30px rgba(0,0,0,.25); }
+  .error-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px 12px; border-bottom:1px solid #eee; }
+  .error-modal-header h4 { margin:0; font-size:15px; }
+  .error-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:#999; padding:0 4px; line-height:1; }
+  .error-modal-close:hover { color:#333; }
+  .error-modal-body { padding:20px; }
+  .error-badge { display:inline-block; padding:3px 10px; border-radius:10px; font-size:12px; font-weight:bold; color:#fff; margin-bottom:12px; }
+  .error-badge-SESSION { background:#e65100; }
+  .error-badge-BLOCKED { background:#c62828; }
+  .error-badge-TIMEOUT { background:#f57f17; }
+  .error-badge-NETWORK { background:#1565c0; }
+  .error-badge-UNKNOWN { background:#6c757d; }
+  .error-remedy { background:#e7f5ff; border-left:3px solid #007bff; padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; margin:10px 0; white-space:pre-line; line-height:1.7; }
+  .error-message-text { background:#f8f9fa; border-radius:6px; padding:10px 14px; font-size:13px; margin:10px 0; white-space:pre-wrap; word-break:break-all; }
+  .error-tb-details { margin:10px 0; }
+  .error-tb-details summary { cursor:pointer; font-size:13px; color:#007bff; }
+  .error-tb-details pre { background:#1e1e1e; color:#d4d4d4; border-radius:6px; padding:12px; font-size:12px; overflow-x:auto; margin-top:8px; white-space:pre-wrap; word-break:break-all; }
 
   .buzz-pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin:16px 0; font-size:13px; }
   .buzz-pagination a { padding:4px 10px; border:1px solid #dee2e6; border-radius:4px; color:#007bff; text-decoration:none; }
@@ -172,7 +195,7 @@
           <td>{{ job.id }}</td>
           <td>{{ job.get_job_type_display }}</td>
           <td>{{ job.keywords|truncatechars:40 }}</td>
-          <td class="status-{{ job.status }}">{{ job.get_status_display }}</td>
+          <td>{% if job.status == 'FAILED' %}<span class="status-FAILED-link" onclick="showJobError({{ job.id }})">{{ job.get_status_display }}</span>{% else %}<span class="status-{{ job.status }}">{{ job.get_status_display }}</span>{% endif %}</td>
           <td>{{ job.result_count }}</td>
           <td>{{ job.started_at|date:"m/d H:i"|default:"-" }}</td>
           <td>{{ job.completed_at|date:"m/d H:i"|default:"-" }}</td>
@@ -382,6 +405,18 @@
 <p style="font-size:12px;color:#999;margin-top:8px;">全{{ page_obj.paginator.count }}件</p>
 {% endif %}
 
+<!-- エラー詳細モーダル -->
+<div class="error-modal-overlay" id="errorModal" onclick="closeErrorModal(event)">
+  <div class="error-modal" onclick="event.stopPropagation()">
+    <div class="error-modal-header">
+      <h4>エラー詳細</h4>
+      <button class="error-modal-close" onclick="closeErrorModal()">&times;</button>
+    </div>
+    <div class="error-modal-body" id="errorModalBody">
+    </div>
+  </div>
+</div>
+
 <!-- 投稿詳細モーダル -->
 <div class="post-modal-overlay" id="postModal" onclick="closePostModal(event)">
   <div class="post-modal" onclick="event.stopPropagation()">
@@ -535,7 +570,7 @@ function closePostModal(e) {
 }
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closePostModal();
+  if (e.key === 'Escape') { closePostModal(); closeErrorModal(); }
 });
 
 function runSearch(scheduled) {
@@ -683,13 +718,60 @@ function pollJobStatus(jobId, msgElId) {
         } else if (data.status === 'FAILED') {
           clearInterval(interval);
           msgEl.className = 'buzz-msg err';
-          msgEl.textContent = '失敗: ' + (data.error_message || '不明なエラー');
+          msgEl.innerHTML = '失敗: ' + (data.error_message || '不明なエラー').substring(0, 80) +
+            ' <a href="#" onclick="showJobError(' + jobId + '); return false;" style="color:#007bff;">詳細を見る</a>';
         } else {
           msgEl.textContent = '実行中... (ID: ' + jobId + ')';
         }
       })
       .catch(() => clearInterval(interval));
   }, 3000);
+}
+
+const ERROR_CATEGORY_LABELS = {
+  SESSION: 'セッション切れ',
+  BLOCKED: 'アクセス制限',
+  TIMEOUT: 'タイムアウト',
+  NETWORK: '接続エラー',
+  UNKNOWN: '不明なエラー',
+};
+
+function showJobError(jobId) {
+  fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
+    .then(r => r.json())
+    .then(data => {
+      if (data.status !== 'FAILED') return;
+      const category = data.error_category || 'UNKNOWN';
+      const label = ERROR_CATEGORY_LABELS[category] || category;
+      const remedy = data.remedy || '';
+      const msg = data.error_message || '';
+      const tbText = data.error_traceback || '';
+
+      let html = '<span class="error-badge error-badge-' + category + '">' + label + '</span>';
+      if (remedy) {
+        html += '<div class="error-remedy">' + escapeHtml(remedy) + '</div>';
+      }
+      html += '<div class="error-message-text">' + escapeHtml(msg) + '</div>';
+      if (tbText) {
+        html += '<details class="error-tb-details"><summary>トレースバック（詳細）</summary><pre>' + escapeHtml(tbText) + '</pre></details>';
+      }
+      document.getElementById('errorModalBody').innerHTML = html;
+      document.getElementById('errorModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    })
+    .catch(err => alert('エラー詳細の取得に失敗しました: ' + err));
+}
+
+function closeErrorModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('errorModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 </script>
 

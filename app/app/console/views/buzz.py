@@ -488,10 +488,18 @@ def buzz_fetch_author_posts(request):
 
         author = get_object_or_404(THBuzzAuthor, pk=author_id)
 
+        # ジョブレコード作成
+        job = THBuzzSearchJob.objects.create(
+            job_type='account',
+            keywords=json.dumps([author.username], ensure_ascii=False),
+            status='RUNNING',
+            started_at=timezone.now(),
+        )
+
         # バックグラウンドプロセスで起動
         cmd = [
             sys.executable, 'manage.py', 'th_buzz_fetch_author',
-            '--author-id', str(author.id),
+            '--job-id', str(job.id),
         ]
         if not request.POST.get('exclude_replies'):
             cmd.append('--include-replies')
@@ -508,7 +516,8 @@ def buzz_fetch_author_posts(request):
 
         return JsonResponse({
             'ok': True,
-            'message': f'@{author.username} の投稿取得を開始しました',
+            'message': f'@{author.username} の投稿取得を開始しました (ID: {job.id})',
+            'job_id': job.id,
         })
 
     except Exception as e:
@@ -516,18 +525,63 @@ def buzz_fetch_author_posts(request):
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
+def _classify_job_error(job):
+    """ジョブのエラーを分類し (category, remedy) を返す"""
+    msg = (job.error_message or '').lower()
+    tb_text = (job.error_traceback or '').lower()
+    combined = msg + ' ' + tb_text
+
+    if '[session]' in msg or 'sessionid' in combined or 'cookie' in combined:
+        return 'SESSION', (
+            'セッション Cookie が期限切れの可能性があります。\n'
+            '1. ブラウザで threads.com にログイン\n'
+            '2. Cookie をエクスポート（threads_session.json）\n'
+            '3. 所定のパスに配置して再実行'
+        )
+    if 'challenge' in combined or 'blocked' in combined or '429' in combined:
+        return 'BLOCKED', (
+            'Threads からアクセスが制限されています。\n'
+            '1. 数時間〜半日待ってから再実行\n'
+            '2. IPアドレスの変更を検討\n'
+            '3. 実行間隔・件数を減らす'
+        )
+    if 'タイムアウト' in msg or '30分以上' in msg:
+        return 'TIMEOUT', (
+            '処理がタイムアウトしました。\n'
+            '1. 対象件数やスクロール回数を減らして再実行\n'
+            '2. ネットワーク状態を確認'
+        )
+    if 'connection' in combined or 'timeout' in combined or 'errno' in combined:
+        return 'NETWORK', (
+            'ネットワーク接続エラーです。\n'
+            '1. インターネット接続を確認\n'
+            '2. VPN/プロキシの状態を確認\n'
+            '3. しばらく待って再実行'
+        )
+    return 'UNKNOWN', (
+        'トレースバックを展開して原因を確認してください。\n'
+        'deploy/ ディレクトリのログファイルも確認してください。'
+    )
+
+
 @staff_member_required
 def buzz_job_status(request, pk):
     """ジョブステータス確認 API"""
     job = get_object_or_404(THBuzzSearchJob, pk=pk)
-    return JsonResponse({
+    data = {
         'id': job.id,
         'status': job.status,
         'result_count': job.result_count,
         'error_message': job.error_message,
+        'error_traceback': job.error_traceback,
         'started_at': job.started_at.isoformat() if job.started_at else None,
         'completed_at': job.completed_at.isoformat() if job.completed_at else None,
-    })
+    }
+    if job.status == 'FAILED' and job.error_message:
+        category, remedy = _classify_job_error(job)
+        data['error_category'] = category
+        data['remedy'] = remedy
+    return JsonResponse(data)
 
 
 # ─── Phase B: 急成長アカウント発見 ───
