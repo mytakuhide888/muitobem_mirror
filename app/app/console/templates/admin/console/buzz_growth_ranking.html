@@ -753,7 +753,7 @@
       <select name="category">
         <option value="">全て</option>
         {% for tag in all_tags %}
-        <option value="{{ tag }}" {% if tag==current_category %}selected{% endif %}>{{ tag }}</option>
+        <option value="{{ tag }}" {% if tag == current_category %}selected{% endif %}>{{ tag }}</option>
         {% endfor %}
       </select>
     </div>
@@ -820,7 +820,7 @@
     <span id="recalc-message" class="buzz-msg" style="margin:0;"></span>
   </div>
   <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count==0 %}disabled
+    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count == 0 %}disabled
       style="opacity:.5" {% endif %}>
       深掘りスキャン（投稿不足 {{ deep_scan_target_count }}件）
     </button>
