@@ -795,18 +795,18 @@
     <div>
       <label>ソート</label>
       <select name="sort">
-        <option value="-growth_score" {% if current_sort=="-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
-        <option value="-followers_per_day" {% if current_sort=="-followers_per_day" %}selected{% endif %}>フォロワー増/日(多い順)
+        <option value="-growth_score" {% if current_sort == "-growth_score" %}selected{% endif %}>急成長スコア(高い順)</option>
+        <option value="-followers_per_day" {% if current_sort == "-followers_per_day" %}selected{% endif %}>フォロワー増/日(多い順)
         </option>
-        <option value="-followers_count" {% if current_sort=="-followers_count" %}selected{% endif %}>フォロワー数(多い順)
+        <option value="-followers_count" {% if current_sort == "-followers_count" %}selected{% endif %}>フォロワー数(多い順)
         </option>
-        <option value="account_age_days" {% if current_sort=="account_age_days" %}selected{% endif %}>アカウント日数(若い順)
+        <option value="account_age_days" {% if current_sort == "account_age_days" %}selected{% endif %}>アカウント日数(若い順)
         </option>
-        <option value="-avg_likes" {% if current_sort=="-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
-        <option value="-quality_score" {% if current_sort=="-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
-        <option value="-fortune_relevance_score" {% if current_sort=="-fortune_relevance_score" %}selected{% endif %}>
+        <option value="-avg_likes" {% if current_sort == "-avg_likes" %}selected{% endif %}>平均いいね(多い順)</option>
+        <option value="-quality_score" {% if current_sort == "-quality_score" %}selected{% endif %}>品質スコア(高い順)</option>
+        <option value="-fortune_relevance_score" {% if current_sort == "-fortune_relevance_score" %}selected{% endif %}>
           占い適合スコア(高い順)</option>
-        <option value="-updated_at" {% if current_sort=="-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
+        <option value="-updated_at" {% if current_sort == "-updated_at" %}selected{% endif %}>更新日時(新しい順)</option>
       </select>
     </div>
     <div>
@@ -820,7 +820,7 @@
     <span id="recalc-message" class="buzz-msg" style="margin:0;"></span>
   </div>
   <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count==0 %}disabled
+    <button class="buzz-btn buzz-btn-primary" onclick="runDeepScan()" {% if deep_scan_target_count == 0 %}disabled
       style="opacity:.5" {% endif %}>
       深掘りスキャン（投稿不足 {{ deep_scan_target_count }}件）
     </button>
@@ -1262,12 +1262,12 @@
     document.body.style.overflow = 'hidden';
   }
   function closeHelp(e) {
-    if (e && e.target !== e.currentTarget) return;
+    if (e && e.target ! == e.currentTarget) return;
     document.getElementById('helpModal').classList.remove('active');
     document.body.style.overflow = '';
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeHelp(); closeErrorModal(); }
+    if (e.key = == 'Escape') { closeHelp(); closeErrorModal(); }
   });
   document.querySelectorAll('.help-nav a[data-section]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -1340,11 +1340,11 @@
       fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
         .then(r => r.json())
         .then(data => {
-          if (data.status === 'COMPLETED') {
+          if (data.status = == 'COMPLETED') {
             clearInterval(poll);
             msgEl.className = 'buzz-msg ok';
             msgEl.textContent = '深掘りスキャン完了: 新規 ' + (data.result_count || 0) + ' 件の投稿を取得しました。ページをリロードしてスコアを確認してください。';
-          } else if (data.status === 'FAILED') {
+          } else if (data.status = == 'FAILED') {
             clearInterval(poll);
             msgEl.className = 'buzz-msg err';
             msgEl.innerHTML = '深掘りスキャン失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
@@ -1371,7 +1371,7 @@
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status !== 'FAILED') return;
+        if (data.status ! == 'FAILED') return;
         const category = data.error_category || 'UNKNOWN';
         const label = ERROR_CATEGORY_LABELS[category] || category;
         const remedy = data.remedy || '';
@@ -1394,7 +1394,7 @@
   }
 
   function closeErrorModal(e) {
-    if (e && e.target !== e.currentTarget) return;
+    if (e && e.target ! == e.currentTarget) return;
     document.getElementById('errorModal').classList.remove('active');
     document.body.style.overflow = '';
   }
@@ -1409,7 +1409,7 @@
   var mediaProxyUrl = '{% url "console:buzz_media_proxy" %}';
   document.querySelectorAll('.gr-avatar').forEach(function (img) {
     var src = img.getAttribute('src');
-    if (src && src.indexOf('cdninstagram.com/') !== -1) {
+    if (src && src.indexOf('cdninstagram.com/') ! == -1) {
       img.src = mediaProxyUrl + '?url=' + encodeURIComponent(src);
     }
   });
