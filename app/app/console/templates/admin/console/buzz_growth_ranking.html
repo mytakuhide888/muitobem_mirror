@@ -840,15 +840,13 @@
     <div class="gr-card{% if author.is_excluded %} excluded-card{% endif %}" id="card-{{ author.pk }}"
       data-author-id="{{ author.pk }}">
       <div class="gr-card-top-row">
-        <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{
-          forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
+        <div class="rank {% if forloop.counter <= 3 and page_obj.number == 1 %}top3{% endif %}">#{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</div>
         <div class="gr-badges" id="badges-{{ author.pk }}">
           {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
           {% if author.is_concept_candidate %}<span class="candidate-badge">候補</span>{% endif %}
           {% if author.is_quality_account %}<span class="quality-badge">優良</span>{% endif %}
           {% if author.fortune_relevance_score %}<span class="fortune-badge"
-            title="占い適合スコア: {{ author.fortune_relevance_score|floatformat:1 }}">占い{{
-            author.fortune_relevance_score|floatformat:0 }}</span>{% endif %}
+            title="占い適合スコア: {{ author.fortune_relevance_score|floatformat:1 }}">占い{{ author.fortune_relevance_score|floatformat:0 }}</span>{% endif %}
           {% if author.is_excluded %}<span class="excluded-badge" id="excl-badge-{{ author.pk }}">対象外</span>{% endif %}
           {% if author.auto_excluded_reason %}<span class="excluded-badge" style="background:#fd7e14;"
             title="{{ author.auto_excluded_reason }}">自動除外</span>{% endif %}
@@ -857,8 +855,7 @@
         </div>
         <div class="gr-card-actions">
           <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}"
-            onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else
-            %}&#9734;{% endif %}</button>
+            onclick="toggleFav({{ author.pk }}, this)" title="お気に入り">{% if author.is_favorited %}&#9733;{% else %}&#9734;{% endif %}</button>
           <button class="gr-excl-btn{% if author.is_excluded %} active{% endif %}"
             onclick="toggleExcl({{ author.pk }}, this)" title="対象外">対象外</button>
         </div>
@@ -875,8 +872,7 @@
             </a>
           </h3>
           <div class="username">
-            <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username
-              }}</a>
+            <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
           </div>
         </div>
       </div>
