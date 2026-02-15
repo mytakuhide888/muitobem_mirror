@@ -1,8 +1,7 @@
 {% extends "admin/console/base.html" %}
 
 {% block title %}投稿者詳細{% endblock %}
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細</div>{%
-endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_search' %}">バズ投稿取得</a> &gt; 投稿者詳細</div>{% endblock %}
 
 {% block content %}
 <style>
@@ -754,14 +753,12 @@ endblock %}
           {% if author.is_verified %}<span class="verified">認証済</span>{% endif %}
           {% if author.is_quality_account %}<span class="quality-badge-lg">優良</span>{% endif %}
           <a href="#" id="fav-toggle" onclick="toggleFavorite(event)" title="お気に入り"
-            style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{%
-            if author.is_favorited %}★{% else %}☆{% endif %}</a>
+            style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{% if author.is_favorited %}★{% else %}☆{% endif %}</a>
           <a href="#" id="excluded-toggle" onclick="toggleExcluded(event)" title="対象外"
             style="text-decoration:none; font-size:13px; margin-left:10px; cursor:pointer; padding:2px 8px; border-radius:10px; {% if author.is_excluded %}background:#dc3545; color:#fff;{% else %}background:#e9ecef; color:#999;{% endif %}">対象外</a>
         </h2>
         <div class="username">
-          <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username
-            }}</a>
+          <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
         </div>
       </div>
     </div>
@@ -936,7 +933,7 @@ endblock %}
     if (tagMatch) {
       var savedFactors = tagMatch[1].split(',').map(function (s) { return s.trim(); });
       document.querySelectorAll('.growth-factor').forEach(function (cb) {
-        if (savedFactors.indexOf(cb.value) !== -1) {
+        if (savedFactors.indexOf(cb.value) ! == -1) {
           cb.checked = true;
           updateTagStyle(cb);
         }
@@ -947,7 +944,7 @@ endblock %}
 
     // ─── Ctrl+S で保存 ───
     memoText.addEventListener('keydown', function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key = == 's') {
         e.preventDefault();
         saveMemo();
       }
@@ -1088,8 +1085,7 @@ endblock %}
   (function () {
     // 品質スコアの内訳をバーで表示（サーバーサイドで個別スコアは保存していないため、
     // 総合スコアと利用可能なメタデータから概算表示）
-    var goodRatio = {{ author.good_post_ratio|default: "0"
-  }};
+    var goodRatio = {{ author.good_post_ratio|default: "0" }};
   var recentCount = {{ author.recent_post_count|default: "0" }};
   var avgInterval = {{ author.avg_post_interval_days|default: "999" }};
   var totalPosts = {{ author.total_post_count|default: "0" }};
@@ -1146,7 +1142,7 @@ endblock %}
       <label>バズのみ</label>
       <select name="viral">
         <option value="">全て</option>
-        <option value="1" {% if current_viral=="1" %}selected{% endif %}>バズのみ</option>
+        <option value="1" {% if current_viral == "1" %}selected{% endif %}>バズのみ</option>
       </select>
     </div>
     <div>
@@ -1192,14 +1188,14 @@ endblock %}
     <div>
       <label>ソート</label>
       <select name="sort">
-        <option value="-scraped_at" {% if current_sort=="-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
-        <option value="-posted_at" {% if current_sort=="-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
-        <option value="-engagement_score" {% if current_sort=="-engagement_score" %}selected{% endif %}>バズスコア(高い順)
+        <option value="-scraped_at" {% if current_sort == "-scraped_at" %}selected{% endif %}>取得日時(新しい順)</option>
+        <option value="-posted_at" {% if current_sort == "-posted_at" %}selected{% endif %}>投稿日時(新しい順)</option>
+        <option value="-engagement_score" {% if current_sort == "-engagement_score" %}selected{% endif %}>バズスコア(高い順)
         </option>
-        <option value="-like_count" {% if current_sort=="-like_count" %}selected{% endif %}>いいね数(多い順)</option>
-        <option value="-impressions" {% if current_sort=="-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
-        <option value="-engagement_rate" {% if current_sort=="-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
-        <option value="-reply_count" {% if current_sort=="-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
+        <option value="-like_count" {% if current_sort == "-like_count" %}selected{% endif %}>いいね数(多い順)</option>
+        <option value="-impressions" {% if current_sort == "-impressions" %}selected{% endif %}>インプレッション(多い順)</option>
+        <option value="-engagement_rate" {% if current_sort == "-engagement_rate" %}selected{% endif %}>ER%(高い順)</option>
+        <option value="-reply_count" {% if current_sort == "-reply_count" %}selected{% endif %}>リプライ数(多い順)</option>
       </select>
     </div>
     <button type="submit" class="buzz-btn-primary-sm">絞り込み</button>
@@ -1255,8 +1251,7 @@ endblock %}
       <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
       <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
       <td style="white-space:nowrap;">
-        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{%
-        endif %}
+        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -1270,9 +1265,7 @@ endblock %}
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with
-fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max
-%}
+{% with fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max %}
 <div class="ad-pagination">
   {% if page_obj.has_previous %}
   <a href="?page=1{{ fp }}">&laquo; 最初</a>
@@ -1372,7 +1365,7 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
   const MEDIA_PROXY_URL = '{% url "console:buzz_media_proxy" %}';
   function proxyUrl(url) {
     if (!url) return '';
-    if (url.indexOf('cdninstagram.com/') !== -1) {
+    if (url.indexOf('cdninstagram.com/') ! == -1) {
       return MEDIA_PROXY_URL + '?url=' + encodeURIComponent(url);
     }
     return url;
@@ -1381,7 +1374,7 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
   // プロフィール画像をプロキシ経由に変換
   document.querySelectorAll('.author-profile img[alt^="@"]').forEach(function (img) {
     var src = img.getAttribute('src');
-    if (src && src.indexOf('cdninstagram.com/') !== -1) {
+    if (src && src.indexOf('cdninstagram.com/') ! == -1) {
       img.src = proxyUrl(src);
     }
   });
@@ -1417,14 +1410,14 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
 
     // メディア
     mediaEl.innerHTML = '';
-    if (d.mediaType && d.mediaType !== 'text' && (!d.mediaUrls || d.mediaUrls.length === 0)) {
+    if (d.mediaType && d.mediaType ! == 'text' && (!d.mediaUrls || d.mediaUrls.length = == 0)) {
       mediaEl.innerHTML = '<p style="color:#999; font-size:12px;">[' + d.mediaType + ' 投稿: メディアURL未取得 - 再スクレイプが必要です]</p>';
-    } else if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
-      if (d.mediaType === 'carousel') {
+    } else if (d.mediaType && d.mediaType ! == 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
+      if (d.mediaType = == 'carousel') {
         const wrap = document.createElement('div');
         wrap.className = 'carousel-wrap';
         d.mediaUrls.forEach(function (m) {
-          if (m.type === 'video') {
+          if (m.type = == 'video') {
             const v = document.createElement('video');
             v.src = proxyUrl(m.url); v.controls = true;
             v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
@@ -1436,19 +1429,19 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
           }
         });
         mediaEl.appendChild(wrap);
-      } else if (d.mediaType === 'video') {
+      } else if (d.mediaType = == 'video') {
         d.mediaUrls.forEach(function (m) {
-          if (m.type === 'video') {
+          if (m.type = == 'video') {
             const v = document.createElement('video');
             v.src = proxyUrl(m.url); v.controls = true;
             mediaEl.appendChild(v);
-          } else if (m.type === 'thumbnail') {
+          } else if (m.type = == 'thumbnail') {
             const img = document.createElement('img');
             img.src = proxyUrl(m.url); img.loading = 'lazy';
             mediaEl.appendChild(img);
           }
         });
-      } else if (d.mediaType === 'image') {
+      } else if (d.mediaType = == 'image') {
         d.mediaUrls.forEach(function (m) {
           const img = document.createElement('img');
           img.src = proxyUrl(m.url); img.loading = 'lazy';
@@ -1462,9 +1455,9 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
     stats += '<span>いいね: <b>' + d.like + '</b></span>';
     stats += '<span>リプライ: <b>' + d.reply + '</b></span>';
     stats += '<span>リポスト: <b>' + d.repost + '</b></span>';
-    if (d.imp !== null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
-    if (d.score !== null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
-    if (d.er !== null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
+    if (d.imp ! == null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
+    if (d.score ! == null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
+    if (d.er ! == null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
     if (d.viral) stats += '<span class="viral-badge viral-yes">BUZZ</span>';
     if (d.posted) stats += '<span>投稿: ' + d.posted + '</span>';
     stats += '<span>取得: ' + d.scraped + '</span>';
@@ -1482,13 +1475,13 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
   }
 
   function closePostModal(e) {
-    if (e && e.target !== e.currentTarget) return;
+    if (e && e.target ! == e.currentTarget) return;
     document.getElementById('postModal').classList.remove('active');
     document.body.style.overflow = '';
   }
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closePostModal(); closeErrorModal(); }
+    if (e.key = == 'Escape') { closePostModal(); closeErrorModal(); }
   });
 
   function fetchAuthorPosts() {
@@ -1529,11 +1522,11 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
       fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
         .then(r => r.json())
         .then(data => {
-          if (data.status === 'COMPLETED') {
+          if (data.status = == 'COMPLETED') {
             clearInterval(interval);
             msgEl.className = 'author-msg ok';
             msgEl.textContent = '完了: ' + data.result_count + '件取得しました。ページを更新してください。';
-          } else if (data.status === 'FAILED') {
+          } else if (data.status = == 'FAILED') {
             clearInterval(interval);
             msgEl.className = 'author-msg err';
             msgEl.innerHTML = '失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
@@ -1558,7 +1551,7 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status !== 'FAILED') return;
+        if (data.status ! == 'FAILED') return;
         const category = data.error_category || 'UNKNOWN';
         const label = ERROR_CATEGORY_LABELS[category] || category;
         const remedy = data.remedy || '';
@@ -1581,7 +1574,7 @@ fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|a
   }
 
   function closeErrorModal(e) {
-    if (e && e.target !== e.currentTarget) return;
+    if (e && e.target ! == e.currentTarget) return;
     document.getElementById('errorModal').classList.remove('active');
     document.body.style.overflow = '';
   }
