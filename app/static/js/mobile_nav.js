@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     navSidebar.insertAdjacentHTML('beforeend', newMenuHtml);
 
-    // Use jQuery for animation if available (Jazzmin uses AdminLTE which uses jQuery)
+    // Use jQuery for animation if available
     if (window.jQuery) {
         const $ = window.jQuery;
         const $menu = $('#mobile-console-menu');
@@ -62,14 +62,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const $treeview = $menu.find('> .nav-treeview');
         const $icon = $link.find('.right');
 
-        $link.on('click', function (e) {
-            // Stop propagation to prevent AdminLTE's default handler from interfering
-            // (This fixes the "opens then immediately closes" issue)
+        // Unbind allows reloading without stacking handlers if script re-runs (mostly for safety)
+        $link.off('click').on('click', function (e) {
+            // Aggressively stop other handlers
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
 
             $treeview.slideToggle(300, function () {
-                // Animation complete
                 if ($treeview.is(':visible')) {
                     $menu.addClass('menu-open');
                     $icon.removeClass('fa-angle-left').addClass('fa-angle-down');
@@ -78,19 +78,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     $icon.removeClass('fa-angle-down').addClass('fa-angle-left');
                 }
             });
+
+            return false;
         });
     } else {
-        // Fallback if no jQuery (unlikely in Jazzmin)
+        // Fallback
         const toggleLink = document.querySelector('#mobile-console-menu > a.nav-link');
         if (toggleLink) {
             toggleLink.addEventListener('click', function (e) {
                 e.preventDefault();
-                e.stopPropagation(); // Try to stop propagation here too
+                e.stopPropagation();
 
                 const parentLi = this.parentElement;
                 const ul = parentLi.querySelector('ul');
                 const icon = this.querySelector('.right');
-
                 const isOpen = parentLi.classList.contains('menu-open');
 
                 if (isOpen) {
