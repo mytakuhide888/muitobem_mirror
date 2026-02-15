@@ -205,7 +205,9 @@ JAZZMIN_SETTINGS = {
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},
         {"name": "ログ",                  "url": "console:logs",             "permissions": ["auth.view_user"]},
         {"name": "接続テスト",            "url": "console:connection_test",  "permissions": ["auth.view_user"]},
+        {"name": "接続テスト",            "url": "console:connection_test",  "permissions": ["auth.view_user"]},
     ],
+    "custom_js": "js/mobile_nav.js",
 }
 
 # === Database (env優先 → 個別MYSQL_* → SQLite fallback) ===
