@@ -1,0 +1,171 @@
+{% load i18n %}
+{% include "admin/nav_sidebar.html" %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const navSidebar = document.querySelector('ul.nav-sidebar');
+        if (navSidebar) {
+            const newMenuHtml = `
+            <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                    <i class="nav-icon fas fa-cogs"></i>
+                    <p>
+                        コンソールメニュー
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+                <ul class="nav nav-treeview" style="display: none;">
+                    <li class="nav-item">
+                        <a href="{% url 'console:index' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>ダッシュボード</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:accounts' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>アカウント連携</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:permissions' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>権限チェック</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'social:post-import' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>投稿インポート</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'social:post-sync' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>投稿同期</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:webhook_test' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Webhook 受信テスト</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:webhook_events' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Webhook イベント一覧</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:webhook_setup' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Webhook 設定</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:setup_env' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>セットアップ</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:tpl_list' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>テンプレ一覧</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:tpl_new' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>テンプレ新規</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:tpl_export' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>テンプレ書出し</p>
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a href="{% url 'console:tpl_import' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>テンプレ読込</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:buzz_search' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>バズ投稿取得</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:buzz_growth_ranking' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>急成長ランキング</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:buzz_keyword_scan' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>一括巡回</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:buzz_trends' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>トレンド分析</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:help' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>統合ガイド</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:logs' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>ログ</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'console:connection_test' %}" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>接続テスト</p>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        `;
+            navSidebar.insertAdjacentHTML('beforeend', newMenuHtml);
+
+            // Simple click handler for the new menu
+            const toggleLink = navSidebar.lastElementChild.querySelector('a.nav-link');
+            if (toggleLink) {
+                toggleLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const parentLi = this.parentElement;
+                    const ul = parentLi.querySelector('ul');
+                    const icon = this.querySelector('.right');
+
+                    if (ul.style.display === 'none' || !ul.style.display) {
+                        ul.style.display = 'block';
+                        parentLi.classList.add('menu-open');
+                        if (icon) {
+                            icon.classList.remove('fa-angle-left');
+                            icon.classList.add('fa-angle-down');
+                        }
+                    } else {
+                        ul.style.display = 'none';
+                        parentLi.classList.remove('menu-open');
+                        if (icon) {
+                            icon.classList.remove('fa-angle-down');
+                            icon.classList.add('fa-angle-left');
+                        }
+                    }
+                });
+            }
+        }
+    });
+</script>
