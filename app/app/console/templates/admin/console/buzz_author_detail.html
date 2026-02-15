@@ -1085,10 +1085,10 @@
   (function () {
     // 品質スコアの内訳をバーで表示（サーバーサイドで個別スコアは保存していないため、
     // 総合スコアと利用可能なメタデータから概算表示）
-    var goodRatio = {{ author.good_post_ratio|default: "0" }};
-  var recentCount = {{ author.recent_post_count|default: "0" }};
-  var avgInterval = {{ author.avg_post_interval_days|default: "999" }};
-  var totalPosts = {{ author.total_post_count|default: "0" }};
+    var goodRatio = {{ author.good_post_ratio|default:"0" }};
+  var recentCount = {{ author.recent_post_count|default:"0" }};
+  var avgInterval = {{ author.avg_post_interval_days|default:"999" }};
+  var totalPosts = {{ author.total_post_count|default:"0" }};
 
   // エンゲージメント品質
   var engScore;
@@ -1312,40 +1312,40 @@
   // 投稿データを JS オブジェクトとして埋め込み
   const POST_DATA = {
   {% for post in page_obj %}
-  { { post.pk } }: {
+  {{ post.pk } }: {
     text: '',
-      like: { { post.like_count } },
-    reply: { { post.reply_count } },
-    repost: { { post.repost_count } },
-    imp: { { post.impressions |default: "null" } },
-    score: { { post.engagement_score |default: "null" } },
-    er: { { post.engagement_rate |default: "null" } },
-    viral: { { post.is_viral | yesno: "true,false" } },
+      like: {{ post.like_count } },
+    reply: {{ post.reply_count } },
+    repost: {{ post.repost_count } },
+    imp: {{ post.impressions |default:"null" } },
+    score: {{ post.engagement_score |default:"null" } },
+    er: {{ post.engagement_rate |default:"null" } },
+    viral: {{ post.is_viral | yesno: "true,false" } },
     posted: '{{ post.posted_at|date:"Y/m/d H:i"|default:"" }}',
       scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
         url: '{{ post.post_url|default:"" }}',
-          pinned: { { post.raw_json.is_pinned | yesno: "true,false" } },
+          pinned: {{ post.raw_json.is_pinned | yesno: "true,false" } },
     mediaType: '{{ post.media_type|default:"" }}',
-      mediaUrls: { { post.media_urls_json | safe } },
+      mediaUrls: {{ post.media_urls_json | safe } },
   },
   {% endfor %}
   {% for post in pinned_posts %}
   {% if not post.pk in page_obj.object_list %}
-  { { post.pk } }: {
+  {{ post.pk } }: {
     text: '',
-      like: { { post.like_count } },
-    reply: { { post.reply_count } },
-    repost: { { post.repost_count } },
-    imp: { { post.impressions |default: "null" } },
-    score: { { post.engagement_score |default: "null" } },
-    er: { { post.engagement_rate |default: "null" } },
-    viral: { { post.is_viral | yesno: "true,false" } },
+      like: {{ post.like_count } },
+    reply: {{ post.reply_count } },
+    repost: {{ post.repost_count } },
+    imp: {{ post.impressions |default:"null" } },
+    score: {{ post.engagement_score |default:"null" } },
+    er: {{ post.engagement_rate |default:"null" } },
+    viral: {{ post.is_viral | yesno: "true,false" } },
     posted: '{{ post.posted_at|date:"Y/m/d H:i"|default:"" }}',
       scraped: '{{ post.scraped_at|date:"Y/m/d H:i" }}',
         url: '{{ post.post_url|default:"" }}',
           pinned: true,
             mediaType: '{{ post.media_type|default:"" }}',
-              mediaUrls: { { post.media_urls_json | safe } },
+              mediaUrls: {{ post.media_urls_json | safe } },
   },
   {% endif %}
   {% endfor %}
