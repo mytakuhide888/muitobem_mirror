@@ -30,8 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
         { name: "接続テスト", url: "/console/connection-test/" },
     ];
 
+    // REMOVED 'has-treeview' class to prevent AdminLTE interference
     const newMenuHtml = `
-        <li class="nav-item has-treeview" id="mobile-console-menu">
+        <li class="nav-item" id="mobile-console-menu">
             <a href="#" class="nav-link">
                 <i class="nav-icon fas fa-cogs"></i>
                 <p>
@@ -62,12 +63,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const $treeview = $menu.find('> .nav-treeview');
         const $icon = $link.find('.right');
 
-        // Unbind allows reloading without stacking handlers if script re-runs (mostly for safety)
         $link.off('click').on('click', function (e) {
-            // Aggressively stop other handlers
             e.preventDefault();
+
+            // Still stop propagation just in case
             e.stopPropagation();
-            e.stopImmediatePropagation();
 
             $treeview.slideToggle(300, function () {
                 if ($treeview.is(':visible')) {
