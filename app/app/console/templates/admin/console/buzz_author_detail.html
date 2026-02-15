@@ -933,7 +933,7 @@
     if (tagMatch) {
       var savedFactors = tagMatch[1].split(',').map(function (s) { return s.trim(); });
       document.querySelectorAll('.growth-factor').forEach(function (cb) {
-        if (savedFactors.indexOf(cb.value) ! == -1) {
+        if (savedFactors.indexOf(cb.value) !== -1) {
           cb.checked = true;
           updateTagStyle(cb);
         }
@@ -944,7 +944,7 @@
 
     // ─── Ctrl+S で保存 ───
     memoText.addEventListener('keydown', function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key = == 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveMemo();
       }
@@ -1365,7 +1365,7 @@
   const MEDIA_PROXY_URL = '{% url "console:buzz_media_proxy" %}';
   function proxyUrl(url) {
     if (!url) return '';
-    if (url.indexOf('cdninstagram.com/') ! == -1) {
+    if (url.indexOf('cdninstagram.com/') !== -1) {
       return MEDIA_PROXY_URL + '?url=' + encodeURIComponent(url);
     }
     return url;
@@ -1374,7 +1374,7 @@
   // プロフィール画像をプロキシ経由に変換
   document.querySelectorAll('.author-profile img[alt^="@"]').forEach(function (img) {
     var src = img.getAttribute('src');
-    if (src && src.indexOf('cdninstagram.com/') ! == -1) {
+    if (src && src.indexOf('cdninstagram.com/') !== -1) {
       img.src = proxyUrl(src);
     }
   });
@@ -1410,14 +1410,14 @@
 
     // メディア
     mediaEl.innerHTML = '';
-    if (d.mediaType && d.mediaType ! == 'text' && (!d.mediaUrls || d.mediaUrls.length = == 0)) {
+    if (d.mediaType && d.mediaType !== 'text' && (!d.mediaUrls || d.mediaUrls.length === 0)) {
       mediaEl.innerHTML = '<p style="color:#999; font-size:12px;">[' + d.mediaType + ' 投稿: メディアURL未取得 - 再スクレイプが必要です]</p>';
-    } else if (d.mediaType && d.mediaType ! == 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
-      if (d.mediaType = == 'carousel') {
+    } else if (d.mediaType && d.mediaType !== 'text' && d.mediaUrls && d.mediaUrls.length > 0) {
+      if (d.mediaType === 'carousel') {
         const wrap = document.createElement('div');
         wrap.className = 'carousel-wrap';
         d.mediaUrls.forEach(function (m) {
-          if (m.type = == 'video') {
+          if (m.type === 'video') {
             const v = document.createElement('video');
             v.src = proxyUrl(m.url); v.controls = true;
             v.style.maxWidth = '300px'; v.style.borderRadius = '8px'; v.style.flexShrink = '0';
@@ -1429,19 +1429,19 @@
           }
         });
         mediaEl.appendChild(wrap);
-      } else if (d.mediaType = == 'video') {
+      } else if (d.mediaType === 'video') {
         d.mediaUrls.forEach(function (m) {
-          if (m.type = == 'video') {
+          if (m.type === 'video') {
             const v = document.createElement('video');
             v.src = proxyUrl(m.url); v.controls = true;
             mediaEl.appendChild(v);
-          } else if (m.type = == 'thumbnail') {
+          } else if (m.type === 'thumbnail') {
             const img = document.createElement('img');
             img.src = proxyUrl(m.url); img.loading = 'lazy';
             mediaEl.appendChild(img);
           }
         });
-      } else if (d.mediaType = == 'image') {
+      } else if (d.mediaType === 'image') {
         d.mediaUrls.forEach(function (m) {
           const img = document.createElement('img');
           img.src = proxyUrl(m.url); img.loading = 'lazy';
@@ -1455,9 +1455,9 @@
     stats += '<span>いいね: <b>' + d.like + '</b></span>';
     stats += '<span>リプライ: <b>' + d.reply + '</b></span>';
     stats += '<span>リポスト: <b>' + d.repost + '</b></span>';
-    if (d.imp ! == null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
-    if (d.score ! == null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
-    if (d.er ! == null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
+    if (d.imp !== null) stats += '<span>IMP: <b>' + d.imp + '</b></span>';
+    if (d.score !== null) stats += '<span>スコア: <b>' + d.score + '</b></span>';
+    if (d.er !== null) stats += '<span>ER: <b>' + d.er + '%</b></span>';
     if (d.viral) stats += '<span class="viral-badge viral-yes">BUZZ</span>';
     if (d.posted) stats += '<span>投稿: ' + d.posted + '</span>';
     stats += '<span>取得: ' + d.scraped + '</span>';
@@ -1475,13 +1475,13 @@
   }
 
   function closePostModal(e) {
-    if (e && e.target ! == e.currentTarget) return;
+    if (e && e.target !== e.currentTarget) return;
     document.getElementById('postModal').classList.remove('active');
     document.body.style.overflow = '';
   }
 
   document.addEventListener('keydown', function (e) {
-    if (e.key = == 'Escape') { closePostModal(); closeErrorModal(); }
+    if (e.key === 'Escape') { closePostModal(); closeErrorModal(); }
   });
 
   function fetchAuthorPosts() {
@@ -1522,11 +1522,11 @@
       fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
         .then(r => r.json())
         .then(data => {
-          if (data.status = == 'COMPLETED') {
+          if (data.status === 'COMPLETED') {
             clearInterval(interval);
             msgEl.className = 'author-msg ok';
             msgEl.textContent = '完了: ' + data.result_count + '件取得しました。ページを更新してください。';
-          } else if (data.status = == 'FAILED') {
+          } else if (data.status === 'FAILED') {
             clearInterval(interval);
             msgEl.className = 'author-msg err';
             msgEl.innerHTML = '失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
@@ -1551,7 +1551,7 @@
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status ! == 'FAILED') return;
+        if (data.status !== 'FAILED') return;
         const category = data.error_category || 'UNKNOWN';
         const label = ERROR_CATEGORY_LABELS[category] || category;
         const remedy = data.remedy || '';
@@ -1574,7 +1574,7 @@
   }
 
   function closeErrorModal(e) {
-    if (e && e.target ! == e.currentTarget) return;
+    if (e && e.target !== e.currentTarget) return;
     document.getElementById('errorModal').classList.remove('active');
     document.body.style.overflow = '';
   }

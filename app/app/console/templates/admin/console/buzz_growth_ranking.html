@@ -1258,12 +1258,12 @@
     document.body.style.overflow = 'hidden';
   }
   function closeHelp(e) {
-    if (e && e.target ! == e.currentTarget) return;
+    if (e && e.target !== e.currentTarget) return;
     document.getElementById('helpModal').classList.remove('active');
     document.body.style.overflow = '';
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key = == 'Escape') { closeHelp(); closeErrorModal(); }
+    if (e.key === 'Escape') { closeHelp(); closeErrorModal(); }
   });
   document.querySelectorAll('.help-nav a[data-section]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -1336,11 +1336,11 @@
       fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
         .then(r => r.json())
         .then(data => {
-          if (data.status = == 'COMPLETED') {
+          if (data.status === 'COMPLETED') {
             clearInterval(poll);
             msgEl.className = 'buzz-msg ok';
             msgEl.textContent = '深掘りスキャン完了: 新規 ' + (data.result_count || 0) + ' 件の投稿を取得しました。ページをリロードしてスコアを確認してください。';
-          } else if (data.status = == 'FAILED') {
+          } else if (data.status === 'FAILED') {
             clearInterval(poll);
             msgEl.className = 'buzz-msg err';
             msgEl.innerHTML = '深掘りスキャン失敗: ' + escapeHtml((data.error_message || '不明なエラー').substring(0, 80)) +
@@ -1367,7 +1367,7 @@
     fetch('{% url "console:buzz_job_status" pk=0 %}'.replace('0', jobId))
       .then(r => r.json())
       .then(data => {
-        if (data.status ! == 'FAILED') return;
+        if (data.status !== 'FAILED') return;
         const category = data.error_category || 'UNKNOWN';
         const label = ERROR_CATEGORY_LABELS[category] || category;
         const remedy = data.remedy || '';
@@ -1390,7 +1390,7 @@
   }
 
   function closeErrorModal(e) {
-    if (e && e.target ! == e.currentTarget) return;
+    if (e && e.target !== e.currentTarget) return;
     document.getElementById('errorModal').classList.remove('active');
     document.body.style.overflow = '';
   }
@@ -1405,7 +1405,7 @@
   var mediaProxyUrl = '{% url "console:buzz_media_proxy" %}';
   document.querySelectorAll('.gr-avatar').forEach(function (img) {
     var src = img.getAttribute('src');
-    if (src && src.indexOf('cdninstagram.com/') ! == -1) {
+    if (src && src.indexOf('cdninstagram.com/') !== -1) {
       img.src = mediaProxyUrl + '?url=' + encodeURIComponent(src);
     }
   });
