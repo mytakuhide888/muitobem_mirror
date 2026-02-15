@@ -7,21 +7,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // Check if duplicate
     if (document.getElementById('mobile-console-menu')) return;
 
-    // Define links based on console urls.py and settings.py topmenu_links
-    // console:index -> /console/
-    // console:accounts -> /console/accounts/
-    // etc.
     const links = [
         { name: "ダッシュボード", url: "/console/" },
         { name: "アカウント連携", url: "/console/accounts/" },
         { name: "権限チェック", url: "/console/permissions/" },
-        { name: "投稿インポート", url: "/social/post-import/" }, // Guessing social urls
+        { name: "投稿インポート", url: "/social/post-import/" },
         { name: "投稿同期", url: "/social/post-sync/" },
         { name: "Webhook 受信テスト", url: "/console/webhook-test/" },
         { name: "Webhook イベント一覧", url: "/console/webhook-events/" },
         { name: "Webhook 設定", url: "/console/webhook/setup/" },
         { name: "セットアップ", url: "/console/setup/" },
-        { name: "テンプレ一覧", url: "/console/templates/" }, // tpl_list -> templates/
+        { name: "テンプレ一覧", url: "/console/templates/" },
         { name: "テンプレ新規", url: "/console/templates/new/" },
         { name: "テンプレ書出し", url: "/console/templates/export/" },
         { name: "テンプレ読込", url: "/console/templates/import/" },
@@ -58,38 +54,61 @@ document.addEventListener("DOMContentLoaded", function () {
 
     navSidebar.insertAdjacentHTML('beforeend', newMenuHtml);
 
-    // Toggle logic for AdminLTE sidebar
-    const toggleLink = document.querySelector('#mobile-console-menu > a.nav-link');
-    if (toggleLink) {
-        toggleLink.addEventListener('click', function (e) {
+    // Use jQuery for animation if available (Jazzmin uses AdminLTE which uses jQuery)
+    if (window.jQuery) {
+        const $ = window.jQuery;
+        const $menu = $('#mobile-console-menu');
+        const $link = $menu.find('> a');
+        const $treeview = $menu.find('> .nav-treeview');
+        const $icon = $link.find('.right');
+
+        $link.on('click', function (e) {
+            // Stop propagation to prevent AdminLTE's default handler from interfering
+            // (This fixes the "opens then immediately closes" issue)
             e.preventDefault();
-            const parentLi = this.parentElement;
-            const ul = parentLi.querySelector('ul');
-            const icon = this.querySelector('.right');
+            e.stopPropagation();
 
-            // Check if AdminLTE already handled it via class changes?
-            // AdminLTE usually toggles 'menu-open' class and slideDown/Up via jQuery.
-            // If jQuery is present, we might be fighting it, but our manual toggle should work if we are careful.
-
-            const isOpen = parentLi.classList.contains('menu-open');
-
-            if (isOpen) {
-                // Close
-                ul.style.display = 'none';
-                parentLi.classList.remove('menu-open');
-                if (icon) {
-                    icon.classList.remove('fa-angle-down');
-                    icon.classList.add('fa-angle-left');
+            $treeview.slideToggle(300, function () {
+                // Animation complete
+                if ($treeview.is(':visible')) {
+                    $menu.addClass('menu-open');
+                    $icon.removeClass('fa-angle-left').addClass('fa-angle-down');
+                } else {
+                    $menu.removeClass('menu-open');
+                    $icon.removeClass('fa-angle-down').addClass('fa-angle-left');
                 }
-            } else {
-                // Open
-                ul.style.display = 'block';
-                parentLi.classList.add('menu-open');
-                if (icon) {
-                    icon.classList.remove('fa-angle-left');
-                    icon.classList.add('fa-angle-down');
-                }
-            }
+            });
         });
+    } else {
+        // Fallback if no jQuery (unlikely in Jazzmin)
+        const toggleLink = document.querySelector('#mobile-console-menu > a.nav-link');
+        if (toggleLink) {
+            toggleLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation(); // Try to stop propagation here too
+
+                const parentLi = this.parentElement;
+                const ul = parentLi.querySelector('ul');
+                const icon = this.querySelector('.right');
+
+                const isOpen = parentLi.classList.contains('menu-open');
+
+                if (isOpen) {
+                    ul.style.display = 'none';
+                    parentLi.classList.remove('menu-open');
+                    if (icon) {
+                        icon.classList.remove('fa-angle-down');
+                        icon.classList.add('fa-angle-left');
+                    }
+                } else {
+                    ul.style.display = 'block';
+                    parentLi.classList.add('menu-open');
+                    if (icon) {
+                        icon.classList.remove('fa-angle-left');
+                        icon.classList.add('fa-angle-down');
+                    }
+                }
+            });
+        }
     }
 });
