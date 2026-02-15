@@ -723,6 +723,20 @@ def buzz_growth_ranking(request):
         'current_min_fortune_score': min_fortune_score,
         'current_has_memo': bool(has_memo),
         'current_has_memo_str': '1' if has_memo else '',
+        # ページネーション用クエリパラメータ
+        'query_params': (
+            f"&sort={sort_by}&q={q}"
+            f"&min_followers={min_followers or ''}"
+            f"&min_score={min_score or ''}"
+            f"&max_age_days={max_age_days or ''}"
+            f"&category={category or ''}"
+            f"&candidates_only={'1' if candidates_only else ''}"
+            f"&quality_only={'1' if quality_only else ''}"
+            f"&include_excluded={'1' if include_excluded else ''}"
+            f"&fortune_only={'1' if fortune_only else ''}"
+            f"&min_fortune_score={min_fortune_score or ''}"
+            f"&has_memo={'1' if has_memo else ''}"
+        ),
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
 

@@ -959,21 +959,17 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with
-fp="&sort="|add:current_sort|add:"&q="|add:current_q|add:"&min_followers="|add:current_min_followers|add:"&min_score="|add:current_min_score|add:"&max_age_days="|add:current_max_age_days|add:"&category="|add:current_category|add:"&candidates_only="|add:current_candidates_only_str|add:"&quality_only="|add:current_quality_only_str|add:"&include_excluded="|add:current_include_excluded_str|add:"&fortune_only="|add:current_fortune_only_str|add:"&min_fortune_score="|add:current_min_fortune_score|add:"&has_memo="|add:current_has_memo_str
-%}
 <div class="gr-pagination">
   {% if page_obj.has_previous %}
-  <a href="?page=1{{ fp }}">&laquo; 最初</a>
-  <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  <a href="?page=1{{ query_params }}">&laquo; 最初</a>
+  <a href="?page={{ page_obj.previous_page_number }}{{ query_params }}">&lsaquo; 前へ</a>
   {% endif %}
   <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-  <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
-  <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  <a href="?page={{ page_obj.next_page_number }}{{ query_params }}">次へ &rsaquo;</a>
+  <a href="?page={{ page_obj.paginator.num_pages }}{{ query_params }}">最後 &raquo;</a>
   {% endif %}
 </div>
-{% endwith %}
 {% endif %}
 
 <!-- エラー詳細モーダル -->
