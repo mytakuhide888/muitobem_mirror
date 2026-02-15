@@ -753,7 +753,7 @@
       <select name="category">
         <option value="">全て</option>
         {% for tag in all_tags %}
-        <option value="{{ tag }}" {% if tag==current_category %}selected{% endif %}>{{ tag }}</option>
+        <option value="{{ tag }}" {% if tag == current_category %}selected{% endif %}>{{ tag }}</option>
         {% endfor %}
       </select>
     </div>
