@@ -1,84 +1,96 @@
 {% extends "admin/base.html" %}
+<!-- DEBUG: CUSTOM BASE_SITE LOADED -->
 {% load i18n static admin_urls admin_list %}
 
 {% block branding %}
-  <h1 id="site-name"><a href="{% url "admin:index" %}">{% trans "バイヤーズ 管理画面" %}</a></h1>
+<h1 id="site-name"><a href="{% url " admin:index" %}">{% trans "バイヤーズ 管理画面" %}</a></h1>
 {% endblock %}
 
 {# 左メニューをカスタムサイドバーに差し替え #}
 {% block nav-sidebar %}
-  {% include "admin/partials/custom_sidebar.html" %}
+{% include "admin/partials/custom_sidebar.html" %}
 {% endblock %}
 
 {# 上部ナビのトップメニューが1行に収まりきらないため、グリッドで折り返す #}
 {% block extrastyle %}
-  {{ block.super }}
-  <style>
-    /* ヘッダーナビ全体を折り返し可能にする */
-    #jazzy-navbar {
-      flex-wrap: wrap;
-      align-items: flex-start;
-      padding: 8px 12px;
-    }
-    /* 左側のUL（トグル + トップメニュー）をフレックスで横並び＆折返し */
+{{ block.super }}
+<style>
+  /* ヘッダーナビ全体を折り返し可能にする */
+  #jazzy-navbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 8px 12px;
+  }
+
+  /* 左側のUL（トグル + トップメニュー）をフレックスで横並び＆折返し */
+  #jazzy-navbar .navbar-nav:first-child {
+    display: flex;
+    flex-wrap: wrap !important;
+    /* bootstrapのnowrapを上書き */
+    gap: 8px;
+    width: 100%;
+    align-items: flex-start;
+    margin: 0;
+  }
+
+  /* トップメニューの各項目をボタン化 */
+  #jazzy-navbar .navbar-nav:first-child>.nav-item {
+    min-width: 140px;
+    max-width: 220px;
+  }
+
+  #jazzy-navbar .navbar-nav:first-child>.nav-item:first-child {
+    min-width: 40px;
+    max-width: 48px;
+  }
+
+  #jazzy-navbar .navbar-nav:first-child .nav-link {
+    display: block;
+    white-space: normal;
+    line-height: 1.2;
+    padding: 10px 12px;
+    height: auto;
+    text-align: center;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    color: #1f2937;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+
+  /* 交互に色を変える（偶数は薄いブルー） */
+  #jazzy-navbar .navbar-nav:first-child>.nav-item:nth-child(even) .nav-link {
+    background: #e0f2fe;
+    border-color: #c7e1fa;
+  }
+
+  #jazzy-navbar .navbar-nav:first-child>.nav-item:nth-child(odd) .nav-link {
+    background: #f8fafc;
+  }
+
+  #jazzy-navbar .navbar-nav:first-child .nav-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ドロップダウンはそのまま */
+  #jazzy-navbar .navbar-nav:first-child .dropdown-menu {
+    min-width: 220px;
+  }
+
+  /* 横幅が狭いときは2列→1列に落とす */
+  @media (max-width: 992px) {
     #jazzy-navbar .navbar-nav:first-child {
-      display: flex;
-      flex-wrap: wrap !important; /* bootstrapのnowrapを上書き */
-      gap: 8px;
-      width: 100%;
-      align-items: flex-start;
-      margin: 0;
+      gap: 6px;
     }
-    /* トップメニューの各項目をボタン化 */
-    #jazzy-navbar .navbar-nav:first-child > .nav-item {
-      min-width: 140px;
-      max-width: 220px;
+  }
+
+  @media (max-width: 576px) {
+    #jazzy-navbar .navbar-nav:first-child>.nav-item {
+      min-width: 100%;
+      max-width: 100%;
     }
-    #jazzy-navbar .navbar-nav:first-child > .nav-item:first-child {
-      min-width: 40px;
-      max-width: 48px;
-    }
-    #jazzy-navbar .navbar-nav:first-child .nav-link {
-      display: block;
-      white-space: normal;
-      line-height: 1.2;
-      padding: 10px 12px;
-      height: auto;
-      text-align: center;
-      border-radius: 10px;
-      border: 1px solid #e5e7eb;
-      background: #f8fafc;
-      color: #1f2937;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-      transition: transform 0.08s ease, box-shadow 0.08s ease;
-    }
-    /* 交互に色を変える（偶数は薄いブルー） */
-    #jazzy-navbar .navbar-nav:first-child > .nav-item:nth-child(even) .nav-link {
-      background: #e0f2fe;
-      border-color: #c7e1fa;
-    }
-    #jazzy-navbar .navbar-nav:first-child > .nav-item:nth-child(odd) .nav-link {
-      background: #f8fafc;
-    }
-    #jazzy-navbar .navbar-nav:first-child .nav-link:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-    /* ドロップダウンはそのまま */
-    #jazzy-navbar .navbar-nav:first-child .dropdown-menu {
-      min-width: 220px;
-    }
-    /* 横幅が狭いときは2列→1列に落とす */
-    @media (max-width: 992px) {
-      #jazzy-navbar .navbar-nav:first-child {
-        gap: 6px;
-      }
-    }
-    @media (max-width: 576px) {
-      #jazzy-navbar .navbar-nav:first-child > .nav-item {
-        min-width: 100%;
-        max-width: 100%;
-      }
-    }
-  </style>
+  }
+</style>
 {% endblock %}
