@@ -13,13 +13,22 @@
 **戦略: JSインジェクション**
 `admin/nav_sidebar.html` は Jazzmin の内部テンプレートであり、編集が困難であるため、JavaScript を用いて動的にメニューを追加する。
 
-1. `app/app/templates/admin/partials/custom_sidebar.html` を修正する。
+### `admin/partials/custom_sidebar.html` の作成 (採用せず)
+当初、Djangoテンプレートのオーバーライドを試みましたが、環境構成上の理由により反映されなかったため、以下のJavaScriptによるDOM操作手法を採用しました。
+
+### `app/static/js/mobile_nav.js` の作成 [NEW]
+Jazzminのサイドバー (`ul.nav-sidebar`) に対し、JavaScriptを用いて動的に「コンソールメニュー」とリンクを追加します。
+- **重要**: AdminLTEの自動制御（勝手に閉じる挙動）と競合しないよう、`has-treeview` クラスは付与せず、独自のクリックハンドラで制御します。
+- `jQuery` の `slideToggle` を使用して、他のメニューと同じアニメーションを実現します。
+- `settings.py` の `JAZZMIN_SETTINGS["custom_js"]` にて読み込みを指定
+
+### `app/settings.py` の修正
+- `JAZZMIN_SETTINGS["custom_js"]` に `js/mobile_nav.js` を追加修正する。
 2. `<script>` ブロックを追加し、以下の処理を行う:
    - DOM読み込み完了を待つ。
    - `ul.nav-sidebar` 要素を取得する。
    - その末尾に、新しいメニュー項目「コンソールメニュー」のHTML（Djangoテンプレートタグを含む）を挿入する。
    - アコーディオンの開閉動作を手動追加する（AdminLTEの初期化後に追加されるため）。
-3. このメニューは AdminLTE の `nav-treeview` クラスを使用したアコーディオン形式とし、クリックすると展開してリンク一覧を表示する。
 
 ## リンク一覧
 （`settings.py` より）

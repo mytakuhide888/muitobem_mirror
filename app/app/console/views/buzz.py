@@ -982,7 +982,7 @@ def buzz_run_deep_scan(request):
     """投稿不足アカウントの深掘りスキャンジョブを開始する API"""
     try:
         max_authors = int(request.POST.get('max_authors', 10))
-        max_authors = max(1, min(max_authors, 50))
+        max_authors = max(1, min(max_authors, 1000))
 
         # 深掘り対象数を確認
         target_count = THBuzzAuthor.objects.filter(

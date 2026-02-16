@@ -215,6 +215,12 @@ class Command(BaseCommand):
                         except Exception:
                             pass
 
+                    # メモリリーク防止のため、一定件数ごとにブラウザを再起動する (RateLimiterは維持される)
+                    if processed % 20 == 0:
+                        logger.info("[CMD] ブラウザ定期再起動 (processed=%d)", processed)
+                        self.stdout.write("  (ブラウザリソース解放中...)")
+                        scraper.close()
+
         except Exception as e:
             logger.exception("[CMD] 深掘りスキャン全体エラー")
             self.stderr.write(f"エラー: {e}")
