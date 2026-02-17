@@ -303,7 +303,14 @@ def buzz_author_detail(request, pk):
         post.media_urls_json = json.dumps(post.media_urls or [], ensure_ascii=False)
 
     # ─── ピン留め投稿を分離 ───
-    pinned_posts = [p for p in author.buzz_posts.all() if p.raw_json and p.raw_json.get('is_pinned')]
+    pinned_posts = []
+    for p in author.buzz_posts.all():
+        raw = p.raw_json or {}
+        if not isinstance(raw, dict):
+            # 旧データ等で raw_json が辞書以外でも詳細画面が落ちないようにする
+            raw = {}
+        if raw.get('is_pinned'):
+            pinned_posts.append(p)
     for post in pinned_posts:
         post.media_urls_json = json.dumps(post.media_urls or [], ensure_ascii=False)
 
