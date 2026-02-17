@@ -1267,21 +1267,17 @@
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
-{% with
-fp="&sort="|add:current_sort|add:"&keyword="|add:current_keyword|add:"&viral="|add:current_viral|add:"&date_from="|add:current_date_from|add:"&date_to="|add:current_date_to|add:"&like_min="|add:current_like_min|add:"&like_max="|add:current_like_max|add:"&reply_min="|add:current_reply_min|add:"&reply_max="|add:current_reply_max|add:"&score_min="|add:current_score_min|add:"&score_max="|add:current_score_max|add:"&er_min="|add:current_er_min|add:"&er_max="|add:current_er_max
-%}
 <div class="ad-pagination">
   {% if page_obj.has_previous %}
-  <a href="?page=1{{ fp }}">&laquo; 最初</a>
-  <a href="?page={{ page_obj.previous_page_number }}{{ fp }}">&lsaquo; 前へ</a>
+  <a href="?page=1">&laquo; 最初</a>
+  <a href="?page={{ page_obj.previous_page_number }}">&lsaquo; 前へ</a>
   {% endif %}
   <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
   {% if page_obj.has_next %}
-  <a href="?page={{ page_obj.next_page_number }}{{ fp }}">次へ &rsaquo;</a>
-  <a href="?page={{ page_obj.paginator.num_pages }}{{ fp }}">最後 &raquo;</a>
+  <a href="?page={{ page_obj.next_page_number }}">次へ &rsaquo;</a>
+  <a href="?page={{ page_obj.paginator.num_pages }}">最後 &raquo;</a>
   {% endif %}
 </div>
-{% endwith %}
 {% endif %}
 
 <!-- エラー詳細モーダル -->
