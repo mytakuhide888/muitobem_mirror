@@ -74,6 +74,8 @@ def buzz_search(request):
         qs = qs.filter(is_viral=True)
     if favorite_only == '1':
         qs = qs.filter(author__is_favorited=True)
+    elif favorite_only == '0':
+        qs = qs.filter(author__is_favorited=False)
     if not include_excluded:
         qs = qs.filter(author__is_excluded=False)
     if date_from:

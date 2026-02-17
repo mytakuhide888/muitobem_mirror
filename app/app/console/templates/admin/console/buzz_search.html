@@ -237,6 +237,7 @@
       <select name="favorite">
         <option value="">全て</option>
         <option value="1" {% if current_favorite == "1" %}selected{% endif %}>お気に入りのみ</option>
+        <option value="0" {% if current_favorite == "0" %}selected{% endif %}>お気に入り以外</option>
       </select>
     </div>
     <div>
