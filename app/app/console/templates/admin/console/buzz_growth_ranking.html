@@ -729,6 +729,34 @@
   <a class="help-icon" onclick="openHelp()" title="ヘルプ・指標の説明">?</a>
 </h2>
 
+<!-- パイプライン統計 -->
+<div style="background:linear-gradient(135deg,#e8f5e9,#e3f2fd); border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+  <div style="display:flex; gap:20px; flex-wrap:wrap; flex:1;">
+    <div style="text-align:center;">
+      <div style="font-size:24px; font-weight:bold; color:#e65100;">{{ attention_total }}</div>
+      <div style="font-size:11px; color:#666;">⚠️ 要注目</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; font-weight:bold; color:#1565c0;">{{ attention_new_this_week }}</div>
+      <div style="font-size:11px; color:#666;">今週の新規要注目</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; font-weight:bold; color:#2e7d32;">{{ new_authors_this_week }}</div>
+      <div style="font-size:11px; color:#666;">今週の新規発見</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; font-weight:bold; color:#6a1b9a;">{{ analyzed_count }}</div>
+      <div style="font-size:11px; color:#666;">📝 分析済み</div>
+    </div>
+  </div>
+  <div>
+    <button class="buzz-btn buzz-btn-primary" onclick="runPipeline()" style="white-space:nowrap;">
+      🔄 自動巡回パイプライン実行
+    </button>
+    <div id="pipeline-msg" style="font-size:11px; color:#666; margin-top:4px;"></div>
+  </div>
+</div>
+
 <!-- フィルタ -->
 <div class="gr-filters">
   <form method="get">
@@ -785,6 +813,12 @@
       <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
         <input type="checkbox" name="has_memo" value="1" {% if current_has_memo %}checked{% endif %}>
         メモ付きのみ
+      </label>
+    </div>
+    <div>
+      <label style="display:flex; align-items:center; gap:4px; margin-top:16px; cursor:pointer;">
+        <input type="checkbox" name="attention_only" value="1" {% if current_attention_only %}checked{% endif %}>
+        ⚠️ 要注目のみ
       </label>
     </div>
     <div>
@@ -852,6 +886,8 @@
             title="{{ author.auto_excluded_reason }}">自動除外</span>{% endif %}
           {% if author.is_favorited %}<span class="candidate-badge" style="background:#f5a623;"
             id="fav-badge-{{ author.pk }}">お気に入り</span>{% endif %}
+          {% if author.is_attention_needed %}<span class="candidate-badge" style="background:#e65100;">⚠要注目</span>{% endif %}
+          {% if author.is_analyzed %}<span class="candidate-badge" style="background:#6a1b9a;">📝分析済</span>{% endif %}
         </div>
         <div class="gr-card-actions">
           <button class="gr-fav-btn{% if author.is_favorited %} active{% endif %}"
@@ -1507,6 +1543,24 @@
       checks[i].checked = false;
     }
     updateBulkBar();
+  }
+
+  function runPipeline() {
+    var msgEl = document.getElementById('pipeline-msg');
+    if (!confirm('自動巡回パイプラインを実行しますか？\nキーワード巡回 → 深掘りスキャン → 要注目フラグ更新を一括実行します。')) return;
+    msgEl.textContent = 'パイプライン実行中...';
+    fetch('{% url "console:buzz_run_pipeline" %}', {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+    }).then(r => r.json()).then(data => {
+      if (data.ok) {
+        msgEl.textContent = '✅ ' + data.message + ' 完了後にページをリロードしてください。';
+      } else {
+        msgEl.textContent = '❌ エラー: ' + (data.error || '不明');
+      }
+    }).catch(e => {
+      msgEl.textContent = '❌ 通信エラー: ' + e;
+    });
   }
 </script>
 {% endblock %}

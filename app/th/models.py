@@ -144,6 +144,13 @@ class THBuzzAuthor(models.Model):
         help_text='検出: ["STORES","LINE","有料鑑定"...]')
     auto_excluded_reason = models.CharField('自動対象外理由', max_length=200, blank=True, default='')
 
+    # ─── 自動巡回パイプライン ───
+    is_attention_needed = models.BooleanField('要注目', default=False,
+        help_text='自動巡回で成長スコア閾値超え + 占い適合のアカウント')
+    attention_set_at = models.DateTimeField('要注目フラグ設定日時', null=True, blank=True)
+    is_analyzed = models.BooleanField('分析済み', default=False,
+        help_text='構造化分析メモが記入済み')
+
     class Meta:
         db_table = 'meta_th_buzz_authors'
         verbose_name = 'Threadsバズ投稿者'
@@ -158,6 +165,7 @@ class THBuzzAuthor(models.Model):
             models.Index(fields=['followers_count'], name='bza_followers_count'),
             models.Index(fields=['account_age_days'], name='bza_account_age_days'),
             models.Index(fields=['-fortune_relevance_score'], name='bza_fortune_score_desc'),
+            models.Index(fields=['is_attention_needed'], name='bza_attention_needed'),
         ]
 
     def __str__(self):
@@ -469,6 +477,46 @@ class THBuzzAuthor(models.Model):
             return 30
         else:
             return 0
+
+
+class THBuzzAuthorAnalysis(models.Model):
+    """投稿者の構造化分析メモ（メイト氏Step2: 伸びている要因のピックアップ）"""
+    author = models.OneToOneField(
+        THBuzzAuthor, on_delete=models.CASCADE,
+        related_name='analysis', verbose_name='投稿者',
+    )
+    # ─── 伸びている要因チェックリスト ───
+    factor_profile = models.TextField('プロフィール/表示名の工夫', blank=True, default='')
+    factor_concept = models.TextField('コンセプト（何者か、ギャップ）', blank=True, default='')
+    factor_content = models.TextField('投稿内容の傾向', blank=True, default='')
+    factor_format = models.TextField('投稿形式の使い分け', blank=True, default='')
+    factor_frequency = models.TextField('投稿頻度・タイミング', blank=True, default='')
+    factor_engagement = models.TextField('エンゲージメントの取り方', blank=True, default='')
+    factor_funnel = models.TextField('導線設計（bio→LINE→鑑定等）', blank=True, default='')
+    factor_other = models.TextField('その他の要因', blank=True, default='')
+    # ─── メタ情報 ───
+    overall_assessment = models.TextField('総合評価', blank=True, default='')
+    concept_inspiration = models.TextField('この垢から得たコンセプトのヒント', blank=True, default='')
+    differentiation_idea = models.TextField('ずらしのアイデア', blank=True, default='')
+    analyzed_at = models.DateTimeField('分析日時', auto_now=True)
+
+    class Meta:
+        db_table = 'meta_th_buzz_author_analysis'
+        verbose_name = '投稿者分析メモ'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"分析: @{self.author.username}"
+
+    def has_content(self):
+        """いずれかのフィールドに記入があるか"""
+        fields = [
+            self.factor_profile, self.factor_concept, self.factor_content,
+            self.factor_format, self.factor_frequency, self.factor_engagement,
+            self.factor_funnel, self.factor_other,
+            self.overall_assessment, self.concept_inspiration, self.differentiation_idea,
+        ]
+        return any(f.strip() for f in fields)
 
 
 class THBuzzPost(models.Model):

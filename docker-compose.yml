@@ -79,6 +79,12 @@ services:
         while :; do
           flock -n /tmp/th_scheduler.lock -c "python manage.py th_run_due_posts -v 2" || true;
           flock -n /tmp/th_buzz_scheduler.lock -c "python manage.py th_buzz_run_scheduled -v 2" || true;
+          HOUR=$(date +%H);
+          if [ "$HOUR" = "06" ] && [ ! -f /tmp/pipeline_done_today ]; then
+            flock -n /tmp/th_pipeline.lock -c "python manage.py th_buzz_auto_pipeline -v 2" || true;
+            touch /tmp/pipeline_done_today;
+          fi;
+          if [ "$HOUR" = "00" ]; then rm -f /tmp/pipeline_done_today; fi;
           sleep 60;
         done
     logging:

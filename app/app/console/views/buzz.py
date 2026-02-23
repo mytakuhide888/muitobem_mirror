@@ -20,7 +20,7 @@ from django.views.decorators.http import require_POST
 import re
 import urllib.request
 
-from th.models import THBuzzAuthor, THBuzzPost, THBuzzSearchJob
+from th.models import THBuzzAuthor, THBuzzAuthorAnalysis, THBuzzPost, THBuzzSearchJob
 from th.services.buzz_scraper import ViralityDetector, check_session_validity
 
 logger = logging.getLogger(__name__)
@@ -211,6 +211,9 @@ def buzz_author_detail(request, pk):
     """投稿者詳細画面"""
     author = get_object_or_404(THBuzzAuthor, pk=pk)
 
+    # ─── 分析メモの取得/作成 ───
+    analysis, _ = THBuzzAuthorAnalysis.objects.get_or_create(author=author)
+
     # ─── フィルタ/ソートパラメータ ───
     sort_by = request.GET.get('sort', '-scraped_at')
     keyword_filter = request.GET.get('keyword', '')
@@ -336,9 +339,15 @@ def buzz_author_detail(request, pk):
         if remaining.days <= 3:
             session_warning = session_info['message']
 
+    # ─── 投稿パターン分析データ ───
+    all_posts = list(author.buzz_posts.all())
+    pattern_stats = _calc_post_pattern_stats(all_posts, author.followers_count or 0)
+
     ctx = {
         'title': f'投稿者: @{author.username}',
         'author': author,
+        'analysis': analysis,
+        'pattern_stats': json.dumps(pattern_stats, ensure_ascii=False),
         'page_obj': page_obj,
         'pinned_posts': pinned_posts,
         'keywords_list': keywords_list,
@@ -620,6 +629,7 @@ def buzz_growth_ranking(request):
     fortune_only = request.GET.get('fortune_only', '')
     min_fortune_score = request.GET.get('min_fortune_score', '')
     has_memo = request.GET.get('has_memo', '')
+    attention_only = request.GET.get('attention_only', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -671,6 +681,8 @@ def buzz_growth_ranking(request):
             pass
     if has_memo:
         qs = qs.exclude(memo='')
+    if attention_only:
+        qs = qs.filter(is_attention_needed=True)
     if not include_excluded:
         qs = qs.filter(is_excluded=False)
 
@@ -708,12 +720,29 @@ def buzz_growth_ranking(request):
         ).count()
     )
 
+    # パイプライン統計
+    from datetime import timedelta as td
+    week_ago = timezone.now() - td(days=7)
+    attention_total = THBuzzAuthor.objects.filter(is_attention_needed=True).count()
+    attention_new_this_week = THBuzzAuthor.objects.filter(
+        is_attention_needed=True, attention_set_at__gte=week_ago,
+    ).count()
+    new_authors_this_week = THBuzzAuthor.objects.filter(
+        first_scraped_at__gte=week_ago, is_excluded=False,
+    ).count()
+    analyzed_count = THBuzzAuthor.objects.filter(is_analyzed=True).count()
+
     ctx = {
         'title': '急成長アカウントランキング',
         'page_obj': page_obj,
         'all_tags': all_tags,
         'total_count': paginator.count,
         'deep_scan_target_count': deep_scan_target_count,
+        # パイプライン統計
+        'attention_total': attention_total,
+        'attention_new_this_week': attention_new_this_week,
+        'new_authors_this_week': new_authors_this_week,
+        'analyzed_count': analyzed_count,
         # 現在のフィルタ値
         'current_sort': sort_by,
         'current_min_followers': min_followers,
@@ -732,6 +761,8 @@ def buzz_growth_ranking(request):
         'current_min_fortune_score': min_fortune_score,
         'current_has_memo': bool(has_memo),
         'current_has_memo_str': '1' if has_memo else '',
+        'current_attention_only': bool(attention_only),
+        'current_attention_only_str': '1' if attention_only else '',
         # ページネーション用クエリパラメータ
         'query_params': (
             f"&sort={sort_by}&q={q}"
@@ -745,6 +776,7 @@ def buzz_growth_ranking(request):
             f"&fortune_only={'1' if fortune_only else ''}"
             f"&min_fortune_score={min_fortune_score or ''}"
             f"&has_memo={'1' if has_memo else ''}"
+            f"&attention_only={'1' if attention_only else ''}"
         ),
     }
     return render(request, 'admin/console/buzz_growth_ranking.html', ctx)
@@ -1073,3 +1105,173 @@ def buzz_media_proxy(request):
     except Exception as e:
         logger.warning("buzz_media_proxy エラー: %s (url=%s)", e, url[:120])
         return HttpResponse(b'Fetch failed', status=502, content_type='text/plain')
+
+
+# ─── 投稿パターン分析ヘルパー ───
+
+def _calc_post_pattern_stats(posts, followers_count):
+    """投稿パターンの統計を算出する"""
+    from collections import Counter
+    import re as _re
+
+    stats = {
+        'total_posts': len(posts),
+        'hourly_heatmap': [[0]*24 for _ in range(7)],  # [dow][hour]
+        'media_type_dist': {'text': 0, 'image': 0, 'video': 0, 'carousel': 0},
+        'text_length_dist': {'short': 0, 'medium': 0, 'long': 0},  # <100, 100-300, >300
+        'viral_posts_count': 0,
+        'avg_text_length': 0,
+        'avg_viral_text_length': 0,
+        'er_trend': [],  # [{date, er}]
+        'top_words': [],  # [{word, count}]
+        'hashtag_freq': [],  # [{tag, count}]
+        'posting_freq_weekly': 0,
+    }
+
+    if not posts:
+        return stats
+
+    text_lengths = []
+    viral_text_lengths = []
+    word_counter = Counter()
+    hashtag_counter = Counter()
+    er_data = []
+
+    # ストップワード
+    STOPWORDS = {
+        'の', 'に', 'は', 'を', 'た', 'が', 'で', 'て', 'と', 'し', 'れ', 'さ',
+        'ある', 'いる', 'も', 'する', 'から', 'な', 'こと', 'として', 'い', 'や',
+        'ない', 'この', 'ため', 'その', 'あと', 'よう', 'なる', 'まで', 'また',
+        'どの', 'https', 'http', 'www', 'com', 'jp', 'co', 'net',
+    }
+
+    for p in posts:
+        # 時間帯ヒートマップ
+        if p.posted_at:
+            dow = p.posted_at.weekday()  # 0=Mon
+            hour = p.posted_at.hour
+            stats['hourly_heatmap'][dow][hour] += 1
+
+        # メディアタイプ分布
+        mt = (p.media_type or 'text').lower()
+        if mt in stats['media_type_dist']:
+            stats['media_type_dist'][mt] += 1
+        else:
+            stats['media_type_dist']['text'] += 1
+
+        # テキスト長分布
+        tlen = len(p.text_content or '')
+        text_lengths.append(tlen)
+        if tlen < 100:
+            stats['text_length_dist']['short'] += 1
+        elif tlen < 300:
+            stats['text_length_dist']['medium'] += 1
+        else:
+            stats['text_length_dist']['long'] += 1
+
+        # バズ投稿
+        if p.is_viral:
+            stats['viral_posts_count'] += 1
+            viral_text_lengths.append(tlen)
+
+        # ER推移データ
+        if p.posted_at and p.engagement_rate is not None:
+            er_data.append({
+                'date': p.posted_at.strftime('%Y-%m-%d'),
+                'er': round(p.engagement_rate, 2),
+            })
+
+        # テキスト解析（簡易形態素解析: 2-6文字の連続カタカナ/漢字を抽出）
+        text = p.text_content or ''
+        # ハッシュタグ
+        tags = _re.findall(r'[#＃]([\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+)', text)
+        for tag in tags:
+            hashtag_counter[tag] += 1
+
+        # 単語抽出（カタカナ3文字以上 or 漢字2文字以上）
+        katakana_words = _re.findall(r'[\u30A0-\u30FF]{3,}', text)
+        kanji_words = _re.findall(r'[\u4E00-\u9FFF]{2,6}', text)
+        for w in katakana_words + kanji_words:
+            if w.lower() not in STOPWORDS and len(w) >= 2:
+                word_counter[w] += 1
+
+    stats['avg_text_length'] = round(sum(text_lengths) / len(text_lengths)) if text_lengths else 0
+    stats['avg_viral_text_length'] = round(sum(viral_text_lengths) / len(viral_text_lengths)) if viral_text_lengths else 0
+
+    # ER推移（日付順）
+    er_data.sort(key=lambda x: x['date'])
+    stats['er_trend'] = er_data[-50:]  # 直近50件
+
+    # 頻出ワード Top20
+    stats['top_words'] = [{'word': w, 'count': c} for w, c in word_counter.most_common(20)]
+
+    # ハッシュタグ Top15
+    stats['hashtag_freq'] = [{'tag': t, 'count': c} for t, c in hashtag_counter.most_common(15)]
+
+    # 週あたり投稿頻度
+    dated_posts = [p for p in posts if p.posted_at]
+    if len(dated_posts) >= 2:
+        sorted_dates = sorted(p.posted_at for p in dated_posts)
+        span_days = max((sorted_dates[-1] - sorted_dates[0]).days, 1)
+        stats['posting_freq_weekly'] = round(len(dated_posts) / span_days * 7, 1)
+
+    return stats
+
+
+# ─── 構造化分析メモ保存 API ───
+
+@staff_member_required
+@require_POST
+def buzz_save_analysis(request, pk):
+    """構造化分析メモを保存する API"""
+    author = get_object_or_404(THBuzzAuthor, pk=pk)
+    analysis, _ = THBuzzAuthorAnalysis.objects.get_or_create(author=author)
+
+    fields = [
+        'factor_profile', 'factor_concept', 'factor_content',
+        'factor_format', 'factor_frequency', 'factor_engagement',
+        'factor_funnel', 'factor_other',
+        'overall_assessment', 'concept_inspiration', 'differentiation_idea',
+    ]
+    for f in fields:
+        val = request.POST.get(f, '').strip()
+        setattr(analysis, f, val)
+    analysis.save()
+
+    # 分析済みフラグ更新
+    has_content = analysis.has_content()
+    if has_content != author.is_analyzed:
+        author.is_analyzed = has_content
+        author.save(update_fields=['is_analyzed'])
+
+    return JsonResponse({'ok': True, 'is_analyzed': has_content})
+
+
+# ─── 自動巡回パイプライン手動実行 API ───
+
+@staff_member_required
+@require_POST
+def buzz_run_pipeline(request):
+    """自動巡回パイプラインを手動で実行開始する API"""
+    from pathlib import Path
+
+    dry_run = request.POST.get('dry_run', '') == '1'
+    cmd = [sys.executable, 'manage.py', 'th_buzz_auto_pipeline', '-v', '2']
+    if dry_run:
+        cmd.append('--dry-run')
+
+    log_dir = Path(settings.BASE_DIR) / 'deploy'
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        log_out = open(log_dir / 'pipeline_stdout.log', 'a')
+        log_err = open(log_dir / 'pipeline_stderr.log', 'a')
+        subprocess.Popen(
+            cmd,
+            cwd=str(settings.BASE_DIR),
+            stdout=log_out,
+            stderr=log_err,
+        )
+        return JsonResponse({'ok': True, 'message': 'パイプライン実行を開始しました'})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)

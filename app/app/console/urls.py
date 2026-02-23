@@ -55,4 +55,8 @@ urlpatterns = [
     # Googleトレンド分析
     path("buzz-trends/",                      buzz_views.buzz_trends,            name="buzz_trends"),
     path("api/buzz/trends/",                  buzz_views.buzz_trends_api,        name="buzz_trends_api"),
+
+    # 構造化分析メモ・パイプライン
+    path("api/buzz/author-analysis/<int:pk>/", buzz_views.buzz_save_analysis,    name="buzz_save_analysis"),
+    path("api/buzz/run-pipeline/",            buzz_views.buzz_run_pipeline,      name="buzz_run_pipeline"),
 ]
