@@ -84,7 +84,11 @@ services:
             flock -n /tmp/th_pipeline.lock -c "python manage.py th_buzz_auto_pipeline -v 2" || true;
             touch /tmp/pipeline_done_today;
           fi;
-          if [ "$HOUR" = "00" ]; then rm -f /tmp/pipeline_done_today; fi;
+          if [ "$HOUR" = "04" ] && [ ! -f /tmp/ig_insights_done_today ]; then
+            flock -n /tmp/ig_insights.lock -c "python manage.py ig_fetch_insights --limit 30 -v 2" || true;
+            touch /tmp/ig_insights_done_today;
+          fi;
+          if [ "$HOUR" = "00" ]; then rm -f /tmp/pipeline_done_today /tmp/ig_insights_done_today; fi;
           sleep 60;
         done
     logging:
