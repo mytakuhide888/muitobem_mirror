@@ -1,0 +1,310 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}投稿文AI生成{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; 投稿文AI生成</div>{% endblock %}
+
+{% block content %}
+<style>
+  .cg-container { max-width: 1200px; margin: 0 auto; }
+  .cg-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .cg-col-left { flex: 0 0 400px; min-width: 320px; }
+  .cg-col-right { flex: 1; min-width: 320px; }
+  .cg-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .cg-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; }
+  .cg-field { margin-bottom: 14px; }
+  .cg-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .cg-field select, .cg-field input[type="text"], .cg-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+  }
+  .cg-field textarea { resize: vertical; min-height: 70px; }
+  .cg-range-val { font-size: 13px; color: #007bff; font-weight: bold; }
+  .cg-btn-gen {
+    width: 100%; padding: 12px; background: #007bff; color: #fff;
+    border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer;
+  }
+  .cg-btn-gen:hover { background: #0056b3; }
+  .cg-btn-gen:disabled { background: #aaa; cursor: wait; }
+
+  .cg-card {
+    background: #fff; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 12px;
+    border-left: 4px solid #28a745;
+  }
+  .cg-card.ng { border-left-color: #dc3545; }
+  .cg-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cg-card-header .label { font-weight: bold; font-size: 14px; }
+  .cg-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; }
+  .cg-badge.ok { background: #28a745; }
+  .cg-badge.ng { background: #dc3545; }
+  .cg-card-text { white-space: pre-wrap; font-size: 14px; line-height: 1.7; margin-bottom: 10px; }
+  .cg-card-actions button {
+    padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+    background: #fff; cursor: pointer; font-size: 12px; margin-right: 6px;
+  }
+  .cg-card-actions button:hover { background: #f0f0f0; }
+
+  .cg-empty { text-align: center; color: #999; padding: 40px 0; }
+  .cg-error { color: #dc3545; background: #fff5f5; padding: 12px; border-radius: 6px; }
+
+  /* モーダル */
+  .cg-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.4); z-index: 9999; justify-content: center; align-items: center;
+  }
+  .cg-overlay.active { display: flex; }
+  .cg-modal {
+    background: #fff; border-radius: 8px; padding: 24px; width: 400px; max-width: 90%;
+  }
+  .cg-modal h4 { margin: 0 0 16px; }
+  .cg-modal-actions { margin-top: 16px; text-align: right; }
+  .cg-modal-actions button { padding: 8px 16px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
+  .cg-modal-actions .primary { background: #007bff; color: #fff; border-color: #007bff; margin-left: 8px; }
+</style>
+
+<div class="cg-container">
+  <div class="cg-row">
+    <div class="cg-col-left">
+      <div class="cg-panel">
+        <h3>投稿文AI生成</h3>
+        <div class="cg-field">
+          <label>トピック</label>
+          <select id="cg-topic-preset">
+            {% for key, label in topic_presets.items %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+            <option value="_custom">自由入力</option>
+          </select>
+          <input type="text" id="cg-topic-custom" style="display:none; margin-top:6px;" placeholder="トピックを自由に入力...">
+        </div>
+        <div class="cg-field">
+          <label>文体</label>
+          <select id="cg-style">
+            {% for key, label in style_presets.items %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="cg-field">
+          <label>キャラ設定（任意）</label>
+          <textarea id="cg-character" placeholder="例：20代女性の占い師。タロットと西洋占星術が専門。優しい語り口。"></textarea>
+        </div>
+        <div class="cg-field">
+          <label>参考投稿テキスト（任意・1行1投稿）</label>
+          <textarea id="cg-reference" placeholder="参考にしたい投稿文を貼り付け"></textarea>
+        </div>
+        <div class="cg-field">
+          <label>最大文字数: <span class="cg-range-val" id="cg-maxlen-val">500</span></label>
+          <input type="range" id="cg-maxlen" min="300" max="1000" step="50" value="500">
+        </div>
+        <div class="cg-field">
+          <label>生成候補数</label>
+          <select id="cg-count">
+            <option value="1">1件</option>
+            <option value="2">2件</option>
+            <option value="3" selected>3件</option>
+            <option value="5">5件</option>
+          </select>
+        </div>
+        <button id="cg-btn-gen" class="cg-btn-gen">生成する</button>
+      </div>
+    </div>
+
+    <div class="cg-col-right">
+      <div class="cg-panel">
+        <h3>生成結果</h3>
+        <div id="cg-results">
+          <div class="cg-empty">左のフォームから「生成する」を押してください</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 予約投稿モーダル -->
+<div class="cg-overlay" id="cg-sched-overlay">
+  <div class="cg-modal">
+    <h4>予約投稿に追加</h4>
+    <div class="cg-field">
+      <label>投稿日時</label>
+      <input type="datetime-local" id="cg-sched-dt">
+    </div>
+    <div class="cg-field">
+      <label>アカウント</label>
+      <select id="cg-sched-account">
+        {% for acc in accounts %}
+        <option value="{{ acc.pk }}">{{ acc.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <input type="hidden" id="cg-sched-body">
+    <div class="cg-modal-actions">
+      <button id="cg-sched-cancel">キャンセル</button>
+      <button id="cg-sched-ok" class="primary">追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var csrf = '{{ csrf_token }}';
+
+  document.getElementById('cg-topic-preset').addEventListener('change', function(){
+    document.getElementById('cg-topic-custom').style.display = this.value === '_custom' ? '' : 'none';
+  });
+  document.getElementById('cg-maxlen').addEventListener('input', function(){
+    document.getElementById('cg-maxlen-val').textContent = this.value;
+  });
+
+  document.getElementById('cg-btn-gen').addEventListener('click', function(){
+    var btn = this; btn.disabled = true; btn.textContent = '生成中…';
+    var area = document.getElementById('cg-results');
+    area.textContent = '';
+
+    var topicSel = document.getElementById('cg-topic-preset');
+    var topic = topicSel.value === '_custom'
+      ? document.getElementById('cg-topic-custom').value : topicSel.value;
+
+    var refText = document.getElementById('cg-reference').value.trim();
+    var refs = refText ? refText.split('\n').filter(function(l){return l.trim();}) : [];
+
+    var payload = {
+      topic: topic,
+      style: document.getElementById('cg-style').value,
+      character_desc: document.getElementById('cg-character').value,
+      reference_posts: refs,
+      max_length: parseInt(document.getElementById('cg-maxlen').value),
+      count: parseInt(document.getElementById('cg-count').value),
+    };
+
+    fetch('{% url "console:content_generate_api" %}', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:JSON.stringify(payload),
+    }).then(function(r){return r.json();}).then(function(data){
+      renderResults(area, data);
+    }).catch(function(e){
+      var d = document.createElement('div');
+      d.className = 'cg-error';
+      d.textContent = 'エラー: ' + e.message;
+      area.appendChild(d);
+    }).finally(function(){
+      btn.disabled = false; btn.textContent = '生成する';
+    });
+  });
+
+  function renderResults(area, data){
+    if(data.error){
+      var d = document.createElement('div');
+      d.className = 'cg-error';
+      d.textContent = data.error;
+      area.appendChild(d);
+      return;
+    }
+    if(!data.candidates || !data.candidates.length){
+      var d = document.createElement('div');
+      d.className = 'cg-empty';
+      d.textContent = '候補が生成されませんでした';
+      area.appendChild(d);
+      return;
+    }
+    data.candidates.forEach(function(c, i){
+      var hasNg = c.ng_check && c.ng_check.has_issues;
+      var card = document.createElement('div');
+      card.className = 'cg-card' + (hasNg ? ' ng' : '');
+
+      var hdr = document.createElement('div');
+      hdr.className = 'cg-card-header';
+      var lbl = document.createElement('span');
+      lbl.className = 'label';
+      lbl.textContent = '候補 ' + (i+1) + ' (' + c.char_count + '文字)';
+      hdr.appendChild(lbl);
+
+      var badge = document.createElement('span');
+      if(hasNg){
+        badge.className = 'cg-badge ng';
+        badge.textContent = 'NG (' + (c.ng_check.total_count||0) + '件)';
+      } else {
+        badge.className = 'cg-badge ok';
+        badge.textContent = 'OK';
+      }
+      hdr.appendChild(badge);
+      card.appendChild(hdr);
+
+      var txt = document.createElement('div');
+      txt.className = 'cg-card-text';
+      txt.textContent = c.text;
+      card.appendChild(txt);
+
+      if(hasNg && c.ng_check.results){
+        var ngInfo = document.createElement('div');
+        ngInfo.style.cssText = 'font-size:12px;color:#dc3545;margin-bottom:8px;';
+        c.ng_check.results.forEach(function(r){
+          r.matches.forEach(function(m){
+            var line = document.createElement('div');
+            line.textContent = '⚠ ' + m.matched_text + ' → ' + m.suggestion;
+            ngInfo.appendChild(line);
+          });
+        });
+        card.appendChild(ngInfo);
+      }
+
+      var acts = document.createElement('div');
+      acts.className = 'cg-card-actions';
+
+      var copyBtn = document.createElement('button');
+      copyBtn.textContent = 'コピー';
+      copyBtn.addEventListener('click', (function(t){
+        return function(){
+          navigator.clipboard.writeText(t);
+          this.textContent = 'コピー済み';
+          var s = this; setTimeout(function(){s.textContent='コピー';},2000);
+        };
+      })(c.text));
+      acts.appendChild(copyBtn);
+
+      var schedBtn = document.createElement('button');
+      schedBtn.textContent = '予約投稿に追加';
+      schedBtn.addEventListener('click', (function(t){
+        return function(){
+          document.getElementById('cg-sched-body').value = t;
+          document.getElementById('cg-sched-overlay').classList.add('active');
+        };
+      })(c.text));
+      acts.appendChild(schedBtn);
+
+      card.appendChild(acts);
+      area.appendChild(card);
+    });
+  }
+
+  // モーダル制御
+  document.getElementById('cg-sched-cancel').addEventListener('click', function(){
+    document.getElementById('cg-sched-overlay').classList.remove('active');
+  });
+  document.getElementById('cg-sched-ok').addEventListener('click', function(){
+    var btn = this; btn.disabled = true;
+    var payload = {
+      body: document.getElementById('cg-sched-body').value,
+      scheduled_at: document.getElementById('cg-sched-dt').value,
+      account_id: document.getElementById('cg-sched-account').value || null,
+    };
+    fetch('{% url "console:content_schedule_api" %}', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:JSON.stringify(payload),
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data.ok){
+        alert(data.message);
+        document.getElementById('cg-sched-overlay').classList.remove('active');
+      } else {
+        alert('エラー: '+(data.error||'不明'));
+      }
+    }).catch(function(e){alert('エラー: '+e.message);})
+    .finally(function(){btn.disabled=false;});
+  });
+})();
+</script>
+{% endblock %}

@@ -5,6 +5,8 @@ from .views import api_ig
 from .views import accounts as acc, permissions as perm
 from .views import buzz as buzz_views
 from .views import buzz_compare as buzz_compare_views
+from .views import content_gen as content_gen_views
+from .views import scheduled_posts as sched_views
 
 app_name = "console"
 
@@ -63,7 +65,21 @@ urlpatterns = [
     # アカウント比較
     path("buzz-compare/", buzz_compare_views.buzz_compare, name="buzz_compare"),
 
+    # NGワードチェッカー
+    path("buzz-ng-checker/", buzz_views.buzz_ng_checker, name="buzz_ng_checker"),
+    path("api/buzz/ng-check/", buzz_views.buzz_ng_check_api, name="buzz_ng_check_api"),
+
     # 構造化分析メモ・パイプライン
     path("api/buzz/author-analysis/<int:pk>/", buzz_views.buzz_save_analysis,    name="buzz_save_analysis"),
     path("api/buzz/run-pipeline/",            buzz_views.buzz_run_pipeline,      name="buzz_run_pipeline"),
+
+    # Phase C: 投稿文AI生成
+    path("content-generator/",               content_gen_views.content_generator,     name="content_generator"),
+    path("api/content/generate/",            content_gen_views.content_generate_api,  name="content_generate_api"),
+    path("api/content/schedule/",            content_gen_views.content_schedule_api,  name="content_schedule_api"),
+
+    # Phase C: 予約投稿管理
+    path("scheduled-posts/",                        sched_views.scheduled_posts,           name="scheduled_posts"),
+    path("api/scheduled-posts/<int:pk>/action/",    sched_views.scheduled_post_action_api, name="scheduled_post_action"),
+    path("api/scheduled-posts/create/",             sched_views.scheduled_post_create_api, name="scheduled_post_create"),
 ]

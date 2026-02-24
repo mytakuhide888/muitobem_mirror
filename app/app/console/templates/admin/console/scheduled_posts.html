@@ -1,0 +1,243 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}予約投稿管理{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; 予約投稿管理</div>{% endblock %}
+
+{% block content %}
+<style>
+  .sp-container { max-width: 1100px; margin: 0 auto; }
+  .sp-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .sp-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sp-tab {
+    padding: 6px 14px; border-radius: 16px; text-decoration: none;
+    font-size: 13px; border: 1px solid #ddd; color: #555; background: #fff;
+  }
+  .sp-tab.active { background: #007bff; color: #fff; border-color: #007bff; }
+  .sp-tab .cnt { font-size: 11px; margin-left: 4px; }
+
+  .sp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sp-table th { background: #f8f9fa; padding: 8px; text-align: left; border-bottom: 2px solid #dee2e6; }
+  .sp-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  .sp-table tr:hover { background: #f8f9fa; }
+
+  .sp-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; }
+  .sp-badge.draft { background: #6c757d; }
+  .sp-badge.approved { background: #007bff; }
+  .sp-badge.sent { background: #28a745; }
+  .sp-badge.failed { background: #dc3545; }
+
+  .sp-body-preview { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .sp-body-preview:hover { white-space: normal; }
+
+  .sp-actions button {
+    padding: 3px 8px; border: 1px solid #ccc; border-radius: 3px;
+    background: #fff; cursor: pointer; font-size: 12px; margin: 1px;
+  }
+  .sp-actions button:hover { background: #f0f0f0; }
+  .sp-actions .approve { color: #28a745; border-color: #28a745; }
+  .sp-actions .delete { color: #dc3545; border-color: #dc3545; }
+  .sp-actions .reschedule { color: #fd7e14; border-color: #fd7e14; }
+
+  .sp-empty { text-align: center; color: #999; padding: 30px; }
+  .sp-btn-new {
+    display: inline-block; padding: 8px 16px; background: #007bff; color: #fff;
+    border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+  }
+
+  /* モーダル（共用） */
+  .sp-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.4); z-index: 9999; justify-content: center; align-items: center;
+  }
+  .sp-overlay.active { display: flex; }
+  .sp-modal {
+    background: #fff; border-radius: 8px; padding: 24px; width: 420px; max-width: 90%;
+  }
+  .sp-modal h4 { margin: 0 0 14px; }
+  .sp-modal .field { margin-bottom: 12px; }
+  .sp-modal .field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .sp-modal .field input, .sp-modal .field select, .sp-modal .field textarea {
+    width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+  }
+  .sp-modal textarea { resize: vertical; min-height: 100px; }
+  .sp-modal-actions { text-align: right; margin-top: 14px; }
+  .sp-modal-actions button { padding: 8px 16px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
+  .sp-modal-actions .primary { background: #007bff; color: #fff; border-color: #007bff; margin-left: 8px; }
+</style>
+
+<div class="sp-container">
+  <div class="sp-panel">
+    <!-- タブ -->
+    <div class="sp-tabs">
+      <a class="sp-tab {% if not status_filter %}active{% endif %}" href="{% url 'console:scheduled_posts' %}">すべて</a>
+      {% for s in statuses %}
+      <a class="sp-tab {% if status_filter == s.value %}active{% endif %}"
+         href="{% url 'console:scheduled_posts' %}?status={{ s.value }}">
+        {{ s.label }}<span class="cnt">({{ counts|default_if_none:"" }})</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- テーブル -->
+    <table class="sp-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>アカウント</th>
+          <th>本文</th>
+          <th>予約日時</th>
+          <th>ステータス</th>
+          <th>作成者</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for post in posts %}
+        <tr data-pk="{{ post.pk }}">
+          <td>{{ post.pk }}</td>
+          <td>{{ post.account.display_name }}</td>
+          <td class="sp-body-preview" title="{{ post.body }}">{{ post.body|truncatechars:80 }}</td>
+          <td>{{ post.scheduled_at|date:"Y/m/d H:i" }}</td>
+          <td>
+            {% if post.status == 'DRAFT' %}<span class="sp-badge draft">下書き</span>
+            {% elif post.status == 'APPROVED' %}<span class="sp-badge approved">承認済み</span>
+            {% elif post.status == 'SENT' %}<span class="sp-badge sent">送信済み</span>
+            {% elif post.status == 'FAILED' %}<span class="sp-badge failed">失敗</span>
+            {% endif %}
+          </td>
+          <td>{{ post.created_by|default:"-" }}</td>
+          <td class="sp-actions">
+            {% if post.status == 'DRAFT' %}
+            <button class="approve" data-pk="{{ post.pk }}" title="承認">承認</button>
+            {% endif %}
+            {% if post.status == 'DRAFT' or post.status == 'APPROVED' %}
+            <button class="reschedule" data-pk="{{ post.pk }}"
+                    data-dt="{{ post.scheduled_at|date:'Y-m-d' }}T{{ post.scheduled_at|date:'H:i' }}" title="日時変更">日時変更</button>
+            {% endif %}
+            <button class="delete" data-pk="{{ post.pk }}" title="削除">削除</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="sp-empty">予約投稿がありません</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <button class="sp-btn-new" id="sp-btn-new">+ 新規予約投稿</button>
+</div>
+
+<!-- 日時変更モーダル -->
+<div class="sp-overlay" id="sp-resched-overlay">
+  <div class="sp-modal">
+    <h4>日時変更</h4>
+    <input type="hidden" id="sp-resched-pk">
+    <div class="field">
+      <label>新しい投稿日時</label>
+      <input type="datetime-local" id="sp-resched-dt">
+    </div>
+    <div class="sp-modal-actions">
+      <button class="sp-cancel">キャンセル</button>
+      <button id="sp-resched-ok" class="primary">変更</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新規作成モーダル -->
+<div class="sp-overlay" id="sp-create-overlay">
+  <div class="sp-modal">
+    <h4>新規予約投稿</h4>
+    <div class="field">
+      <label>投稿本文</label>
+      <textarea id="sp-create-body"></textarea>
+    </div>
+    <div class="field">
+      <label>投稿日時</label>
+      <input type="datetime-local" id="sp-create-dt">
+    </div>
+    <div class="field">
+      <label>アカウント</label>
+      <select id="sp-create-account">
+        {% for acc in accounts %}
+        <option value="{{ acc.pk }}">{{ acc.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="sp-modal-actions">
+      <button class="sp-cancel">キャンセル</button>
+      <button id="sp-create-ok" class="primary">作成</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var csrf = '{{ csrf_token }}';
+
+  function apiCall(url, payload, cb){
+    fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:JSON.stringify(payload),
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data.ok){ alert(data.message); location.reload(); }
+      else { alert('エラー: '+(data.error||'不明')); }
+    }).catch(function(e){alert('エラー: '+e.message);});
+  }
+
+  // 承認
+  document.querySelectorAll('.sp-actions .approve').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(!confirm('この投稿を承認しますか？承認後、スケジューラが自動投稿します。')) return;
+      var pk = this.dataset.pk;
+      apiCall('{% url "console:scheduled_post_action" pk=0 %}'.replace('/0/','/'+pk+'/'), {action:'approve'});
+    });
+  });
+
+  // 削除
+  document.querySelectorAll('.sp-actions .delete').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(!confirm('削除しますか？')) return;
+      var pk = this.dataset.pk;
+      apiCall('{% url "console:scheduled_post_action" pk=0 %}'.replace('/0/','/'+pk+'/'), {action:'delete'});
+    });
+  });
+
+  // 日時変更
+  document.querySelectorAll('.sp-actions .reschedule').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.getElementById('sp-resched-pk').value = this.dataset.pk;
+      document.getElementById('sp-resched-dt').value = this.dataset.dt;
+      document.getElementById('sp-resched-overlay').classList.add('active');
+    });
+  });
+  document.getElementById('sp-resched-ok').addEventListener('click', function(){
+    var pk = document.getElementById('sp-resched-pk').value;
+    var dt = document.getElementById('sp-resched-dt').value;
+    apiCall('{% url "console:scheduled_post_action" pk=0 %}'.replace('/0/','/'+pk+'/'), {action:'reschedule', scheduled_at:dt});
+  });
+
+  // 新規作成
+  document.getElementById('sp-btn-new').addEventListener('click', function(){
+    document.getElementById('sp-create-overlay').classList.add('active');
+  });
+  document.getElementById('sp-create-ok').addEventListener('click', function(){
+    apiCall('{% url "console:scheduled_post_create" %}', {
+      body: document.getElementById('sp-create-body').value,
+      scheduled_at: document.getElementById('sp-create-dt').value,
+      account_id: document.getElementById('sp-create-account').value || null,
+    });
+  });
+
+  // モーダル閉じる
+  document.querySelectorAll('.sp-cancel').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      this.closest('.sp-overlay').classList.remove('active');
+    });
+  });
+})();
+</script>
+{% endblock %}

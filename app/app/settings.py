@@ -201,6 +201,10 @@ JAZZMIN_SETTINGS = {
         {"name": "一括巡回",              "url": "console:buzz_keyword_scan",   "permissions": ["auth.view_user"]},
         {"name": "トレンド分析",          "url": "console:buzz_trends",         "permissions": ["auth.view_user"]},
 
+        # 集客自動化 (Phase C)
+        {"name": "投稿文AI生成",          "url": "console:content_generator",    "permissions": ["auth.view_user"]},
+        {"name": "予約投稿管理",          "url": "console:scheduled_posts",      "permissions": ["auth.view_user"]},
+
         # ヘルプ/ログ
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},
         {"name": "ログ",                  "url": "console:logs",             "permissions": ["auth.view_user"]},
@@ -284,6 +288,9 @@ VERIFY_TOKEN_TH = os.getenv("VERIFY_TOKEN_TH", "test_token_th")
 # 互換用（既存コードが参照している可能性があるので Threads と合わせる）
 TH_APP_ID = THREADS_APP_ID
 TH_APP_SECRET = THREADS_APP_SECRET
+
+# Claude AI API
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 DEFAULT_API_VERSION = os.getenv("DEFAULT_API_VERSION", "v23.0")
 WORKER_INTERVAL_SEC = int(os.getenv("WORKER_INTERVAL_SEC", "5"))
