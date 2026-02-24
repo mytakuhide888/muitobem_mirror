@@ -1,0 +1,311 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}NGワードチェッカー{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_growth_ranking' %}">急成長ランキング</a> &gt; NGワードチェッカー</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ng-container { max-width: 900px; margin: 0 auto; }
+
+  .ng-input-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    margin-bottom: 16px;
+  }
+
+  .ng-textarea {
+    width: 100%;
+    min-height: 200px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color .2s;
+  }
+  .ng-textarea:focus { border-color: #007bff; outline: none; }
+
+  .ng-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .ng-char-count { font-size: 13px; color: #666; }
+
+  .ng-check-btn {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .ng-check-btn:hover { background: #c82333; }
+  .ng-check-btn:disabled { background: #999; cursor: not-allowed; }
+
+  /* 結果エリア */
+  .ng-result { display: none; margin-top: 16px; }
+
+  .ng-summary {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    font-weight: bold;
+  }
+  .ng-summary.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .ng-summary.ng { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+  .ng-severity-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .ng-severity-badge {
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  .sev-critical { background: #dc3545; color: #fff; }
+  .sev-high { background: #fd7e14; color: #fff; }
+  .sev-warning { background: #ffc107; color: #212529; }
+
+  .ng-category-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border-left: 4px solid #dee2e6;
+  }
+  .ng-category-card.critical { border-left-color: #dc3545; }
+  .ng-category-card.high { border-left-color: #fd7e14; }
+  .ng-category-card.warning { border-left-color: #ffc107; }
+
+  .ng-cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .ng-cat-name { font-weight: bold; font-size: 15px; }
+  .ng-cat-law { font-size: 12px; color: #666; margin-top: 2px; }
+
+  .ng-match-item {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .ng-match-text {
+    font-weight: bold;
+    color: #dc3545;
+    background: #fff3cd;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+  .ng-match-reason { font-size: 13px; color: #333; margin-top: 4px; }
+  .ng-match-suggestion { font-size: 13px; color: #28a745; margin-top: 2px; }
+
+  /* サンプルボタン */
+  .ng-samples {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .ng-sample-btn {
+    background: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .ng-sample-btn:hover { background: #dee2e6; }
+</style>
+
+<div class="ng-container">
+  <h2 style="margin:0 0 4px; font-size:20px;">NGワードチェッカー</h2>
+  <p style="color:#666; font-size:13px; margin:0 0 16px;">
+    投稿文・プロフィール文の下書きを入力して、法令違反リスクのある表現を自動検出します。
+  </p>
+
+  <div class="ng-input-section">
+    <textarea id="ng-text" class="ng-textarea" placeholder="ここにチェックしたいテキストを貼り付けてください...&#10;&#10;例: 投稿文、プロフィール文、鑑定文の下書きなど"></textarea>
+    <div class="ng-toolbar">
+      <div>
+        <span class="ng-char-count"><span id="ng-count">0</span>文字</span>
+        <div class="ng-samples">
+          <button type="button" class="ng-sample-btn" onclick="loadSample('reikan')">霊感商法サンプル</button>
+          <button type="button" class="ng-sample-btn" onclick="loadSample('yakki')">薬機法サンプル</button>
+          <button type="button" class="ng-sample-btn" onclick="loadSample('ok')">問題なしサンプル</button>
+        </div>
+      </div>
+      <button type="button" id="ng-btn" class="ng-check-btn" onclick="runCheck()">チェックする</button>
+    </div>
+  </div>
+
+  <div id="ng-result" class="ng-result"></div>
+</div>
+
+<script>
+var ngTextarea = document.getElementById('ng-text');
+var ngCount = document.getElementById('ng-count');
+
+ngTextarea.addEventListener('input', function() {
+  ngCount.textContent = this.value.length;
+});
+
+var SAMPLES = {
+  reikan: '霊視鑑定師の◯◯です。\nあなたの背後霊が怒っています。このまま放置すると大変なことになります。\n除霊しないと不幸が続きます。\n今すぐ特別浄化セッション（通常50,000円→今だけ29,800円）をお受けください。',
+  yakki: '開運パワーストーンブレスレット\n身につけるだけで頭痛が治り、体調が改善します。\nこのブレスレットは必ず効果があります。\n的中率98%の鑑定師が厳選したストーンです。',
+  ok: '占い師の◯◯です。\nタロットカードを通じて、あなたの今の状況やこれからの流れをお伝えします。\n占いは未来を保証するものではありませんが、より良い選択のヒントになれば幸いです。\nお気軽にご相談ください。'
+};
+
+function loadSample(key) {
+  ngTextarea.value = SAMPLES[key] || '';
+  ngCount.textContent = ngTextarea.value.length;
+}
+
+function runCheck() {
+  var text = ngTextarea.value.trim();
+  if (!text) { alert('テキストを入力してください'); return; }
+
+  var btn = document.getElementById('ng-btn');
+  btn.disabled = true;
+  btn.textContent = 'チェック中...';
+
+  fetch('{% url "console:buzz_ng_check_api" %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({text: text})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.textContent = 'チェックする';
+    if (!data.ok) {
+      alert(data.error || 'エラーが発生しました');
+      return;
+    }
+    renderResult(data);
+  })
+  .catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = 'チェックする';
+    alert('通信エラー: ' + err);
+  });
+}
+
+function renderResult(data) {
+  var div = document.getElementById('ng-result');
+  div.style.display = 'block';
+
+  // 結果をDOMで構築
+  while (div.firstChild) div.removeChild(div.firstChild);
+
+  // サマリー
+  var summary = document.createElement('div');
+  summary.className = 'ng-summary ' + (data.has_issues ? 'ng' : 'ok');
+  if (data.has_issues) {
+    summary.textContent = data.total_count + '件の問題を検出しました';
+  } else {
+    summary.textContent = '問題は検出されませんでした';
+  }
+  div.appendChild(summary);
+
+  if (!data.has_issues) return;
+
+  // 深刻度バッジ
+  var sevBar = document.createElement('div');
+  sevBar.className = 'ng-severity-bar';
+  if (data.critical_count > 0) {
+    var b = document.createElement('span');
+    b.className = 'ng-severity-badge sev-critical';
+    b.textContent = '重大: ' + data.critical_count + '件';
+    sevBar.appendChild(b);
+  }
+  if (data.high_count > 0) {
+    var b = document.createElement('span');
+    b.className = 'ng-severity-badge sev-high';
+    b.textContent = '高: ' + data.high_count + '件';
+    sevBar.appendChild(b);
+  }
+  if (data.warning_count > 0) {
+    var b = document.createElement('span');
+    b.className = 'ng-severity-badge sev-warning';
+    b.textContent = '注意: ' + data.warning_count + '件';
+    sevBar.appendChild(b);
+  }
+  div.appendChild(sevBar);
+
+  // カテゴリ別カード
+  data.results.forEach(function(cat) {
+    var card = document.createElement('div');
+    card.className = 'ng-category-card ' + cat.severity;
+
+    var header = document.createElement('div');
+    header.className = 'ng-cat-header';
+    var nameDiv = document.createElement('div');
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'ng-cat-name';
+    nameSpan.textContent = cat.category_name;
+    nameDiv.appendChild(nameSpan);
+
+    var lawDiv = document.createElement('div');
+    lawDiv.className = 'ng-cat-law';
+    lawDiv.textContent = cat.law;
+    nameDiv.appendChild(lawDiv);
+    header.appendChild(nameDiv);
+
+    var countSpan = document.createElement('span');
+    countSpan.className = 'ng-severity-badge sev-' + cat.severity;
+    countSpan.textContent = cat.matches.length + '件';
+    header.appendChild(countSpan);
+    card.appendChild(header);
+
+    cat.matches.forEach(function(m) {
+      var item = document.createElement('div');
+      item.className = 'ng-match-item';
+
+      var textEl = document.createElement('div');
+      var matchSpan = document.createElement('span');
+      matchSpan.className = 'ng-match-text';
+      matchSpan.textContent = m.matched_text;
+      textEl.appendChild(matchSpan);
+      item.appendChild(textEl);
+
+      var reasonEl = document.createElement('div');
+      reasonEl.className = 'ng-match-reason';
+      reasonEl.textContent = m.reason;
+      item.appendChild(reasonEl);
+
+      var sugEl = document.createElement('div');
+      sugEl.className = 'ng-match-suggestion';
+      sugEl.textContent = '→ ' + m.suggestion;
+      item.appendChild(sugEl);
+
+      card.appendChild(item);
+    });
+
+    div.appendChild(card);
+  });
+}
+</script>
+{% endblock %}

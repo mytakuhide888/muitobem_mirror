@@ -1299,3 +1299,33 @@ def buzz_find_similar(request, pk):
     except Exception as e:
         logger.exception("buzz_find_similar エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+# ─── NGワードチェッカー ───
+
+
+@staff_member_required
+def buzz_ng_checker(request):
+    """NGワードチェッカー画面"""
+    return render(request, 'admin/console/buzz_ng_checker.html', {
+        'title': 'NGワードチェッカー',
+    })
+
+
+@staff_member_required
+@require_POST
+def buzz_ng_check_api(request):
+    """NGワードチェック API（POST）"""
+    from th.services.ng_word_checker import check_ng_words
+
+    try:
+        body = json.loads(request.body)
+        text = body.get('text', '')
+    except (json.JSONDecodeError, AttributeError):
+        text = request.POST.get('text', '')
+
+    if not text.strip():
+        return JsonResponse({'ok': False, 'error': 'テキストを入力してください'}, status=400)
+
+    result = check_ng_words(text)
+    return JsonResponse({'ok': True, **result})
