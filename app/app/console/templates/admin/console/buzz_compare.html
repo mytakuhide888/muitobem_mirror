@@ -1,0 +1,286 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}アカウント比較{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:buzz_growth_ranking' %}">急成長ランキング</a> &gt; アカウント比較</div>{% endblock %}
+
+{% block content %}
+<style>
+  .cmp-header { font-size: 18px; font-weight: bold; margin: 0 0 12px; }
+  .cmp-header small { font-size: 13px; color: #666; font-weight: normal; margin-left: 8px; }
+
+  .cmp-common-bar {
+    background: linear-gradient(135deg, #e3f2fd, #e8f5e9);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .cmp-common-bar h4 { margin: 0 0 8px; font-size: 14px; color: #333; }
+  .cmp-common-tag {
+    display: inline-block;
+    background: #ff9800;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 2px 4px 2px 0;
+  }
+
+  .cmp-columns {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .cmp-col {
+    flex: 1;
+    min-width: 280px;
+    max-width: 350px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .cmp-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  .cmp-author-header { display: flex; align-items: center; margin-bottom: 12px; }
+  .cmp-author-header h3 { margin: 0; font-size: 15px; }
+  .cmp-author-header .username { font-size: 12px; color: #007bff; }
+  .cmp-author-header .username a { color: #007bff; text-decoration: none; }
+
+  .cmp-bio {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    margin: 8px 0;
+    max-height: 4.5em;
+    overflow: hidden;
+    white-space: pre-wrap;
+    background: #f8f9fa;
+    border-radius: 4px;
+    padding: 8px;
+  }
+
+  .cmp-metrics { margin: 10px 0; }
+  .cmp-metrics table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cmp-metrics td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+  .cmp-metrics td:first-child { color: #666; width: 50%; }
+  .cmp-metrics td:last-child { font-weight: bold; text-align: right; }
+
+  .cmp-tags { margin: 8px 0; }
+  .cmp-tag {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 2px 2px;
+  }
+  .cmp-tag.genre { background: #fff3e0; color: #e65100; }
+  .cmp-tag.monet { background: #fce4ec; color: #c62828; }
+  .cmp-tag.common { background: #ff9800; color: #fff; font-weight: bold; }
+
+  .cmp-chart-wrap {
+    margin: 12px 0;
+    height: 180px;
+    position: relative;
+  }
+
+  .cmp-analysis {
+    background: #f0f4ff;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .cmp-analysis h5 { margin: 0 0 4px; font-size: 12px; color: #1565c0; }
+</style>
+
+<h2 class="cmp-header">
+  アカウント比較
+  <small>{{ compare_data|length }}件</small>
+</h2>
+
+<!-- 共通キーワードバー -->
+{% if common_keywords %}
+<div class="cmp-common-bar">
+  <h4>共通キーワード</h4>
+  {% for kw in common_keywords %}
+  <span class="cmp-common-tag" data-keyword="{{ kw }}">{{ kw }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- 横並びカラム -->
+<div class="cmp-columns">
+  {% for item in compare_data %}
+  <div class="cmp-col">
+    <!-- プロフ画像 + 名前 -->
+    <div class="cmp-author-header">
+      {% if item.author.profile_pic_url %}
+      <img class="cmp-avatar" src="{{ item.author.profile_pic_url }}" alt="@{{ item.author.username }}"
+        onerror="this.style.display='none'">
+      {% endif %}
+      <div>
+        <h3>
+          <a href="{% url 'console:buzz_author_detail' pk=item.author.pk %}">
+            {{ item.author.display_name|default:item.author.username }}
+          </a>
+        </h3>
+        <div class="username">
+          <a href="https://www.threads.com/@{{ item.author.username }}" target="_blank" rel="noopener">
+            @{{ item.author.username }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- bio -->
+    {% if item.author.bio %}
+    <div class="cmp-bio" id="bio-{{ item.author.pk }}">{{ item.author.bio }}</div>
+    {% endif %}
+
+    <!-- 指標テーブル -->
+    <div class="cmp-metrics">
+      <table>
+        <tr><td>フォロワー</td><td>{{ item.author.followers_count|default:"-" }}</td></tr>
+        <tr><td>成長スコア</td><td>{{ item.author.growth_score|floatformat:1|default:"-" }}</td></tr>
+        <tr><td>F/日</td><td>{{ item.author.followers_per_day|floatformat:1|default:"-" }}</td></tr>
+        <tr><td>平均いいね</td><td>{{ item.author.avg_likes|floatformat:0|default:"-" }}</td></tr>
+        <tr><td>投稿数</td><td>{{ item.author.total_post_count|default:"-" }}</td></tr>
+        <tr><td>アカウント日数</td><td>{{ item.author.account_age_days|default:"-" }}</td></tr>
+        {% if item.author.quality_score %}
+        <tr><td>品質スコア</td><td style="color:#6f42c1;">{{ item.author.quality_score|floatformat:1 }}</td></tr>
+        {% endif %}
+        {% if item.author.fortune_relevance_score %}
+        <tr><td>占い適合スコア</td><td style="color:#e65100;">{{ item.author.fortune_relevance_score|floatformat:1 }}</td></tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <!-- ジャンルタグ -->
+    {% if item.genre_tags %}
+    <div class="cmp-tags">
+      {% for tag in item.genre_tags %}
+      <span class="cmp-tag genre" data-keyword="{{ tag }}">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- マネタイズシグナル -->
+    {% if item.monet_signals %}
+    <div class="cmp-tags">
+      {% for sig in item.monet_signals %}
+      <span class="cmp-tag monet">{{ sig }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- メディア形式チャート -->
+    <div class="cmp-chart-wrap">
+      <canvas id="chart-{{ item.author.pk }}"></canvas>
+    </div>
+
+    <!-- 分析メモ要約 -->
+    {% if item.analysis and item.analysis.overall_assessment %}
+    <div class="cmp-analysis">
+      <h5>分析メモ</h5>
+      {{ item.analysis.overall_assessment|truncatewords:50 }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- 共通キーワードハイライト JS -->
+<script>
+  // 共通キーワードをbio内でハイライト（テキストノード操作で安全に実装）
+  var commonKeywords = [{% for kw in common_keywords %}'{{ kw }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+  if (commonKeywords.length > 0) {
+    document.querySelectorAll('.cmp-bio').forEach(function(bioEl) {
+      commonKeywords.forEach(function(kw) {
+        highlightTextNode(bioEl, kw);
+      });
+    });
+    // ジャンルタグにも共通マーク
+    document.querySelectorAll('.cmp-tag[data-keyword]').forEach(function(tag) {
+      if (commonKeywords.indexOf(tag.dataset.keyword) !== -1) {
+        tag.classList.add('common');
+      }
+    });
+  }
+
+  function highlightTextNode(parent, keyword) {
+    var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    var nodesToReplace = [];
+    while (node = walker.nextNode()) {
+      if (node.nodeValue.indexOf(keyword) !== -1) {
+        nodesToReplace.push(node);
+      }
+    }
+    nodesToReplace.forEach(function(textNode) {
+      var parts = textNode.nodeValue.split(keyword);
+      var frag = document.createDocumentFragment();
+      parts.forEach(function(part, i) {
+        frag.appendChild(document.createTextNode(part));
+        if (i < parts.length - 1) {
+          var mark = document.createElement('mark');
+          mark.style.background = '#ffeb3b';
+          mark.style.padding = '0 2px';
+          mark.style.borderRadius = '2px';
+          mark.textContent = keyword;
+          frag.appendChild(mark);
+        }
+      });
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+  }
+</script>
+
+<!-- Chart.js メディア形式チャート -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  var comparePatternData = {
+    {% for item in compare_data %}
+    '{{ item.author.pk }}': {{ item.pattern_stats|safe }},
+    {% endfor %}
+  };
+
+  Object.keys(comparePatternData).forEach(function(authorId) {
+    var stats = comparePatternData[authorId];
+    var canvas = document.getElementById('chart-' + authorId);
+    if (!canvas || !stats) return;
+
+    var dist = stats.media_type_dist || {};
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['テキスト', '画像', '動画', 'カルーセル'],
+        datasets: [{
+          data: [dist.text || 0, dist.image || 0, dist.video || 0, dist.carousel || 0],
+          backgroundColor: ['#42a5f5', '#66bb6a', '#ef5350', '#ffa726'],
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 } } },
+          title: { display: true, text: 'メディア形式', font: { size: 12 } },
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

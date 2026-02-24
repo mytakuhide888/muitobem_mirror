@@ -148,6 +148,14 @@ MONETIZATION_SIGNALS: List[Tuple[str, float]] = [
     ('電話占い', 3.5), ('チャット占い', 3.5),
 ]
 
+# --- マネタイズURL パターン（bio内リンクのドメイン解析用）---
+MONETIZATION_URL_PATTERNS: List[Tuple[str, float]] = [
+    (r'stores\.jp', 4.0), (r'thebase\.in', 3.5), (r'lin\.ee', 3.5),
+    (r'lit\.link', 3.0), (r'linktr\.ee', 2.5), (r'coconala\.com', 3.5),
+    (r'mosh\.jp', 3.0), (r'note\.com', 1.5), (r'line\.me', 3.0),
+    (r'potofu\.me', 2.5), (r'peraichi\.com', 2.5),
+]
+
 # --- 非占い属性キーワード ---
 # 注意: 占い投稿にも含まれうるワードは除外済み（ダイエット、料理、美容等）
 NON_FORTUNE_KEYWORDS: List[Tuple[str, float]] = [
@@ -200,10 +208,39 @@ def _count_keyword_hits(text: str, keywords: List[Tuple[str, float]]) -> Tuple[f
     return total_score, hits
 
 
+def _detect_monetization_urls(text: str) -> Tuple[float, List[str]]:
+    """
+    テキスト内のURLからマネタイズ関連ドメインを検出する。
+    戻り値: (加重スコア合計, マッチしたドメインパターンリスト)
+    """
+    if not text:
+        return 0.0, []
+
+    # URL を抽出
+    urls = re.findall(r'https?://[^\s<>"\']+|(?:[\w-]+\.)+[a-z]{2,}[/\w.-]*', text.lower())
+    if not urls:
+        return 0.0, []
+
+    total_score = 0.0
+    hits = []
+    seen = set()
+
+    for url in urls:
+        for pattern, weight in MONETIZATION_URL_PATTERNS:
+            if pattern not in seen and re.search(pattern, url):
+                total_score += weight
+                hits.append(pattern.replace(r'\.', '.'))
+                seen.add(pattern)
+
+    return total_score, hits
+
+
 def classify_fortune_relevance(
     bio: str,
     post_texts: List[str],
     display_name: str = '',
+    followers_count: Optional[int] = None,
+    total_post_count: Optional[int] = None,
 ) -> Dict:
     """
     アカウントの占い・スピリチュアル属性を分類する。
@@ -236,6 +273,10 @@ def classify_fortune_relevance(
     bio_monet_score, bio_monet_hits = _count_keyword_hits(combined_name_bio, MONETIZATION_SIGNALS)
     bio_monet_score *= 2.0
 
+    # bio内URL解析によるマネタイズ度加算
+    bio_url_score, bio_url_hits = _detect_monetization_urls(combined_name_bio)
+    bio_monet_score += bio_url_score * 2.0  # bio重み倍増を適用
+
     bio_non_score, bio_non_hits = _count_keyword_hits(combined_name_bio, NON_FORTUNE_KEYWORDS)
     bio_non_score *= 2.0
 
@@ -247,26 +288,38 @@ def classify_fortune_relevance(
     post_non_score = 0.0
     all_post_text = ''
 
-    for text in post_texts:
+    total_weight = 0.0
+    for i, text in enumerate(post_texts):
         if not text:
             continue
         all_post_text += ' ' + text
 
+        # 直近重み付け（index 0=最新）
+        if i < 5:
+            w = 2.0
+        elif i < 10:
+            w = 1.5
+        elif i < 20:
+            w = 1.0
+        else:
+            w = 0.7
+        total_weight += w
+
         score, hits = _count_keyword_hits(text, all_fortune_kw)
-        post_fortune_score += score
+        post_fortune_score += score * w
         post_fortune_hits.update(hits)
 
         m_score, m_hits = _count_keyword_hits(text, MONETIZATION_SIGNALS)
-        post_monet_score += m_score
+        post_monet_score += m_score * w
         post_monet_hits.update(m_hits)
 
         n_score, _ = _count_keyword_hits(text, NON_FORTUNE_KEYWORDS)
-        post_non_score += n_score
+        post_non_score += n_score * w
 
-    # 投稿数で正規化（多い投稿数で不公平にならないように）
-    num_posts = max(len(post_texts), 1)
-    post_fortune_avg = post_fortune_score / num_posts
-    post_non_avg = post_non_score / num_posts
+    # 加重合計で正規化（直近重み付けに対応）
+    total_weight = max(total_weight, 1.0)
+    post_fortune_avg = post_fortune_score / total_weight
+    post_non_avg = post_non_score / total_weight
 
     # --- カテゴリ別ブレイクダウン ---
     category_breakdown = {}
@@ -276,7 +329,7 @@ def classify_fortune_relevance(
 
     # --- ジャンルタグ（ユニークなヒットキーワード）---
     all_genre_hits = set(bio_hits) | post_fortune_hits
-    all_monet_hits = set(bio_monet_hits) | post_monet_hits
+    all_monet_hits = set(bio_monet_hits) | set(bio_url_hits) | post_monet_hits
 
     # --- ジャンル適合度スコア (0-100) ---
     # bio にキーワードがある = 非常に強いシグナル
@@ -285,7 +338,7 @@ def classify_fortune_relevance(
     genre_score = min(raw_genre / 15.0 * 100, 100)  # 15点で100%に正規化
 
     # --- マネタイズ度スコア (0-100) ---
-    raw_monet = bio_monet_score + post_monet_score / num_posts * 3
+    raw_monet = bio_monet_score + post_monet_score / total_weight * 3
     monetization_score = min(raw_monet / 10.0 * 100, 100)
 
     # --- 非占い属性スコア ---
@@ -314,6 +367,16 @@ def classify_fortune_relevance(
     if non_fortune_total > 5.0:
         penalty = min(non_fortune_total / 20.0 * 30, 30)  # 最大30点減
         fortune_relevance_score = max(fortune_relevance_score - penalty, 0)
+
+    # フォロワー/投稿比率の信頼度補正
+    # フォロワーが多いのに投稿が極端に少ない → 買いフォロワーや非活動の疑い
+    if (followers_count is not None and followers_count > 100
+            and total_post_count is not None):
+        min_expected_posts = followers_count / 500
+        if total_post_count < min_expected_posts:
+            ratio = total_post_count / max(min_expected_posts, 1)
+            fp_penalty = min((1 - ratio) * 15, 15)  # 最大15点減
+            fortune_relevance_score = max(fortune_relevance_score - fp_penalty, 0)
 
     return {
         'fortune_relevance_score': round(fortune_relevance_score, 1),
@@ -354,6 +417,8 @@ def update_author_fortune_classification(author) -> Dict:
         bio=author.bio or '',
         post_texts=post_texts,
         display_name=author.display_name or '',
+        followers_count=author.followers_count,
+        total_post_count=author.total_post_count,
     )
 
     # モデルフィールドをセット（save は呼ばない）

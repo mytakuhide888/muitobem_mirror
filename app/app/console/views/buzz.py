@@ -1275,3 +1275,27 @@ def buzz_run_pipeline(request):
         return JsonResponse({'ok': True, 'message': 'パイプライン実行を開始しました'})
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+# ─── 類似アカウント自動発見 ───
+
+
+@staff_member_required
+def buzz_find_similar(request, pk):
+    """類似アカウントを検索する API（GET）"""
+    from th.services.similar_finder import extract_search_keywords, find_similar_authors
+
+    author = get_object_or_404(THBuzzAuthor, pk=pk)
+
+    try:
+        keywords = extract_search_keywords(author)
+        results = find_similar_authors(author, keywords, max_results=15)
+
+        return JsonResponse({
+            'ok': True,
+            'keywords': keywords,
+            'results': results,
+        })
+    except Exception as e:
+        logger.exception("buzz_find_similar エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)

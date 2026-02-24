@@ -986,6 +986,7 @@
   <span id="bulk-count">0件選択</span>
   <button class="buzz-btn buzz-btn-secondary" onclick="bulkExclude(true)">一括: 対象外にする</button>
   <button class="buzz-btn buzz-btn-primary" onclick="bulkExclude(false)">一括: 対象外から外す</button>
+  <button class="buzz-btn" onclick="openCompare()" style="background:#17a2b8; color:#fff;">比較する</button>
   <button class="buzz-btn" onclick="clearChecks()" style="background:#eee;">選択解除</button>
 </div>
 
@@ -1543,6 +1544,23 @@
       checks[i].checked = false;
     }
     updateBulkBar();
+  }
+
+  function openCompare() {
+    var checks = document.querySelectorAll('.gr-card-check:checked');
+    var ids = [];
+    for (var i = 0; i < checks.length; i++) {
+      ids.push(checks[i].dataset.authorId);
+    }
+    if (ids.length < 2) {
+      alert('比較するには2件以上選択してください');
+      return;
+    }
+    if (ids.length > 5) {
+      alert('比較は最大5件までです');
+      return;
+    }
+    window.open('{% url "console:buzz_compare" %}?ids=' + ids.join(','), '_blank');
   }
 
   function runPipeline() {

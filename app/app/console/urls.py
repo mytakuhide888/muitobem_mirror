@@ -4,6 +4,7 @@ from . import views
 from .views import api_ig
 from .views import accounts as acc, permissions as perm
 from .views import buzz as buzz_views
+from .views import buzz_compare as buzz_compare_views
 
 app_name = "console"
 
@@ -55,6 +56,12 @@ urlpatterns = [
     # Googleトレンド分析
     path("buzz-trends/",                      buzz_views.buzz_trends,            name="buzz_trends"),
     path("api/buzz/trends/",                  buzz_views.buzz_trends_api,        name="buzz_trends_api"),
+
+    # 類似アカウント発見
+    path("api/buzz/find-similar/<int:pk>/", buzz_views.buzz_find_similar, name="buzz_find_similar"),
+
+    # アカウント比較
+    path("buzz-compare/", buzz_compare_views.buzz_compare, name="buzz_compare"),
 
     # 構造化分析メモ・パイプライン
     path("api/buzz/author-analysis/<int:pk>/", buzz_views.buzz_save_analysis,    name="buzz_save_analysis"),

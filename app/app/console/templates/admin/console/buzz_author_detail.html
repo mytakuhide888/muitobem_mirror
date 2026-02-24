@@ -807,8 +807,19 @@
       </label>
       <a href="{% url 'console:buzz_search' %}?author={{ author.username }}" class="buzz-btn-secondary"
         style="padding:8px 16px; border-radius:6px; font-size:14px;">この投稿者で検索結果を絞り込み</a>
+      <button class="buzz-btn" onclick="findSimilar()" style="background:#17a2b8; color:#fff; padding:8px 16px; border:none; border-radius:6px; font-size:14px; cursor:pointer;">類似アカウントを探す</button>
     </div>
     <div id="author-message" class="author-msg"></div>
+
+    <!-- 類似アカウント結果エリア -->
+    <div id="similar-results" style="display:none; margin-top:16px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <h3 style="margin:0; font-size:15px; color:#17a2b8;">類似アカウント</h3>
+        <span id="similar-keywords" style="font-size:12px; color:#666;"></span>
+        <button onclick="document.getElementById('similar-results').style.display='none'" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:16px; color:#999;">&times;</button>
+      </div>
+      <div id="similar-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px;"></div>
+    </div>
 
     <p style="font-size:11px; color:#999; margin-top:12px;">
       初回取得: {{ author.first_scraped_at|date:"Y/m/d H:i" }} /
@@ -2052,6 +2063,128 @@ function renderAnalysisCharts() {
       }
     });
   }
+}
+</script>
+
+<!-- 類似アカウント検索 JS -->
+<script>
+function findSimilar() {
+  var resultsDiv = document.getElementById('similar-results');
+  var gridDiv = document.getElementById('similar-grid');
+  var kwSpan = document.getElementById('similar-keywords');
+
+  resultsDiv.style.display = 'block';
+  gridDiv.textContent = '検索中...';
+  kwSpan.textContent = '';
+
+  fetch('{% url "console:buzz_find_similar" pk=author.pk %}')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        gridDiv.textContent = 'エラー: ' + (data.error || '不明');
+        return;
+      }
+
+      kwSpan.textContent = '検索キーワード: ' + data.keywords.join(', ');
+
+      if (!data.results || data.results.length === 0) {
+        gridDiv.textContent = '類似アカウントが見つかりませんでした';
+        return;
+      }
+
+      // グリッドをクリア
+      while (gridDiv.firstChild) gridDiv.removeChild(gridDiv.firstChild);
+
+      data.results.forEach(function(item) {
+        var card = document.createElement('div');
+        card.style.cssText = 'background:#fff; border-radius:8px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid #e0e0e0;';
+
+        var header = document.createElement('div');
+        header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+
+        if (item.profile_pic_url) {
+          var img = document.createElement('img');
+          img.src = item.profile_pic_url;
+          img.style.cssText = 'width:32px; height:32px; border-radius:50%; object-fit:cover;';
+          img.onerror = function() { this.style.display = 'none'; };
+          header.appendChild(img);
+        }
+
+        var nameDiv = document.createElement('div');
+        var nameLink = document.createElement('a');
+        nameLink.href = '/admin/console/buzz-author/' + item.id + '/';
+        nameLink.textContent = item.display_name;
+        nameLink.style.cssText = 'font-weight:bold; font-size:13px; color:#333; text-decoration:none;';
+        nameDiv.appendChild(nameLink);
+
+        var usernameEl = document.createElement('div');
+        usernameEl.style.cssText = 'font-size:11px; color:#007bff;';
+        usernameEl.textContent = '@' + item.username;
+        nameDiv.appendChild(usernameEl);
+        header.appendChild(nameDiv);
+
+        var scoreEl = document.createElement('div');
+        scoreEl.style.cssText = 'margin-left:auto; text-align:center;';
+        scoreEl.textContent = item.similarity_score;
+        var scoreLbl = document.createElement('div');
+        scoreLbl.style.cssText = 'font-size:10px; color:#666;';
+        scoreLbl.textContent = '類似度';
+        scoreEl.prepend(document.createTextNode(''));
+        scoreEl.style.fontWeight = 'bold';
+        scoreEl.style.fontSize = '16px';
+        scoreEl.style.color = '#17a2b8';
+        scoreEl.appendChild(scoreLbl);
+        header.appendChild(scoreEl);
+
+        card.appendChild(header);
+
+        // bio
+        if (item.bio) {
+          var bioEl = document.createElement('div');
+          bioEl.textContent = item.bio;
+          bioEl.style.cssText = 'font-size:11px; color:#555; line-height:1.4; margin:6px 0; max-height:2.8em; overflow:hidden;';
+          card.appendChild(bioEl);
+        }
+
+        // 指標
+        var metricsEl = document.createElement('div');
+        metricsEl.style.cssText = 'display:flex; gap:10px; font-size:11px; margin:6px 0;';
+        if (item.followers_count != null) {
+          var m1 = document.createElement('span');
+          m1.textContent = 'F: ' + item.followers_count;
+          metricsEl.appendChild(m1);
+        }
+        if (item.growth_score != null) {
+          var m2 = document.createElement('span');
+          m2.textContent = '成長: ' + item.growth_score.toFixed(1);
+          metricsEl.appendChild(m2);
+        }
+        if (item.fortune_relevance_score != null) {
+          var m3 = document.createElement('span');
+          m3.style.color = '#e65100';
+          m3.textContent = '占い: ' + item.fortune_relevance_score.toFixed(1);
+          metricsEl.appendChild(m3);
+        }
+        card.appendChild(metricsEl);
+
+        // マッチ理由
+        if (item.match_reasons && item.match_reasons.length > 0) {
+          var reasonsEl = document.createElement('div');
+          reasonsEl.style.cssText = 'font-size:10px; color:#888; line-height:1.5; margin-top:4px;';
+          item.match_reasons.slice(0, 3).forEach(function(reason) {
+            var line = document.createElement('div');
+            line.textContent = reason;
+            reasonsEl.appendChild(line);
+          });
+          card.appendChild(reasonsEl);
+        }
+
+        gridDiv.appendChild(card);
+      });
+    })
+    .catch(function(err) {
+      gridDiv.textContent = '通信エラー: ' + err;
+    });
 }
 </script>
 {% endblock %}
