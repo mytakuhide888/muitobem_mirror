@@ -133,6 +133,36 @@ class IGWebhookEvent(BaseWebhookEvent):
         verbose_name = 'InstagramWebhookイベント'
         verbose_name_plural = verbose_name
 
+class IGPostInsight(models.Model):
+    """Instagram投稿インサイトのスナップショット（定期取得）"""
+    post = models.ForeignKey(IGPost, on_delete=models.CASCADE, related_name='insights')
+    impressions = models.IntegerField('インプレッション', null=True, blank=True)
+    reach = models.IntegerField('リーチ', null=True, blank=True)
+    likes = models.IntegerField('いいね', null=True, blank=True)
+    comments = models.IntegerField('コメント', null=True, blank=True)
+    shares = models.IntegerField('シェア', null=True, blank=True)
+    saved = models.IntegerField('保存', null=True, blank=True)
+    recorded_at = models.DateTimeField('記録日時', auto_now_add=True)
+
+    class Meta:
+        db_table = 'meta_ig_post_insights'
+        verbose_name = 'Instagram投稿インサイト'
+        verbose_name_plural = verbose_name
+        ordering = ['-recorded_at']
+        indexes = [
+            models.Index(fields=['post', '-recorded_at']),
+        ]
+
+    @property
+    def er(self):
+        """エンゲージメント率 (%)"""
+        total = (self.likes or 0) + (self.comments or 0) + (self.shares or 0)
+        reach = self.reach or 0
+        if reach == 0:
+            return 0.0
+        return round(total / reach * 100, 2)
+
+
 class IGDMReplyLog(models.Model):
     dm = models.ForeignKey('social.DMMessage', on_delete=models.CASCADE, related_name='ig_reply_logs')
     recipient_id = models.CharField(max_length=64)

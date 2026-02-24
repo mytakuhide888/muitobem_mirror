@@ -7,6 +7,9 @@ from .views import buzz as buzz_views
 from .views import buzz_compare as buzz_compare_views
 from .views import content_gen as content_gen_views
 from .views import scheduled_posts as sched_views
+from .views import ig_posts as ig_posts_views
+from .views import post_analytics as analytics_views
+from .views import tarot_reel as tarot_views
 
 app_name = "console"
 
@@ -82,4 +85,18 @@ urlpatterns = [
     path("scheduled-posts/",                        sched_views.scheduled_posts,           name="scheduled_posts"),
     path("api/scheduled-posts/<int:pk>/action/",    sched_views.scheduled_post_action_api, name="scheduled_post_action"),
     path("api/scheduled-posts/create/",             sched_views.scheduled_post_create_api, name="scheduled_post_create"),
+
+    # Phase C: Instagram投稿管理
+    path("ig-posts/",              ig_posts_views.ig_post_manager,  name="ig_post_manager"),
+    path("api/ig/post/",           ig_posts_views.ig_post_api,       name="ig_post_api"),
+    path("api/ig/posts-sync/",     ig_posts_views.ig_posts_sync_api, name="ig_posts_sync_api"),
+
+    # Phase C: 投稿パフォーマンス分析
+    path("post-analytics/",                    analytics_views.post_analytics,           name="post_analytics"),
+    path("api/ig/insights-refresh/",           analytics_views.post_insights_refresh_api, name="post_insights_refresh_api"),
+
+    # Phase C: タロットリール生成
+    path("tarot-reel/",                tarot_views.tarot_reel_gen,      name="tarot_reel_gen"),
+    path("api/ig/tarot-generate/",     tarot_views.tarot_generate_api,  name="tarot_generate_api"),
+    path("api/ig/tarot-schedule/",     tarot_views.tarot_schedule_api,  name="tarot_schedule_api"),
 ]

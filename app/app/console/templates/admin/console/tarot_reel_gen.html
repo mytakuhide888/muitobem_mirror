@@ -1,0 +1,323 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}タロットリール生成{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; タロットリール生成</div>{% endblock %}
+
+{% block content %}
+<style>
+  .tr-container { max-width: 1100px; margin: 0 auto; }
+  .tr-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .tr-col-left { flex: 0 0 380px; min-width: 300px; }
+  .tr-col-right { flex: 1; min-width: 300px; }
+  .tr-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .tr-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .tr-field { margin-bottom: 14px; }
+  .tr-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .tr-field select, .tr-field input, .tr-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 14px; box-sizing: border-box;
+  }
+  .tr-field textarea { resize: vertical; min-height: 80px; }
+  .tr-btn {
+    padding: 10px 18px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  .tr-btn-gen { width: 100%; padding: 12px; background: #6f42c1; color: #fff; font-size: 15px; }
+  .tr-btn-gen:hover { background: #563d7c; }
+  .tr-btn-gen:disabled { background: #aaa; cursor: wait; }
+  .tr-btn-sched { background: #28a745; color: #fff; }
+  .tr-btn-sched:hover { background: #1e7e34; }
+  .tr-btn-sched:disabled { background: #aaa; }
+
+  .tr-alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+  .tr-alert-success { background: #d4edda; color: #155724; }
+  .tr-alert-error { background: #f8d7da; color: #721c24; }
+
+  /* 結果カード */
+  .tr-result { display: none; }
+  .tr-cards { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tr-card {
+    flex: 1; min-width: 120px; background: linear-gradient(135deg, #6f42c1, #9c27b0);
+    color: #fff; border-radius: 10px; padding: 16px; text-align: center;
+    cursor: pointer; transition: transform .15s, box-shadow .15s;
+  }
+  .tr-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(111,66,193,.3); }
+  .tr-card .card-letter { font-size: 24px; font-weight: bold; margin-bottom: 6px; }
+  .tr-card .card-name { font-size: 13px; }
+  .tr-caption-box {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 14px; white-space: pre-wrap; font-size: 14px; line-height: 1.7;
+    margin-bottom: 12px; max-height: 300px; overflow-y: auto;
+  }
+  .tr-reading { background: #fff3cd; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .tr-reading .reading-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #856404; }
+  .tr-reading .reading-text { font-size: 13px; line-height: 1.6; color: #333; }
+
+  /* 予約フォーム */
+  .tr-sched-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .tr-sched-row select, .tr-sched-row input[type="datetime-local"] {
+    flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+  }
+  .tr-empty { text-align: center; color: #999; padding: 40px; }
+</style>
+
+<div class="tr-container">
+  <div class="tr-row">
+
+    <!-- 左: 生成フォーム -->
+    <div class="tr-col-left">
+      <div class="tr-panel">
+        <h3>🃏 タロット3択生成</h3>
+        <div id="genAlert" style="display:none;"></div>
+
+        <div class="tr-field">
+          <label>テーマ</label>
+          <select id="themeSelect">
+            {% for key, label in theme_presets.items %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="tr-field">
+          <label>文体</label>
+          <select id="styleSelect">
+            <option value="casual">カジュアル（絵文字あり）</option>
+            <option value="mystical">神秘的</option>
+          </select>
+        </div>
+
+        <div class="tr-field">
+          <label>キャラクター設定（任意）</label>
+          <textarea id="characterDesc" placeholder="例: 元気で明るい20代の占い師。関西弁を使う。" rows="3"></textarea>
+        </div>
+
+        <button class="tr-btn tr-btn-gen" id="genBtn" onclick="generateTarot()">✨ 生成する</button>
+      </div>
+
+      <div class="tr-panel">
+        <h3>📌 使い方</h3>
+        <ol style="font-size:13px; color:#555; line-height:1.9; padding-left:16px; margin:0;">
+          <li>テーマ・文体・キャラを設定</li>
+          <li>「生成する」でClaude APIが3択を作成</li>
+          <li>右欄でキャプションを確認・編集</li>
+          <li>アカウント・日時を設定して予約登録</li>
+          <li>IG投稿管理でリールを実際に投稿</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 右: 生成結果 -->
+    <div class="tr-col-right">
+      <div id="resultArea">
+        <div class="tr-panel">
+          <div class="tr-empty">左のフォームで「生成する」を押してください</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 予約登録モーダル -->
+<div id="schedModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:10px; padding:24px; width:500px; max-width:95%; box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <h3 style="margin:0 0 16px; font-size:16px;">📅 予約投稿に追加</h3>
+    <div id="schedAlert" style="display:none; margin-bottom:12px;" class="tr-alert"></div>
+    <div class="tr-sched-row" style="margin-bottom:14px;">
+      <select id="schedAccount">
+        <option value="">-- アカウント選択 --</option>
+        {% for acc in accounts %}
+        <option value="{{ acc.pk }}">{{ acc.display_name|default:acc.username }}</option>
+        {% endfor %}
+      </select>
+      <input type="datetime-local" id="schedAt">
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="tr-btn" style="background:#eee;" onclick="closeSchedModal()">キャンセル</button>
+      <button class="tr-btn tr-btn-sched" id="schedBtn" onclick="submitSchedule()">予約登録</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+let currentCaption = '';
+
+function showAlert(elId, msg, isError) {
+  const el = document.getElementById(elId);
+  el.className = 'tr-alert ' + (isError ? 'tr-alert-error' : 'tr-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+function makeReadingCard(letter, name, text) {
+  const div = document.createElement('div');
+  div.className = 'tr-reading';
+  const title = document.createElement('div');
+  title.className = 'reading-title';
+  title.textContent = letter + ' ' + name + ' — 解釈';
+  const body = document.createElement('div');
+  body.className = 'reading-text';
+  body.textContent = text;
+  div.appendChild(title);
+  div.appendChild(body);
+  return div;
+}
+
+function renderResult(data) {
+  currentCaption = data.caption || '';
+
+  const area = document.getElementById('resultArea');
+  area.replaceChildren();
+
+  // カードパネル
+  const panelCards = document.createElement('div');
+  panelCards.className = 'tr-panel';
+  const h3cards = document.createElement('h3');
+  h3cards.textContent = '🃏 タロットカード';
+  panelCards.appendChild(h3cards);
+
+  const cardsRow = document.createElement('div');
+  cardsRow.className = 'tr-cards';
+  const cards = [
+    { letter: '🅰️', name: data.card_a },
+    { letter: '🅱️', name: data.card_b },
+    { letter: '🅲️', name: data.card_c },
+  ];
+  cards.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'tr-card';
+    const ltr = document.createElement('div');
+    ltr.className = 'card-letter';
+    ltr.textContent = c.letter;
+    const nm = document.createElement('div');
+    nm.className = 'card-name';
+    nm.textContent = c.name || '';
+    card.appendChild(ltr);
+    card.appendChild(nm);
+    cardsRow.appendChild(card);
+  });
+  panelCards.appendChild(cardsRow);
+  area.appendChild(panelCards);
+
+  // キャプションパネル
+  const panelCap = document.createElement('div');
+  panelCap.className = 'tr-panel';
+  const h3cap = document.createElement('h3');
+  h3cap.textContent = '📝 キャプション（編集可）';
+  panelCap.appendChild(h3cap);
+
+  const capBox = document.createElement('textarea');
+  capBox.className = 'tr-caption-box';
+  capBox.style.width = '100%';
+  capBox.style.minHeight = '200px';
+  capBox.style.resize = 'vertical';
+  capBox.style.fontFamily = 'inherit';
+  capBox.style.fontSize = '14px';
+  capBox.style.lineHeight = '1.7';
+  capBox.style.border = '1px solid #dee2e6';
+  capBox.style.borderRadius = '6px';
+  capBox.style.padding = '12px';
+  capBox.style.background = '#f8f9fa';
+  capBox.value = currentCaption;
+  capBox.oninput = () => { currentCaption = capBox.value; };
+  panelCap.appendChild(capBox);
+
+  const schedBtn = document.createElement('button');
+  schedBtn.className = 'tr-btn tr-btn-sched';
+  schedBtn.textContent = '📅 予約投稿に追加';
+  schedBtn.style.marginTop = '10px';
+  schedBtn.onclick = openSchedModal;
+  panelCap.appendChild(schedBtn);
+  area.appendChild(panelCap);
+
+  // 解釈パネル
+  const panelRead = document.createElement('div');
+  panelRead.className = 'tr-panel';
+  const h3read = document.createElement('h3');
+  h3read.textContent = '🔮 各カードの解釈';
+  panelRead.appendChild(h3read);
+  panelRead.appendChild(makeReadingCard('🅰️', data.card_a, data.reading_a || ''));
+  panelRead.appendChild(makeReadingCard('🅱️', data.card_b, data.reading_b || ''));
+  panelRead.appendChild(makeReadingCard('🅲️', data.card_c, data.reading_c || ''));
+  area.appendChild(panelRead);
+}
+
+async function generateTarot() {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    const res = await fetch('{% url "console:tarot_generate_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        theme: document.getElementById('themeSelect').value,
+        style: document.getElementById('styleSelect').value,
+        character_desc: document.getElementById('characterDesc').value,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      renderResult(data);
+    } else {
+      showAlert('genAlert', 'エラー: ' + (data.error || '不明なエラー'), true);
+    }
+  } catch (e) {
+    showAlert('genAlert', '通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ 生成する';
+  }
+}
+
+function openSchedModal() {
+  const now = new Date();
+  now.setHours(now.getHours() + 1, 0, 0, 0);
+  document.getElementById('schedAt').value = now.toISOString().slice(0, 16);
+  document.getElementById('schedModal').style.display = 'flex';
+}
+
+function closeSchedModal() {
+  document.getElementById('schedModal').style.display = 'none';
+}
+
+async function submitSchedule() {
+  const accountId = document.getElementById('schedAccount').value;
+  const schedAt = document.getElementById('schedAt').value;
+  if (!accountId) { showAlert('schedAlert', 'アカウントを選択してください', true); return; }
+  if (!schedAt) { showAlert('schedAlert', '日時を入力してください', true); return; }
+  if (!currentCaption) { showAlert('schedAlert', 'キャプションが空です', true); return; }
+
+  const btn = document.getElementById('schedBtn');
+  btn.disabled = true;
+  btn.textContent = '登録中...';
+
+  try {
+    const res = await fetch('{% url "console:tarot_schedule_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ account_id: accountId, caption: currentCaption, scheduled_at: schedAt }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert('schedAlert', data.message, false);
+      setTimeout(closeSchedModal, 2000);
+    } else {
+      showAlert('schedAlert', 'エラー: ' + data.error, true);
+    }
+  } catch (e) {
+    showAlert('schedAlert', '通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '予約登録';
+  }
+}
+</script>
+{% endblock %}

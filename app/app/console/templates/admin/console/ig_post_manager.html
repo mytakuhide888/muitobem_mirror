@@ -1,0 +1,255 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}Instagram投稿管理{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; Instagram投稿管理</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ig-container { max-width: 1200px; margin: 0 auto; }
+  .ig-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .ig-col-left { flex: 0 0 400px; min-width: 320px; }
+  .ig-col-right { flex: 1; min-width: 320px; }
+  .ig-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .ig-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .ig-field { margin-bottom: 14px; }
+  .ig-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .ig-field select, .ig-field input[type="text"], .ig-field input[type="url"], .ig-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 14px; box-sizing: border-box;
+  }
+  .ig-field textarea { resize: vertical; min-height: 120px; }
+  .ig-field .hint { font-size: 11px; color: #888; margin-top: 3px; }
+  .ig-btn {
+    padding: 10px 18px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  .ig-btn-primary { background: #e1306c; color: #fff; width: 100%; padding: 12px; font-size: 15px; }
+  .ig-btn-primary:hover { background: #c1145c; }
+  .ig-btn-primary:disabled { background: #aaa; cursor: wait; }
+  .ig-btn-secondary { background: #6c757d; color: #fff; }
+  .ig-btn-secondary:hover { background: #545b62; }
+
+  .ig-alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+  .ig-alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .ig-alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+  /* 投稿一覧 */
+  .ig-posts-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .ig-posts-header h3 { margin: 0; }
+  .ig-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ig-table th { background: #f8f9fa; padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; }
+  .ig-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .ig-table tr:hover td { background: #fafafa; }
+  .ig-media-badge {
+    display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: bold;
+  }
+  .ig-media-IMAGE { background: #cce5ff; color: #004085; }
+  .ig-media-REELS { background: #f8d7da; color: #721c24; }
+  .ig-media-CAROUSEL_ALBUM { background: #d4edda; color: #155724; }
+  .ig-caption-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ig-empty { text-align: center; color: #999; padding: 40px 0; }
+  .char-count { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
+  .char-count.over { color: #dc3545; font-weight: bold; }
+  #mediaUrlGroup { display: block; }
+</style>
+
+<div class="ig-container">
+  <div class="ig-row">
+
+    <!-- 左: 投稿フォーム -->
+    <div class="ig-col-left">
+      <div class="ig-panel">
+        <h3>📸 新規投稿</h3>
+
+        <div id="postAlert" style="display:none;"></div>
+
+        <div class="ig-field">
+          <label>アカウント</label>
+          <select id="accountSelect">
+            <option value="">-- 選択してください --</option>
+            {% for acc in accounts %}
+            <option value="{{ acc.pk }}">{{ acc.display_name|default:acc.username }} (@{{ acc.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ig-field">
+          <label>メディアタイプ</label>
+          <select id="mediaTypeSelect" onchange="onMediaTypeChange()">
+            <option value="IMAGE">画像 (IMAGE)</option>
+            <option value="REELS">リール (REELS)</option>
+          </select>
+        </div>
+
+        <div class="ig-field" id="mediaUrlGroup">
+          <label id="mediaUrlLabel">画像URL（公開URLが必要）</label>
+          <input type="url" id="mediaUrl" placeholder="https://example.com/image.jpg">
+          <div class="hint">Instagram Graph APIは公開HTTPSのメディアURLが必須です</div>
+        </div>
+
+        <div class="ig-field">
+          <label>キャプション（本文）</label>
+          <textarea id="caption" placeholder="投稿本文を入力..." oninput="updateCharCount()"></textarea>
+          <div class="char-count" id="charCount">0 / 2,200文字</div>
+        </div>
+
+        <button class="ig-btn ig-btn-primary" id="postBtn" onclick="submitPost()">投稿する</button>
+      </div>
+
+      <div class="ig-panel">
+        <h3>ℹ️ 注意事項</h3>
+        <ul style="font-size: 13px; color: #555; line-height: 1.8; padding-left: 18px; margin: 0;">
+          <li>メディアURLは公開HTTPS必須</li>
+          <li>画像: JPEG/PNG/WebP対応</li>
+          <li>リール: MP4 (H.264/AAC推奨)</li>
+          <li>キャプション最大2,200文字</li>
+          <li>ハッシュタグは30個まで</li>
+          <li>アクセストークンが有効期限内であること</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 右: 投稿一覧 -->
+    <div class="ig-col-right">
+      <div class="ig-panel">
+        <div class="ig-posts-header">
+          <h3>📋 投稿一覧（最新50件）</h3>
+          <button class="ig-btn ig-btn-secondary" onclick="syncPosts()" id="syncBtn">
+            IG同期
+          </button>
+        </div>
+        <div id="syncAlert" style="display:none; margin-bottom:10px;"></div>
+
+        {% if posts %}
+        <div style="overflow-x: auto;">
+          <table class="ig-table" id="postsTable">
+            <thead>
+              <tr>
+                <th>種別</th>
+                <th>キャプション</th>
+                <th>いいね</th>
+                <th>投稿日時</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for post in posts %}
+              <tr>
+                <td><span class="ig-media-badge ig-media-{{ post.media_type }}">{{ post.media_type }}</span></td>
+                <td class="ig-caption-cell" title="{{ post.caption|default:'' }}">{{ post.caption|default:"（本文なし）"|truncatechars:60 }}</td>
+                <td>{{ post.like_count }}</td>
+                <td style="white-space:nowrap;">{{ post.posted_at|date:"m/d H:i" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="ig-empty">投稿がありません。「IG同期」で取得するか、新規投稿してください。</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function onMediaTypeChange() {
+  const t = document.getElementById('mediaTypeSelect').value;
+  const label = document.getElementById('mediaUrlLabel');
+  if (t === 'REELS') {
+    label.textContent = '動画URL (MP4、公開URL必須)';
+    document.getElementById('mediaUrl').placeholder = 'https://example.com/video.mp4';
+  } else {
+    label.textContent = '画像URL（公開URLが必要）';
+    document.getElementById('mediaUrl').placeholder = 'https://example.com/image.jpg';
+  }
+}
+
+function updateCharCount() {
+  const len = document.getElementById('caption').value.length;
+  const el = document.getElementById('charCount');
+  el.textContent = len.toLocaleString() + ' / 2,200文字';
+  el.className = 'char-count' + (len > 2200 ? ' over' : '');
+}
+
+function showAlert(elId, msg, isError) {
+  const el = document.getElementById(elId);
+  el.className = 'ig-alert ' + (isError ? 'ig-alert-error' : 'ig-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+async function submitPost() {
+  const accountId = document.getElementById('accountSelect').value;
+  const caption = document.getElementById('caption').value.trim();
+  const mediaType = document.getElementById('mediaTypeSelect').value;
+  const mediaUrl = document.getElementById('mediaUrl').value.trim();
+
+  if (!accountId) { showAlert('postAlert', 'アカウントを選択してください', true); return; }
+  if (!caption) { showAlert('postAlert', 'キャプションを入力してください', true); return; }
+  if (!mediaUrl) { showAlert('postAlert', 'メディアURLを入力してください', true); return; }
+
+  const btn = document.getElementById('postBtn');
+  btn.disabled = true;
+  btn.textContent = '投稿中...';
+
+  try {
+    const res = await fetch('{% url "console:ig_post_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ account_id: accountId, caption, media_type: mediaType, media_url: mediaUrl }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert('postAlert', data.message, false);
+      document.getElementById('caption').value = '';
+      document.getElementById('mediaUrl').value = '';
+      updateCharCount();
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      showAlert('postAlert', 'エラー: ' + data.error, true);
+    }
+  } catch (e) {
+    showAlert('postAlert', '通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '投稿する';
+  }
+}
+
+async function syncPosts() {
+  const accountId = document.getElementById('accountSelect').value;
+  if (!accountId) { showAlert('syncAlert', 'アカウントを選択してください', true); return; }
+
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = '同期中...';
+
+  try {
+    const res = await fetch('{% url "console:ig_posts_sync_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ account_id: accountId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert('syncAlert', data.message, false);
+      if (data.new_posts > 0) setTimeout(() => location.reload(), 1500);
+    } else {
+      showAlert('syncAlert', 'エラー: ' + data.error, true);
+    }
+  } catch (e) {
+    showAlert('syncAlert', '通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'IG同期';
+  }
+}
+</script>
+{% endblock %}

@@ -204,6 +204,9 @@ JAZZMIN_SETTINGS = {
         # 集客自動化 (Phase C)
         {"name": "投稿文AI生成",          "url": "console:content_generator",    "permissions": ["auth.view_user"]},
         {"name": "予約投稿管理",          "url": "console:scheduled_posts",      "permissions": ["auth.view_user"]},
+        {"name": "IG投稿管理",            "url": "console:ig_post_manager",      "permissions": ["auth.view_user"]},
+        {"name": "パフォーマンス分析",    "url": "console:post_analytics",       "permissions": ["auth.view_user"]},
+        {"name": "タロットリール生成",    "url": "console:tarot_reel_gen",       "permissions": ["auth.view_user"]},
 
         # ヘルプ/ログ
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},

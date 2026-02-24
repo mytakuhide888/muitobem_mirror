@@ -1,0 +1,268 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}投稿パフォーマンス分析{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; 投稿パフォーマンス分析</div>{% endblock %}
+
+{% block content %}
+<style>
+  .pa-container { max-width: 1200px; margin: 0 auto; }
+  .pa-header { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .pa-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .pa-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .pa-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pa-stat {
+    flex: 1; min-width: 130px; background: #fff; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center;
+  }
+  .pa-stat .val { font-size: 28px; font-weight: bold; color: #e1306c; }
+  .pa-stat .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+  .pa-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pa-table th { background: #f8f9fa; padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; white-space: nowrap; }
+  .pa-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .pa-table tr:hover td { background: #fafafa; }
+  .pa-media-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+  .pa-media-IMAGE { background: #cce5ff; color: #004085; }
+  .pa-media-REELS { background: #f8d7da; color: #721c24; }
+  .pa-media-CAROUSEL_ALBUM { background: #d4edda; color: #155724; }
+  .pa-caption-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+  .pa-er-high { color: #28a745; font-weight: bold; }
+  .pa-er-mid { color: #ffc107; }
+  .pa-er-low { color: #6c757d; }
+  .pa-na { color: #ccc; font-size: 12px; }
+  .pa-btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+  .pa-btn-primary { background: #e1306c; color: #fff; }
+  .pa-btn-primary:hover { background: #c1145c; }
+  .pa-btn-primary:disabled { background: #aaa; }
+  .pa-btn-secondary { background: #6c757d; color: #fff; }
+  .pa-btn-secondary:hover { background: #545b62; }
+  .pa-alert { padding: 8px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+  .pa-alert-success { background: #d4edda; color: #155724; }
+  .pa-alert-error { background: #f8d7da; color: #721c24; }
+  .pa-empty { text-align: center; color: #999; padding: 40px 0; }
+  .pa-chart-wrap { position: relative; height: 220px; }
+</style>
+
+<div class="pa-container">
+  <div class="pa-header">
+    <form method="get" style="display:flex; gap:10px; align-items:center;">
+      <select name="account_id" style="padding:8px 12px; border:1px solid #ccc; border-radius:4px; font-size:14px;">
+        <option value="">-- アカウント選択 --</option>
+        {% for acc in accounts %}
+        <option value="{{ acc.pk }}" {% if selected_account and selected_account.pk == acc.pk %}selected{% endif %}>
+          {{ acc.display_name|default:acc.username }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="pa-btn pa-btn-secondary">表示</button>
+    </form>
+    {% if selected_account %}
+    <button class="pa-btn pa-btn-primary" onclick="refreshInsights()" id="refreshBtn">インサイト更新</button>
+    {% endif %}
+  </div>
+
+  <div id="refreshAlert" style="display:none;" class="pa-alert"></div>
+
+  {% if selected_account %}
+  <div id="summaryCards"></div>
+
+  <div class="pa-panel">
+    <h3>📈 インプレッション推移（最新30件）</h3>
+    <div class="pa-chart-wrap"><canvas id="impChart"></canvas></div>
+  </div>
+
+  <div class="pa-panel">
+    <h3>📋 投稿一覧（最新30件）</h3>
+    {% if posts_count %}
+    <div style="overflow-x:auto;">
+      <table class="pa-table">
+        <thead>
+          <tr>
+            <th>種別</th><th>キャプション</th><th>投稿日時</th>
+            <th>いいね</th><th>インプレッション</th><th>リーチ</th><th>ER (%)</th><th>保存</th>
+          </tr>
+        </thead>
+        <tbody id="postsTableBody"></tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="pa-empty">投稿がありません。IG投稿管理で「IG同期」を実行してください。</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="pa-panel"><div class="pa-empty">アカウントを選択して「表示」を押してください。</div></div>
+  {% endif %}
+</div>
+
+{% if selected_account %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+const CSRF = '{{ csrf_token }}';
+const ACCOUNT_ID = '{{ selected_account.pk }}';
+const POSTS_DATA = {{ posts_data_json }};
+
+function makeStat(val, lbl) {
+  const div = document.createElement('div');
+  div.className = 'pa-stat';
+  const valEl = document.createElement('div');
+  valEl.className = 'val';
+  valEl.textContent = val;
+  const lblEl = document.createElement('div');
+  lblEl.className = 'lbl';
+  lblEl.textContent = lbl;
+  div.appendChild(valEl);
+  div.appendChild(lblEl);
+  return div;
+}
+
+function renderSummary() {
+  const container = document.getElementById('summaryCards');
+  if (!container) return;
+  const total = POSTS_DATA.length;
+  const withImp = POSTS_DATA.filter(p => p.impressions !== null);
+  const avgImp = withImp.length ? Math.round(withImp.reduce((s, p) => s + (p.impressions || 0), 0) / withImp.length) : null;
+  const avgEr = withImp.length ? (withImp.reduce((s, p) => s + (p.er || 0), 0) / withImp.length).toFixed(2) : null;
+  const totalLikes = POSTS_DATA.reduce((s, p) => s + (p.like_count || 0), 0);
+
+  const row = document.createElement('div');
+  row.className = 'pa-summary';
+  row.appendChild(makeStat(total, '取得投稿数'));
+  row.appendChild(makeStat(avgImp !== null ? avgImp.toLocaleString() : '-', '平均インプレッション'));
+  row.appendChild(makeStat(avgEr !== null ? avgEr + '%' : '-', '平均ER'));
+  row.appendChild(makeStat(totalLikes.toLocaleString(), '累計いいね'));
+  container.appendChild(row);
+}
+
+function makeCell(text, className) {
+  const td = document.createElement('td');
+  if (className) td.className = className;
+  td.textContent = text !== null && text !== undefined ? String(text) : '';
+  return td;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('postsTableBody');
+  if (!tbody) return;
+  POSTS_DATA.forEach(p => {
+    const tr = document.createElement('tr');
+
+    // 種別バッジ
+    const tdType = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'pa-media-badge pa-media-' + p.media_type;
+    badge.textContent = p.media_type;
+    tdType.appendChild(badge);
+    tr.appendChild(tdType);
+
+    // キャプション
+    const tdCap = document.createElement('td');
+    tdCap.className = 'pa-caption-cell';
+    tdCap.title = p.caption || '';
+    tdCap.textContent = p.caption || '（本文なし）';
+    tr.appendChild(tdCap);
+
+    tr.appendChild(makeCell(p.posted_at));
+
+    // いいね
+    tr.appendChild(makeCell(p.like_count));
+
+    // インプレッション
+    const tdImp = document.createElement('td');
+    tdImp.textContent = p.impressions !== null ? p.impressions.toLocaleString() : '-';
+    if (p.impressions === null) tdImp.className = 'pa-na';
+    tr.appendChild(tdImp);
+
+    // リーチ
+    const tdReach = document.createElement('td');
+    tdReach.textContent = p.reach !== null ? p.reach.toLocaleString() : '-';
+    if (p.reach === null) tdReach.className = 'pa-na';
+    tr.appendChild(tdReach);
+
+    // ER
+    const tdEr = document.createElement('td');
+    if (p.er !== null) {
+      tdEr.textContent = p.er + '%';
+      tdEr.className = p.er >= 3 ? 'pa-er-high' : p.er >= 1 ? 'pa-er-mid' : 'pa-er-low';
+    } else {
+      tdEr.textContent = '-';
+      tdEr.className = 'pa-na';
+    }
+    tr.appendChild(tdEr);
+
+    // 保存
+    const tdSaved = document.createElement('td');
+    tdSaved.textContent = p.saved !== null ? p.saved : '-';
+    if (p.saved === null) tdSaved.className = 'pa-na';
+    tr.appendChild(tdSaved);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderChart() {
+  const canvas = document.getElementById('impChart');
+  if (!canvas) return;
+  const filtered = POSTS_DATA.filter(p => p.impressions !== null).slice().reverse();
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: filtered.map(p => p.posted_at),
+      datasets: [{
+        label: 'インプレッション',
+        data: filtered.map(p => p.impressions),
+        borderColor: '#e1306c',
+        backgroundColor: 'rgba(225,48,108,0.08)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true },
+        x: { ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+async function refreshInsights() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '更新中...';
+  const alertEl = document.getElementById('refreshAlert');
+  alertEl.style.display = 'none';
+  try {
+    const res = await fetch('{% url "console:post_insights_refresh_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ account_id: ACCOUNT_ID }),
+    });
+    const data = await res.json();
+    alertEl.className = 'pa-alert ' + (data.ok ? 'pa-alert-success' : 'pa-alert-error');
+    alertEl.textContent = data.ok ? data.message : 'エラー: ' + data.error;
+    alertEl.style.display = 'block';
+    if (data.ok) setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    alertEl.className = 'pa-alert pa-alert-error';
+    alertEl.textContent = '通信エラー: ' + e.message;
+    alertEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'インサイト更新';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderSummary();
+  renderTable();
+  renderChart();
+});
+</script>
+{% endif %}
+{% endblock %}
