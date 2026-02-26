@@ -159,6 +159,9 @@
       <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
         <input type="checkbox" id="buzz-growth-filter"> 急成長フィルタ
       </label>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;" title="各投稿者のページを巡回してプロフ画像・サムネ・過去投稿を収集します。1アカウント30〜60秒かかります。">
+        <input type="checkbox" id="buzz-fetch-posts"> 投稿者情報を詳細取得 <span style="background:#e67e22; color:#fff; font-size:10px; padding:1px 5px; border-radius:3px; margin-left:2px;">時間大</span>
+      </label>
       <button class="buzz-btn buzz-btn-primary" onclick="runSearch(false)">すぐに実行</button>
       <button class="buzz-btn buzz-btn-secondary" onclick="runSearch(true)">予約実行</button>
     </div>
@@ -597,6 +600,9 @@ function runSearch(scheduled) {
   fd.append('sort_order', document.getElementById('buzz-sort-order').value);
   if (document.getElementById('buzz-growth-filter').checked) {
     fd.append('growth_filter', '1');
+  }
+  if (document.getElementById('buzz-fetch-posts').checked) {
+    fd.append('fetch_posts', '1');
   }
 
   msgEl.className = 'buzz-msg ok';

@@ -21,7 +21,7 @@ from th.services.buzz_scraper import ThreadsBuzzScraper, ViralityDetector, check
 logger = logging.getLogger(__name__)
 
 # 投稿数がこの値以下のアカウントを深掘り対象とする
-POSTS_THRESHOLD = 3
+POSTS_THRESHOLD = 5
 
 
 class Command(BaseCommand):
@@ -67,7 +67,8 @@ class Command(BaseCommand):
         new_count = 0
         for post_data in posts:
             text = post_data.get('text_content', '')
-            if not text:
+            # テキストなし投稿（画像・リールのみ）でも post_url があれば保存
+            if not text and not post_data.get('post_url'):
                 continue
 
             followers = author.followers_count or 0
@@ -139,7 +140,7 @@ class Command(BaseCommand):
                 self.stderr.write(f"ジョブ ID {opts['job_id']} が見つかりません")
                 return
 
-        # 深掘り対象: フォロワー不明 OR 投稿不足のアカウント
+        # 深掘り対象: フォロワー不明 OR 投稿不足 OR プロフィール画像未取得のアカウント
         from django.db.models import Q
 
         # 1. フォロワー未取得アカウント（最優先: プロフィールすら取れていない）
@@ -151,6 +152,7 @@ class Command(BaseCommand):
         )
 
         remaining = max_authors - len(no_followers)
+        fetched_pks = {a.pk for a in no_followers}
 
         # 2. フォロワー既知 + 投稿不足（投稿数がPOSTS_THRESHOLD以下 or NULL）
         if remaining > 0:
@@ -161,12 +163,30 @@ class Command(BaseCommand):
                     is_excluded=False,
                 ).filter(
                     Q(total_post_count__lte=POSTS_THRESHOLD) | Q(total_post_count__isnull=True)
-                ).order_by('-growth_score', '-followers_count')[:remaining]
+                ).exclude(pk__in=fetched_pks)
+                .order_by('-growth_score', '-followers_count')[:remaining]
             )
         else:
             low_posts = []
 
-        all_targets = no_followers + low_posts
+        remaining -= len(low_posts)
+        fetched_pks |= {a.pk for a in low_posts}
+
+        # 3. プロフィール画像未取得アカウント（成長スコア上位優先）
+        if remaining > 0:
+            no_pic = list(
+                THBuzzAuthor.objects.filter(
+                    followers_count__isnull=False,
+                    followers_count__gt=0,
+                    is_excluded=False,
+                    profile_pic_url='',
+                ).exclude(pk__in=fetched_pks)
+                .order_by('-growth_score', '-followers_count')[:remaining]
+            )
+        else:
+            no_pic = []
+
+        all_targets = no_followers + low_posts + no_pic
         all_targets = all_targets[:max_authors]
 
         if not all_targets:

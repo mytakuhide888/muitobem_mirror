@@ -90,13 +90,17 @@
       <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
         <input type="checkbox" id="scan-growth-filter"> 急成長フィルタ
       </label>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;" title="各投稿者のページを巡回してプロフ画像・サムネ・過去投稿を収集します。1アカウント30〜60秒かかります。">
+        <input type="checkbox" id="scan-fetch-posts"> 投稿者情報を詳細取得 <span style="background:#e67e22; color:#fff; font-size:10px; padding:1px 5px; border-radius:3px; margin-left:2px;">時間大</span>
+      </label>
       <button class="buzz-btn buzz-btn-primary" onclick="runKeywordScan()">一括巡回開始</button>
       <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary">ランキング画面へ</a>
     </div>
     <div id="scan-message" class="buzz-msg"></div>
     <p style="font-size:11px; color:#999; margin-top:8px;">
       各キーワードで検索 → 新規投稿者のプロフィール取得 → 成長スコア計算を自動実行します。<br>
-      「急成長フィルタ」ON: コンセプト候補（7〜90日, フォロワー500+, 1日10人+増加）に該当しないアカウントの投稿を除外します。
+      「急成長フィルタ」ON: コンセプト候補（7〜90日, フォロワー500+, 1日10人+増加）に該当しないアカウントの投稿を除外します。<br>
+      「投稿者情報を詳細取得」ON: プロフ画像・サムネ・過去投稿を収集します（時間が大幅に増加）。
     </p>
   </div>
 
@@ -183,6 +187,9 @@ function runKeywordScan() {
   fd.append('sort_order', document.getElementById('scan-sort-order').value);
   if (document.getElementById('scan-growth-filter').checked) {
     fd.append('growth_filter', '1');
+  }
+  if (document.getElementById('scan-fetch-posts').checked) {
+    fd.append('fetch_posts', '1');
   }
 
   fetch('{% url "console:buzz_run_keyword_scan" %}', { method: 'POST', body: fd })

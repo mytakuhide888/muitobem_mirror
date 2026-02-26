@@ -413,6 +413,8 @@ def buzz_run_search(request):
             cmd.extend(['--sort-order', sort_order])
         if request.POST.get('growth_filter'):
             cmd.append('--growth-filter')
+        if request.POST.get('fetch_posts'):
+            cmd.append('--fetch-posts')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
@@ -844,6 +846,8 @@ def buzz_run_keyword_scan(request):
             cmd.extend(['--sort-order', sort_order])
         if request.POST.get('growth_filter'):
             cmd.append('--growth-filter')
+        if request.POST.get('fetch_posts'):
+            cmd.append('--fetch-posts')
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_keyword_scan_stdout.log', 'a')
@@ -1025,18 +1029,19 @@ def buzz_run_deep_scan(request):
         max_authors = int(request.POST.get('max_authors', 10))
         max_authors = max(1, min(max_authors, 1000))
 
-        # 深掘り対象数を確認
+        # 深掘り対象数を確認（フォロワー未取得 or 投稿不足 or プロフィール画像未取得）
         target_count = THBuzzAuthor.objects.filter(
-            followers_count__isnull=False,
-            followers_count__gt=0,
+            is_excluded=False,
         ).filter(
-            Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
+            Q(followers_count__isnull=True) | Q(followers_count=0)
+            | Q(total_post_count__lte=5) | Q(total_post_count__isnull=True)
+            | Q(profile_pic_url='')
         ).count()
 
         if target_count == 0:
             return JsonResponse({
                 'ok': True,
-                'message': '深掘り対象のアカウントがありません（全アカウントの投稿が十分です）',
+                'message': '深掘り対象のアカウントがありません（全アカウントの情報が揃っています）',
                 'job_id': None,
             })
 

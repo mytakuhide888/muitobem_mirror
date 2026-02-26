@@ -49,6 +49,60 @@ class Command(BaseCommand):
             '--growth-filter', action='store_true',
             help='急成長フィルタ: コンセプト候補に該当しないアカウントの投稿を除外する',
         )
+        parser.add_argument(
+            '--fetch-posts', action='store_true',
+            help='各投稿者の過去投稿もスクロール取得する（プロフ画像・サムネも確実に収集。時間が大幅に増加）',
+        )
+
+    def _save_author_posts(self, scraper, author):
+        """著者の過去投稿を取得してDBに保存する（--fetch-posts 時に使用）"""
+        from th.services.buzz_scraper import ViralityDetector
+        posts = scraper.fetch_author_posts(author.username, max_scrolls=5, exclude_replies=True)
+        new_count = 0
+        for post_data in posts:
+            text = post_data.get('text_content', '')
+            if not text and not post_data.get('post_url'):
+                continue
+            followers = author.followers_count or 0
+            virality = ViralityDetector.is_viral(post_data, followers)
+            imp = post_data.get('impressions')
+            existing = THBuzzPost.objects.filter(author=author, text_content=text).first() if text else None
+            if existing:
+                existing.like_count = post_data.get('like_count', 0)
+                existing.reply_count = post_data.get('reply_count', 0)
+                existing.repost_count = post_data.get('repost_count', 0)
+                existing.engagement_rate = virality['engagement_rate']
+                existing.engagement_score = virality['engagement_score']
+                existing.is_viral = virality['is_viral']
+                if imp is not None:
+                    existing.impressions = imp
+                existing.media_type = post_data.get('media_type', '')
+                existing.media_urls = post_data.get('media_urls', [])
+                raw = existing.raw_json or {}
+                raw['is_pinned'] = post_data.get('is_pinned', False)
+                existing.raw_json = raw
+                existing.save()
+            else:
+                THBuzzPost.objects.create(
+                    author=author,
+                    post_url=post_data.get('post_url', ''),
+                    text_content=text,
+                    like_count=post_data.get('like_count', 0),
+                    reply_count=post_data.get('reply_count', 0),
+                    repost_count=post_data.get('repost_count', 0),
+                    impressions=imp,
+                    engagement_rate=virality['engagement_rate'],
+                    engagement_score=virality['engagement_score'],
+                    is_viral=virality['is_viral'],
+                    search_keyword='',
+                    posted_at=post_data.get('posted_at'),
+                    raw_json={'is_pinned': post_data.get('is_pinned', False)},
+                    media_type=post_data.get('media_type', ''),
+                    media_urls=post_data.get('media_urls', []),
+                )
+                new_count += 1
+        logger.info("[CMD] @%s: 過去投稿取得 新規%d件", author.username, new_count)
+        return new_count
 
     def _recalc_author_posts(self, author):
         """投稿者のフォロワー数が判明した後、全投稿の ER / バズ判定を再計算"""
@@ -216,6 +270,13 @@ class Command(BaseCommand):
                                 # フォロワー数が判明したので ER/バズ判定を再計算
                                 if author.followers_count:
                                     self._recalc_author_posts(author)
+                                # 過去投稿も取得する（--fetch-posts 時）
+                                if opts.get('fetch_posts'):
+                                    try:
+                                        self._save_author_posts(scraper, author)
+                                        author.update_growth_stats()
+                                    except Exception as fe:
+                                        logger.warning("過去投稿取得失敗 @%s: %s", username, fe)
                                 # 急成長フィルタ: 候補でないアカウントの投稿を削除
                                 if growth_filter and not author.is_concept_candidate:
                                     removed = THBuzzPost.objects.filter(author=author).count()
