@@ -6,7 +6,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import (
     FacebookAccount, ThreadsApp, ThreadsAccount, InstagramAccount,
     ScheduledPost, Post, DMMessage, DMReplyTemplate, AutoReplyRule, WebhookEvent,
-    Job, DMContact, Platform
+    Job, DMContact, Platform,
+    AppraisalCharacter, AppraisalTemplate, AppraisalCustomer,
+    AppraisalCustomerPost, AppraisalHistory,
 )
 from ig.models import InstagramBusinessAccount
 from social.services import ig_api  
@@ -284,3 +286,49 @@ class JobAdmin(PerPageAdminMixin, admin.ModelAdmin):
     def run_now(self, request, queryset):
         queryset.update(run_at=timezone.now(), status=Job.Status.PENDING)
     run_now.short_description = '今すぐ実行'
+
+
+# ── AI鑑定文生成システム v2 Admin ──
+
+class AppraisalTemplateInline(admin.TabularInline):
+    model = AppraisalTemplate
+    extra = 1
+    fields = ('name', 'category', 'word_count_min', 'word_count_max', 'sort_order', 'is_active')
+
+
+@admin.register(AppraisalCharacter)
+class AppraisalCharacterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'ig_account', 'th_account', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+    inlines = [AppraisalTemplateInline]
+
+
+@admin.register(AppraisalTemplate)
+class AppraisalTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'character', 'category', 'word_count_min', 'word_count_max', 'sort_order', 'is_active')
+    list_filter = ('character', 'category', 'is_active')
+    search_fields = ('name',)
+
+
+class AppraisalCustomerPostInline(admin.TabularInline):
+    model = AppraisalCustomerPost
+    extra = 0
+    fields = ('post_url', 'text_content', 'posted_at', 'like_count', 'reply_count')
+    readonly_fields = ('posted_at',)
+
+
+@admin.register(AppraisalCustomer)
+class AppraisalCustomerAdmin(admin.ModelAdmin):
+    list_display = ('username', 'display_name', 'platform', 'birthdate', 'posts_fetched_at')
+    list_filter = ('platform',)
+    search_fields = ('username', 'display_name', 'platform_user_id')
+    inlines = [AppraisalCustomerPostInline]
+
+
+@admin.register(AppraisalHistory)
+class AppraisalHistoryAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'character', 'customer', 'divination', 'dm_sent', 'created_at')
+    list_filter = ('dm_sent', 'character')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'system_prompt_used', 'user_prompt_used')

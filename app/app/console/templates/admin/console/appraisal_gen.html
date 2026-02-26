@@ -5,51 +5,107 @@
 
 {% block content %}
 <style>
-  .ap-container { max-width: 1100px; margin: 0 auto; }
-  .ap-row { display: flex; gap: 20px; flex-wrap: wrap; }
-  .ap-col-left { flex: 0 0 380px; min-width: 300px; }
-  .ap-col-right { flex: 1; min-width: 300px; }
+  .ap-container { max-width: 1400px; margin: 0 auto; padding: 0 10px; }
+  .ap-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .ap-col-left { flex: 0 0 320px; min-width: 280px; }
+  .ap-col-center { flex: 1; min-width: 380px; }
+  .ap-col-right { flex: 0 0 340px; min-width: 300px; }
   .ap-panel {
-    background: #fff; border-radius: 8px; padding: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+    background: #fff; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 14px;
   }
-  .ap-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-  .ap-field { margin-bottom: 14px; }
-  .ap-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .ap-panel h3 {
+    font-size: 15px; margin: 0 0 12px; color: #333;
+    border-bottom: 1px solid #eee; padding-bottom: 6px;
+  }
+  .ap-field { margin-bottom: 12px; }
+  .ap-field label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 3px; color: #555; }
   .ap-field select, .ap-field input, .ap-field textarea {
-    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
-    font-size: 14px; box-sizing: border-box;
+    width: 100%; padding: 7px 9px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 13px; box-sizing: border-box;
   }
-  .ap-field textarea { resize: vertical; min-height: 80px; }
+  .ap-field textarea { resize: vertical; min-height: 70px; }
   .ap-btn {
-    padding: 10px 18px; border: none; border-radius: 6px;
-    font-size: 14px; font-weight: bold; cursor: pointer;
+    padding: 8px 14px; border: none; border-radius: 5px;
+    font-size: 13px; font-weight: bold; cursor: pointer; transition: background .2s;
   }
-  .ap-btn-gen { width: 100%; padding: 12px; background: #9c27b0; color: #fff; font-size: 15px; }
+  .ap-btn-gen { width: 100%; padding: 11px; background: #9c27b0; color: #fff; font-size: 14px; }
   .ap-btn-gen:hover { background: #7b1fa2; }
   .ap-btn-gen:disabled { background: #aaa; cursor: wait; }
   .ap-btn-send { background: #1a73e8; color: #fff; }
   .ap-btn-send:hover { background: #1557b0; }
   .ap-btn-send:disabled { background: #aaa; }
+  .ap-btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
+  .ap-btn-outline { background: #fff; color: #555; border: 1px solid #ccc; }
+  .ap-btn-outline:hover { background: #f5f5f5; }
+  .ap-btn-teal { background: #009688; color: #fff; }
+  .ap-btn-teal:hover { background: #00796b; }
 
-  .ap-alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+  .ap-alert { padding: 8px 12px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
   .ap-alert-success { background: #d4edda; color: #155724; }
   .ap-alert-error { background: #f8d7da; color: #721c24; }
+  .ap-alert-info { background: #d1ecf1; color: #0c5460; }
 
-  .ap-empty { text-align: center; color: #999; padding: 40px; }
-  .ap-send-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-  .ap-send-row select { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-  .ap-send-row input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+  .ap-empty { text-align: center; color: #999; padding: 30px; font-size: 13px; }
+  .ap-send-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .ap-send-row select, .ap-send-row input { flex: 1; padding: 7px 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+
+  /* DM履歴バブル */
+  .dm-bubble { padding: 8px 12px; border-radius: 12px; margin: 4px 0; max-width: 90%; font-size: 12px; line-height: 1.5; cursor: pointer; word-break: break-word; }
+  .dm-bubble-in { background: #e8e8e8; color: #333; margin-right: auto; border-bottom-left-radius: 4px; }
+  .dm-bubble-out { background: #dcf8c6; color: #333; margin-left: auto; border-bottom-right-radius: 4px; }
+  .dm-bubble:hover { opacity: .8; }
+  .dm-time { font-size: 10px; color: #999; margin-top: 2px; }
+  .dm-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+
+  /* 投稿一覧 */
+  .post-item { padding: 8px; border-bottom: 1px solid #f0f0f0; font-size: 12px; line-height: 1.5; }
+  .post-item:last-child { border-bottom: none; }
+  .post-meta { color: #999; font-size: 11px; margin-top: 2px; }
+  .post-list { max-height: 250px; overflow-y: auto; }
+
+  /* 鑑定履歴折りたたみ */
+  .history-toggle { cursor: pointer; color: #1a73e8; font-size: 13px; }
+  .history-toggle:hover { text-decoration: underline; }
+  .history-list { max-height: 200px; overflow-y: auto; }
+  .history-item { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; font-size: 12px; cursor: pointer; }
+  .history-item:hover { background: #f8f9fa; }
+
+  /* ローディング */
+  .ap-loading { text-align: center; padding: 20px; }
+  .ap-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e0e0e0; border-top-color: #9c27b0; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 1100px) {
+    .ap-col-left, .ap-col-right { flex: 1 1 100%; }
+  }
 </style>
 
 <div class="ap-container">
   <div class="ap-row">
 
-    <!-- 左: 入力フォーム -->
+    <!-- 左カラム: 入力フォーム -->
     <div class="ap-col-left">
       <div class="ap-panel">
-        <h3>🔮 鑑定情報を入力</h3>
+        <h3>🔮 鑑定情報</h3>
         <div id="genAlert" style="display:none;"></div>
+
+        <div class="ap-field">
+          <label>キャラクター</label>
+          <select id="characterSelect" onchange="onCharacterChange()">
+            <option value="">-- 選択なし（デフォルト） --</option>
+            {% for c in characters %}
+            <option value="{{ c.pk }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ap-field">
+          <label>テンプレート</label>
+          <select id="templateSelect" onchange="onTemplateChange()">
+            <option value="">-- 選択なし（デフォルト） --</option>
+          </select>
+        </div>
 
         <div class="ap-field">
           <label>占術</label>
@@ -70,31 +126,76 @@
           <textarea id="concernInput" rows="4" placeholder="例: 仕事と恋愛のどちらを優先すべきか悩んでいます"></textarea>
         </div>
 
-        <div class="ap-field">
-          <label>キャラクター設定（任意）</label>
-          <textarea id="characterDesc" rows="3" placeholder="例: 温かみのある30代の占い師。丁寧な口調。"></textarea>
-        </div>
-
         <button class="ap-btn ap-btn-gen" id="genBtn" onclick="generateAppraisal()">✨ 鑑定文を生成する</button>
-      </div>
-
-      <div class="ap-panel">
-        <h3>📌 使い方</h3>
-        <ol style="font-size:13px; color:#555; line-height:1.9; padding-left:16px; margin:0;">
-          <li>占術・生年月日・悩みを入力</li>
-          <li>「生成する」でClaude APIが鑑定文を作成</li>
-          <li>右欄で内容を確認・編集</li>
-          <li>送信先ユーザーIDとアカウントを選択</li>
-          <li>「このDMに返信」で送信</li>
-        </ol>
       </div>
     </div>
 
-    <!-- 右: 生成結果 + 送信フォーム -->
-    <div class="ap-col-right">
+    <!-- 中央カラム: 生成結果 + DM送信 -->
+    <div class="ap-col-center">
       <div id="resultArea">
         <div class="ap-panel">
           <div class="ap-empty">左のフォームで「鑑定文を生成する」を押してください</div>
+        </div>
+      </div>
+
+      <!-- 鑑定履歴（折りたたみ） -->
+      <div class="ap-panel">
+        <span class="history-toggle" onclick="toggleHistory()">📋 鑑定履歴（最近10件）</span>
+        <div id="historyArea" style="display:none; margin-top:8px;">
+          <div class="history-list">
+            {% for h in recent_histories %}
+            <div class="history-item" data-text="{{ h.generated_text|escapejs }}" onclick="loadHistory(this)">
+              <strong>{{ h.created_at|date:"m/d H:i" }}</strong>
+              {% if h.character %}[{{ h.character.name }}]{% endif %}
+              {{ h.divination }} —
+              {{ h.generated_text|truncatechars:60 }}
+              {% if h.dm_sent %}<span style="color:#4caf50;">✓送信済</span>{% endif %}
+            </div>
+            {% empty %}
+            <div style="padding:8px; color:#999; font-size:12px;">まだ履歴がありません</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右カラム: 顧客情報 -->
+    <div class="ap-col-right">
+      <div class="ap-panel">
+        <h3>👤 顧客情報</h3>
+        <div class="ap-field">
+          <label>ユーザー名（Threads）</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="customerUsername" placeholder="@username" style="flex:1;">
+            <button class="ap-btn ap-btn-teal ap-btn-sm" id="fetchCustomerBtn" onclick="fetchCustomer()">取得</button>
+          </div>
+        </div>
+        <div id="customerAlert" style="display:none;"></div>
+        <div id="customerInfo" style="display:none;">
+          <div class="ap-field">
+            <label>性格分析結果</label>
+            <div id="personalityAnalysis" style="font-size:12px; line-height:1.6; color:#444; background:#f8f9fa; padding:8px; border-radius:4px; max-height:180px; overflow-y:auto;"></div>
+          </div>
+        </div>
+        <div id="customerLoading" style="display:none;" class="ap-loading">
+          <div class="ap-spinner"></div>
+          <div style="margin-top:8px; font-size:12px; color:#666;">投稿取得・分析中...（30〜60秒）</div>
+        </div>
+      </div>
+
+      <!-- DM履歴 -->
+      <div class="ap-panel">
+        <h3>💬 DM履歴</h3>
+        <div id="dmHistoryArea">
+          <div style="color:#999; font-size:12px; padding:8px;">顧客情報を取得するとDM履歴が表示されます</div>
+        </div>
+      </div>
+
+      <!-- 投稿履歴 -->
+      <div class="ap-panel">
+        <h3>📝 投稿履歴</h3>
+        <div id="postsArea">
+          <div style="color:#999; font-size:12px; padding:8px;">顧客情報を取得すると投稿が表示されます</div>
         </div>
       </div>
     </div>
@@ -105,130 +206,161 @@
 <script>
 const CSRF = '{{ csrf_token }}';
 const PRESELECT_USER_ID = '{{ preselect_user_id|escapejs }}';
+let currentCustomerId = null;
+let currentHistoryId = null;
 
-function showAlert(elId, msg, isError) {
-  const el = document.getElementById(elId);
-  el.className = 'ap-alert ' + (isError ? 'ap-alert-error' : 'ap-alert-success');
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 6000);
+// ── ユーティリティ ──
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(s));
+  return div.innerHTML;
 }
 
+function createEl(tag, attrs, children) {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => {
+    if (k === 'textContent') el.textContent = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  });
+  if (children) children.forEach(c => { if (c) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return el;
+}
+
+function showAlert(elId, msg, type) {
+  const el = document.getElementById(elId);
+  el.className = 'ap-alert ap-alert-' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (type !== 'info') setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+// ── キャラクター選択 → テンプレート連動 ──
+async function onCharacterChange() {
+  const charId = document.getElementById('characterSelect').value;
+  const tplSel = document.getElementById('templateSelect');
+  tplSel.textContent = '';
+  tplSel.appendChild(createEl('option', { value: '', textContent: '-- 選択なし（デフォルト） --' }));
+
+  if (!charId) return;
+
+  try {
+    const res = await fetch('{% url "console:appraisal_templates_api" %}?character_id=' + encodeURIComponent(charId));
+    const data = await res.json();
+    data.templates.forEach(t => {
+      tplSel.appendChild(createEl('option', { value: String(t.id), textContent: t.name + ' (' + t.category_label + ')' }));
+    });
+  } catch (e) {
+    console.error('テンプレート取得失敗:', e);
+  }
+}
+
+function onTemplateChange() {
+  // テンプレート選択時の追加処理（将来拡張用）
+}
+
+// ── 鑑定文生成 ──
 async function generateAppraisal() {
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
   btn.textContent = '生成中...';
 
   try {
+    const body = {
+      divination: document.getElementById('divinationSelect').value,
+      birthdate: document.getElementById('birthdateInput').value,
+      concern: document.getElementById('concernInput').value,
+      character_id: document.getElementById('characterSelect').value || null,
+      template_id: document.getElementById('templateSelect').value || null,
+      customer_id: currentCustomerId,
+    };
+
     const res = await fetch('{% url "console:appraisal_generate_api" %}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-      body: JSON.stringify({
-        divination: document.getElementById('divinationSelect').value,
-        birthdate: document.getElementById('birthdateInput').value,
-        concern: document.getElementById('concernInput').value,
-        character_desc: document.getElementById('characterDesc').value,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (data.ok) {
+      currentHistoryId = data.history_id;
       renderResult(data.appraisal_text);
     } else {
-      showAlert('genAlert', 'エラー: ' + (data.error || '不明なエラー'), true);
+      showAlert('genAlert', 'エラー: ' + (data.error || '不明なエラー'), 'error');
     }
   } catch (e) {
-    showAlert('genAlert', '通信エラー: ' + e.message, true);
+    showAlert('genAlert', '通信エラー: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '✨ 鑑定文を生成する';
   }
 }
 
+// ── 生成結果表示 (DOM API使用) ──
 function renderResult(appraisalText) {
   const area = document.getElementById('resultArea');
-  area.replaceChildren();
+  area.textContent = '';
 
-  // 鑑定文パネル
-  const panel = document.createElement('div');
-  panel.className = 'ap-panel';
+  const panel = createEl('div', { class: 'ap-panel' });
+  panel.appendChild(createEl('h3', { textContent: '📜 鑑定文（編集可）' }));
 
-  const h3 = document.createElement('h3');
-  h3.textContent = '📜 鑑定文（編集可）';
-  panel.appendChild(h3);
-
-  const sendAlert = document.createElement('div');
-  sendAlert.id = 'sendAlert';
-  sendAlert.className = 'ap-alert';
-  sendAlert.style.display = 'none';
+  const sendAlert = createEl('div', { id: 'sendAlert', style: { display: 'none' } });
   panel.appendChild(sendAlert);
 
-  const textarea = document.createElement('textarea');
-  textarea.id = 'appraisalText';
+  const textarea = createEl('textarea', {
+    id: 'appraisalText',
+    style: { width: '100%', minHeight: '280px', padding: '10px', fontSize: '13px', lineHeight: '1.8', border: '1px solid #dee2e6', borderRadius: '6px', background: '#f8f9fa', resize: 'vertical', fontFamily: 'inherit' }
+  });
   textarea.value = appraisalText;
-  textarea.style.cssText = 'width:100%; min-height:300px; padding:12px; font-size:14px; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; background:#f8f9fa; resize:vertical; font-family:inherit;';
   panel.appendChild(textarea);
 
-  // 送信フォーム
-  const sendRow = document.createElement('div');
-  sendRow.className = 'ap-send-row';
+  // 送信行
+  const sendRow = createEl('div', { class: 'ap-send-row' });
 
-  const userSel = document.createElement('select');
-  userSel.id = 'userSelect';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = '-- 送信先ユーザーID選択 --';
-  userSel.appendChild(defaultOpt);
-  {% for uid in dm_users %}
-  (function() {
-    const opt = document.createElement('option');
-    opt.value = '{{ uid|escapejs }}';
-    opt.textContent = '{{ uid|escapejs }}';
-    if ('{{ uid|escapejs }}' === PRESELECT_USER_ID) opt.selected = true;
+  // ユーザー選択
+  const userSel = createEl('select', { id: 'userSelect' });
+  userSel.appendChild(createEl('option', { value: '', textContent: '-- 送信先ユーザーID --' }));
+  const dmUsers = [{% for uid in dm_users %}'{{ uid|escapejs }}',{% endfor %}];
+  dmUsers.forEach(u => {
+    const opt = createEl('option', { value: u, textContent: u });
+    if (u === PRESELECT_USER_ID) opt.selected = true;
     userSel.appendChild(opt);
-  })();
-  {% endfor %}
+  });
   sendRow.appendChild(userSel);
 
-  const accSel = document.createElement('select');
-  accSel.id = 'accountSelect';
-  const defAccOpt = document.createElement('option');
-  defAccOpt.value = '';
-  defAccOpt.textContent = '-- アカウント選択 --';
-  accSel.appendChild(defAccOpt);
-  {% for acc in accounts %}
-  (function() {
-    const opt = document.createElement('option');
-    opt.value = '{{ acc.pk }}';
-    opt.textContent = '{{ acc.display_name|default:acc.username|escapejs }}';
-    accSel.appendChild(opt);
-  })();
-  {% endfor %}
+  // アカウント選択
+  const accSel = createEl('select', { id: 'accountSelect' });
+  accSel.appendChild(createEl('option', { value: '', textContent: '-- アカウント --' }));
+  const accounts = [{% for acc in accounts %}{ id: '{{ acc.pk }}', name: '{{ acc.display_name|default:acc.username|escapejs }}' },{% endfor %}];
+  accounts.forEach(a => {
+    accSel.appendChild(createEl('option', { value: a.id, textContent: a.name }));
+  });
   sendRow.appendChild(accSel);
 
-  const sendBtn = document.createElement('button');
-  sendBtn.className = 'ap-btn ap-btn-send';
-  sendBtn.textContent = '📨 このDMに返信';
-  sendBtn.onclick = sendAppraisalDM;
-  sendRow.appendChild(sendBtn);
+  sendRow.appendChild(createEl('button', { class: 'ap-btn ap-btn-send', textContent: '📨 DM送信', onclick: sendAppraisalDM }));
+  sendRow.appendChild(createEl('button', { class: 'ap-btn ap-btn-outline ap-btn-sm', textContent: '📋 コピー', onclick: copyToClipboard }));
 
   panel.appendChild(sendRow);
   area.appendChild(panel);
+}
 
-  // プリセレクトされたuser_idがあれば選択
-  if (PRESELECT_USER_ID) {
-    const sel = document.getElementById('userSelect');
-    if (sel) sel.value = PRESELECT_USER_ID;
+async function copyToClipboard() {
+  const text = document.getElementById('appraisalText')?.value;
+  if (text) {
+    await navigator.clipboard.writeText(text);
+    showAlert('sendAlert', 'クリップボードにコピーしました', 'success');
   }
 }
 
+// ── DM送信 ──
 async function sendAppraisalDM() {
   const userId = document.getElementById('userSelect').value;
   const accountId = document.getElementById('accountSelect').value;
   const text = document.getElementById('appraisalText').value.trim();
 
-  if (!userId) { showSendAlert('送信先ユーザーIDを選択してください', true); return; }
-  if (!accountId) { showSendAlert('アカウントを選択してください', true); return; }
-  if (!text) { showSendAlert('鑑定文が空です', true); return; }
+  if (!userId) { showAlert('sendAlert', '送信先を選択してください', 'error'); return; }
+  if (!accountId) { showAlert('sendAlert', 'アカウントを選択してください', 'error'); return; }
+  if (!text) { showAlert('sendAlert', '鑑定文が空です', 'error'); return; }
 
   const btn = document.querySelector('.ap-btn-send');
   btn.disabled = true;
@@ -238,29 +370,146 @@ async function sendAppraisalDM() {
     const res = await fetch('{% url "console:appraisal_send_dm_api" %}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-      body: JSON.stringify({ user_id: userId, text: text, account_id: accountId }),
+      body: JSON.stringify({ user_id: userId, text: text, account_id: accountId, history_id: currentHistoryId }),
     });
     const data = await res.json();
     if (data.ok) {
-      showSendAlert(data.message, false);
+      showAlert('sendAlert', data.message, 'success');
     } else {
-      showSendAlert('エラー: ' + (data.error || '不明なエラー'), true);
+      showAlert('sendAlert', 'エラー: ' + (data.error || '不明なエラー'), 'error');
     }
   } catch (e) {
-    showSendAlert('通信エラー: ' + e.message, true);
+    showAlert('sendAlert', '通信エラー: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = '📨 このDMに返信';
+    btn.textContent = '📨 DM送信';
   }
 }
 
-function showSendAlert(msg, isError) {
-  const el = document.getElementById('sendAlert');
-  if (!el) return;
-  el.className = 'ap-alert ' + (isError ? 'ap-alert-error' : 'ap-alert-success');
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 6000);
+// ── 顧客情報取得 ──
+async function fetchCustomer() {
+  const username = document.getElementById('customerUsername').value.trim();
+  if (!username) { showAlert('customerAlert', 'ユーザー名を入力してください', 'error'); return; }
+
+  const btn = document.getElementById('fetchCustomerBtn');
+  btn.disabled = true;
+  document.getElementById('customerLoading').style.display = 'block';
+  document.getElementById('customerInfo').style.display = 'none';
+  document.getElementById('customerAlert').style.display = 'none';
+
+  try {
+    const res = await fetch('{% url "console:appraisal_fetch_customer_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ username: username, platform: 'THREADS' }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      currentCustomerId = data.customer_id;
+
+      // 性格分析表示
+      document.getElementById('customerInfo').style.display = 'block';
+      document.getElementById('personalityAnalysis').textContent =
+        data.personality_analysis || '(分析データなし)';
+
+      if (data.warning) {
+        showAlert('customerAlert', data.warning, 'info');
+      } else {
+        showAlert('customerAlert', data.posts_count + '件の投稿を取得しました', 'success');
+      }
+
+      // 投稿一覧表示
+      renderPosts(data.posts || []);
+
+      // DM履歴取得
+      fetchDmHistory(data.username);
+    } else {
+      showAlert('customerAlert', 'エラー: ' + (data.error || '取得失敗'), 'error');
+    }
+  } catch (e) {
+    showAlert('customerAlert', '通信エラー: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('customerLoading').style.display = 'none';
+  }
+}
+
+// ── DM履歴取得 ──
+async function fetchDmHistory(userId) {
+  const area = document.getElementById('dmHistoryArea');
+  try {
+    const res = await fetch('{% url "console:appraisal_dm_history_api" %}?user_id=' + encodeURIComponent(userId) + '&platform=INSTAGRAM');
+    const data = await res.json();
+
+    area.textContent = '';
+    if (data.messages && data.messages.length > 0) {
+      const list = createEl('div', { class: 'dm-list' });
+      data.messages.forEach(m => {
+        const cls = m.direction === 'IN' ? 'dm-bubble-in' : 'dm-bubble-out';
+        const time = m.sent_at ? new Date(m.sent_at).toLocaleString('ja-JP') : '';
+        const bubble = createEl('div', { class: 'dm-bubble ' + cls, title: 'クリックで相談内容にコピー' });
+        bubble.appendChild(document.createTextNode(m.text));
+        bubble.appendChild(createEl('div', { class: 'dm-time', textContent: time }));
+        bubble.addEventListener('click', function() { copyToConcern(m.text); });
+        list.appendChild(bubble);
+      });
+      area.appendChild(list);
+    } else {
+      area.appendChild(createEl('div', { style: { color: '#999', fontSize: '12px', padding: '8px' }, textContent: 'DM履歴がありません' }));
+    }
+  } catch (e) {
+    area.textContent = '';
+    area.appendChild(createEl('div', { style: { color: '#999', fontSize: '12px', padding: '8px' }, textContent: 'DM履歴取得失敗' }));
+  }
+}
+
+// ── DMバブルクリック → 相談内容にコピー ──
+function copyToConcern(text) {
+  const concern = document.getElementById('concernInput');
+  concern.value = text;
+  concern.focus();
+  showAlert('genAlert', 'DMテキストを相談内容にコピーしました', 'success');
+}
+
+// ── 投稿一覧表示 ──
+function renderPosts(posts) {
+  const area = document.getElementById('postsArea');
+  area.textContent = '';
+  if (!posts || posts.length === 0) {
+    area.appendChild(createEl('div', { style: { color: '#999', fontSize: '12px', padding: '8px' }, textContent: '投稿がありません' }));
+    return;
+  }
+  const list = createEl('div', { class: 'post-list' });
+  posts.forEach(p => {
+    const item = createEl('div', { class: 'post-item' });
+    item.appendChild(document.createTextNode(p.text || '(テキストなし)'));
+    const meta = createEl('div', { class: 'post-meta' });
+    meta.appendChild(document.createTextNode('❤️ ' + (p.like_count || 0)));
+    if (p.url) {
+      meta.appendChild(document.createTextNode(' '));
+      meta.appendChild(createEl('a', { href: p.url, target: '_blank', style: { color: '#1a73e8' }, textContent: '開く' }));
+    }
+    item.appendChild(meta);
+    list.appendChild(item);
+  });
+  area.appendChild(list);
+}
+
+// ── 鑑定履歴 ──
+function toggleHistory() {
+  const el = document.getElementById('historyArea');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function loadHistory(el) {
+  const text = el.dataset.text;
+  const ta = document.getElementById('appraisalText');
+  if (ta) {
+    ta.value = text;
+  } else {
+    renderResult(text);
+  }
 }
 </script>
 {% endblock %}

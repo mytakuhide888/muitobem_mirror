@@ -108,9 +108,13 @@ urlpatterns = [
     path("api/dm/reply/",              dm_inbox_views.dm_reply_api,     name="dm_reply_api"),
 
     # Phase D: AI鑑定文生成
-    path("appraisal-gen/",             appraisal_views.appraisal_gen,           name="appraisal_gen"),
-    path("api/appraisal/generate/",    appraisal_views.appraisal_generate_api,  name="appraisal_generate_api"),
-    path("api/appraisal/send-dm/",     appraisal_views.appraisal_send_dm_api,   name="appraisal_send_dm_api"),
+    path("appraisal-gen/",                  appraisal_views.appraisal_gen,                name="appraisal_gen"),
+    path("api/appraisal/generate/",         appraisal_views.appraisal_generate_api,       name="appraisal_generate_api"),
+    path("api/appraisal/send-dm/",          appraisal_views.appraisal_send_dm_api,        name="appraisal_send_dm_api"),
+    path("api/appraisal/templates/",        appraisal_views.appraisal_templates_api,      name="appraisal_templates_api"),
+    path("api/appraisal/fetch-customer/",   appraisal_views.appraisal_fetch_customer_api, name="appraisal_fetch_customer_api"),
+    path("api/appraisal/dm-history/",       appraisal_views.appraisal_dm_history_api,     name="appraisal_dm_history_api"),
+    path("api/appraisal/customer-info/",    appraisal_views.appraisal_customer_info_api,  name="appraisal_customer_info_api"),
 
     # Phase D: 自動返信設定
     path("auto-reply-settings/",               auto_reply_views.auto_reply_settings,    name="auto_reply_settings"),

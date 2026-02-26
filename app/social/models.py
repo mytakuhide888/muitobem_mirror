@@ -197,3 +197,143 @@ class DMContact(models.Model):
 
     class Meta:
         unique_together = (("ig_user_id", "psid"),)
+
+
+# ── AI鑑定文生成システム v2 ──
+
+class AppraisalCharacter(models.Model):
+    """占い師キャラクター"""
+    name = models.CharField('キャラクター名', max_length=100)
+    concept = models.TextField('世界観・設定', blank=True)
+    writing_style = models.TextField('口調・文体', blank=True)
+    target_audience = models.TextField('ターゲット層', blank=True)
+    divination_methods = models.JSONField('使用占術リスト', default=list, blank=True)
+    background_story = models.TextField('経歴設定', blank=True)
+    ig_account = models.ForeignKey(
+        'ig.InstagramBusinessAccount', verbose_name='IGアカウント',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='appraisal_characters',
+    )
+    th_account = models.ForeignKey(
+        ThreadsAccount, verbose_name='THアカウント',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='appraisal_characters',
+    )
+    is_active = models.BooleanField('有効', default=True)
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+    updated_at = models.DateTimeField('更新日時', auto_now=True)
+
+    class Meta:
+        verbose_name = '鑑定キャラクター'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+
+class AppraisalTemplate(models.Model):
+    """鑑定テンプレート"""
+    class Category(models.TextChoices):
+        FREE = 'FREE', '無料鑑定'
+        PAID_LOW = 'PAID_LOW', '有料（低額）'
+        PAID_MID = 'PAID_MID', '有料（中額）'
+        PAID_HIGH = 'PAID_HIGH', '有料（高額）'
+        FOLLOWUP = 'FOLLOWUP', 'フォローアップ'
+
+    character = models.ForeignKey(
+        AppraisalCharacter, verbose_name='キャラクター',
+        on_delete=models.CASCADE, related_name='templates',
+    )
+    name = models.CharField('テンプレート名', max_length=100)
+    category = models.CharField('カテゴリ', max_length=20, choices=Category.choices, default=Category.FREE)
+    system_prompt = models.TextField('システムプロンプト（MD形式）', blank=True)
+    user_prompt_template = models.TextField('ユーザープロンプトテンプレート', blank=True)
+    word_count_min = models.IntegerField('最小文字数', default=600)
+    word_count_max = models.IntegerField('最大文字数', default=1000)
+    sort_order = models.IntegerField('表示順', default=0)
+    is_active = models.BooleanField('有効', default=True)
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+    updated_at = models.DateTimeField('更新日時', auto_now=True)
+
+    class Meta:
+        verbose_name = '鑑定テンプレート'
+        verbose_name_plural = verbose_name
+        ordering = ['character', 'sort_order', 'name']
+
+    def __str__(self):
+        return f'{self.character.name} / {self.name}'
+
+
+class AppraisalCustomer(models.Model):
+    """鑑定顧客"""
+    platform = models.CharField('プラットフォーム', max_length=20, choices=Platform.choices)
+    platform_user_id = models.CharField('プラットフォームユーザーID', max_length=100)
+    username = models.CharField('ユーザー名', max_length=255, blank=True)
+    display_name = models.CharField('表示名', max_length=255, blank=True)
+    birthdate = models.CharField('生年月日', max_length=20, blank=True)
+    profile_summary = models.TextField('プロフィール要約', blank=True)
+    personality_analysis = models.TextField('AI性格分析', blank=True)
+    posts_fetched_at = models.DateTimeField('投稿取得日時', null=True, blank=True)
+    memo = models.TextField('メモ', blank=True)
+
+    class Meta:
+        verbose_name = '鑑定顧客'
+        verbose_name_plural = verbose_name
+        unique_together = (('platform', 'platform_user_id'),)
+
+    def __str__(self):
+        return f'{self.username or self.platform_user_id} ({self.platform})'
+
+
+class AppraisalCustomerPost(models.Model):
+    """顧客投稿キャッシュ"""
+    customer = models.ForeignKey(
+        AppraisalCustomer, verbose_name='顧客',
+        on_delete=models.CASCADE, related_name='posts',
+    )
+    post_url = models.URLField('投稿URL', max_length=500, blank=True)
+    text_content = models.TextField('投稿内容', blank=True)
+    posted_at = models.DateTimeField('投稿日時', null=True, blank=True)
+    like_count = models.IntegerField('いいね数', default=0)
+    reply_count = models.IntegerField('リプライ数', default=0)
+    raw_json = models.JSONField('生データ', default=dict, blank=True)
+
+    class Meta:
+        verbose_name = '顧客投稿キャッシュ'
+        verbose_name_plural = verbose_name
+        ordering = ['-posted_at']
+
+    def __str__(self):
+        return f'{self.customer} - {self.posted_at}'
+
+
+class AppraisalHistory(models.Model):
+    """鑑定履歴"""
+    character = models.ForeignKey(
+        AppraisalCharacter, verbose_name='キャラクター',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='histories',
+    )
+    template = models.ForeignKey(
+        AppraisalTemplate, verbose_name='テンプレート',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='histories',
+    )
+    customer = models.ForeignKey(
+        AppraisalCustomer, verbose_name='顧客',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='histories',
+    )
+    birthdate = models.CharField('生年月日', max_length=20, blank=True)
+    concern = models.TextField('相談内容', blank=True)
+    divination = models.CharField('占術', max_length=50, blank=True)
+    generated_text = models.TextField('生成テキスト', blank=True)
+    sent_text = models.TextField('送信テキスト', blank=True)
+    system_prompt_used = models.TextField('使用システムプロンプト', blank=True)
+    user_prompt_used = models.TextField('使用ユーザープロンプト', blank=True)
+    dm_sent = models.BooleanField('DM送信済み', default=False)
+    dm_sent_at = models.DateTimeField('DM送信日時', null=True, blank=True)
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '鑑定履歴'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'鑑定 #{self.pk} ({self.created_at:%Y-%m-%d %H:%M})'
