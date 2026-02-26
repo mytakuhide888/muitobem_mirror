@@ -208,6 +208,11 @@ JAZZMIN_SETTINGS = {
         {"name": "パフォーマンス分析",    "url": "console:post_analytics",       "permissions": ["auth.view_user"]},
         {"name": "タロットリール生成",    "url": "console:tarot_reel_gen",       "permissions": ["auth.view_user"]},
 
+        # DM・鑑定 (Phase D)
+        {"name": "DM受信管理",            "url": "console:dm_inbox",             "permissions": ["auth.view_user"]},
+        {"name": "AI鑑定文生成",          "url": "console:appraisal_gen",        "permissions": ["auth.view_user"]},
+        {"name": "自動返信設定",          "url": "console:auto_reply_settings",  "permissions": ["auth.view_user"]},
+
         # ヘルプ/ログ
         {"name": "統合ガイド",            "url": "console:help",             "permissions": ["auth.view_user"]},
         {"name": "ログ",                  "url": "console:logs",             "permissions": ["auth.view_user"]},

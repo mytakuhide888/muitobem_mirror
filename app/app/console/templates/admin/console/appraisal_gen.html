@@ -1,0 +1,266 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}AI鑑定文生成{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; AI鑑定文生成</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ap-container { max-width: 1100px; margin: 0 auto; }
+  .ap-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .ap-col-left { flex: 0 0 380px; min-width: 300px; }
+  .ap-col-right { flex: 1; min-width: 300px; }
+  .ap-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .ap-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  .ap-field { margin-bottom: 14px; }
+  .ap-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .ap-field select, .ap-field input, .ap-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 14px; box-sizing: border-box;
+  }
+  .ap-field textarea { resize: vertical; min-height: 80px; }
+  .ap-btn {
+    padding: 10px 18px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  .ap-btn-gen { width: 100%; padding: 12px; background: #9c27b0; color: #fff; font-size: 15px; }
+  .ap-btn-gen:hover { background: #7b1fa2; }
+  .ap-btn-gen:disabled { background: #aaa; cursor: wait; }
+  .ap-btn-send { background: #1a73e8; color: #fff; }
+  .ap-btn-send:hover { background: #1557b0; }
+  .ap-btn-send:disabled { background: #aaa; }
+
+  .ap-alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+  .ap-alert-success { background: #d4edda; color: #155724; }
+  .ap-alert-error { background: #f8d7da; color: #721c24; }
+
+  .ap-empty { text-align: center; color: #999; padding: 40px; }
+  .ap-send-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .ap-send-row select { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+  .ap-send-row input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+</style>
+
+<div class="ap-container">
+  <div class="ap-row">
+
+    <!-- 左: 入力フォーム -->
+    <div class="ap-col-left">
+      <div class="ap-panel">
+        <h3>🔮 鑑定情報を入力</h3>
+        <div id="genAlert" style="display:none;"></div>
+
+        <div class="ap-field">
+          <label>占術</label>
+          <select id="divinationSelect">
+            {% for key, label in divination_presets.items %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ap-field">
+          <label>生年月日</label>
+          <input type="text" id="birthdateInput" placeholder="例: 1990/05/15">
+        </div>
+
+        <div class="ap-field">
+          <label>悩み・相談内容</label>
+          <textarea id="concernInput" rows="4" placeholder="例: 仕事と恋愛のどちらを優先すべきか悩んでいます"></textarea>
+        </div>
+
+        <div class="ap-field">
+          <label>キャラクター設定（任意）</label>
+          <textarea id="characterDesc" rows="3" placeholder="例: 温かみのある30代の占い師。丁寧な口調。"></textarea>
+        </div>
+
+        <button class="ap-btn ap-btn-gen" id="genBtn" onclick="generateAppraisal()">✨ 鑑定文を生成する</button>
+      </div>
+
+      <div class="ap-panel">
+        <h3>📌 使い方</h3>
+        <ol style="font-size:13px; color:#555; line-height:1.9; padding-left:16px; margin:0;">
+          <li>占術・生年月日・悩みを入力</li>
+          <li>「生成する」でClaude APIが鑑定文を作成</li>
+          <li>右欄で内容を確認・編集</li>
+          <li>送信先ユーザーIDとアカウントを選択</li>
+          <li>「このDMに返信」で送信</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 右: 生成結果 + 送信フォーム -->
+    <div class="ap-col-right">
+      <div id="resultArea">
+        <div class="ap-panel">
+          <div class="ap-empty">左のフォームで「鑑定文を生成する」を押してください</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const PRESELECT_USER_ID = '{{ preselect_user_id|escapejs }}';
+
+function showAlert(elId, msg, isError) {
+  const el = document.getElementById(elId);
+  el.className = 'ap-alert ' + (isError ? 'ap-alert-error' : 'ap-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+async function generateAppraisal() {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+
+  try {
+    const res = await fetch('{% url "console:appraisal_generate_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        divination: document.getElementById('divinationSelect').value,
+        birthdate: document.getElementById('birthdateInput').value,
+        concern: document.getElementById('concernInput').value,
+        character_desc: document.getElementById('characterDesc').value,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      renderResult(data.appraisal_text);
+    } else {
+      showAlert('genAlert', 'エラー: ' + (data.error || '不明なエラー'), true);
+    }
+  } catch (e) {
+    showAlert('genAlert', '通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ 鑑定文を生成する';
+  }
+}
+
+function renderResult(appraisalText) {
+  const area = document.getElementById('resultArea');
+  area.replaceChildren();
+
+  // 鑑定文パネル
+  const panel = document.createElement('div');
+  panel.className = 'ap-panel';
+
+  const h3 = document.createElement('h3');
+  h3.textContent = '📜 鑑定文（編集可）';
+  panel.appendChild(h3);
+
+  const sendAlert = document.createElement('div');
+  sendAlert.id = 'sendAlert';
+  sendAlert.className = 'ap-alert';
+  sendAlert.style.display = 'none';
+  panel.appendChild(sendAlert);
+
+  const textarea = document.createElement('textarea');
+  textarea.id = 'appraisalText';
+  textarea.value = appraisalText;
+  textarea.style.cssText = 'width:100%; min-height:300px; padding:12px; font-size:14px; line-height:1.8; border:1px solid #dee2e6; border-radius:6px; background:#f8f9fa; resize:vertical; font-family:inherit;';
+  panel.appendChild(textarea);
+
+  // 送信フォーム
+  const sendRow = document.createElement('div');
+  sendRow.className = 'ap-send-row';
+
+  const userSel = document.createElement('select');
+  userSel.id = 'userSelect';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = '-- 送信先ユーザーID選択 --';
+  userSel.appendChild(defaultOpt);
+  {% for uid in dm_users %}
+  (function() {
+    const opt = document.createElement('option');
+    opt.value = '{{ uid|escapejs }}';
+    opt.textContent = '{{ uid|escapejs }}';
+    if ('{{ uid|escapejs }}' === PRESELECT_USER_ID) opt.selected = true;
+    userSel.appendChild(opt);
+  })();
+  {% endfor %}
+  sendRow.appendChild(userSel);
+
+  const accSel = document.createElement('select');
+  accSel.id = 'accountSelect';
+  const defAccOpt = document.createElement('option');
+  defAccOpt.value = '';
+  defAccOpt.textContent = '-- アカウント選択 --';
+  accSel.appendChild(defAccOpt);
+  {% for acc in accounts %}
+  (function() {
+    const opt = document.createElement('option');
+    opt.value = '{{ acc.pk }}';
+    opt.textContent = '{{ acc.display_name|default:acc.username|escapejs }}';
+    accSel.appendChild(opt);
+  })();
+  {% endfor %}
+  sendRow.appendChild(accSel);
+
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'ap-btn ap-btn-send';
+  sendBtn.textContent = '📨 このDMに返信';
+  sendBtn.onclick = sendAppraisalDM;
+  sendRow.appendChild(sendBtn);
+
+  panel.appendChild(sendRow);
+  area.appendChild(panel);
+
+  // プリセレクトされたuser_idがあれば選択
+  if (PRESELECT_USER_ID) {
+    const sel = document.getElementById('userSelect');
+    if (sel) sel.value = PRESELECT_USER_ID;
+  }
+}
+
+async function sendAppraisalDM() {
+  const userId = document.getElementById('userSelect').value;
+  const accountId = document.getElementById('accountSelect').value;
+  const text = document.getElementById('appraisalText').value.trim();
+
+  if (!userId) { showSendAlert('送信先ユーザーIDを選択してください', true); return; }
+  if (!accountId) { showSendAlert('アカウントを選択してください', true); return; }
+  if (!text) { showSendAlert('鑑定文が空です', true); return; }
+
+  const btn = document.querySelector('.ap-btn-send');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    const res = await fetch('{% url "console:appraisal_send_dm_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ user_id: userId, text: text, account_id: accountId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showSendAlert(data.message, false);
+    } else {
+      showSendAlert('エラー: ' + (data.error || '不明なエラー'), true);
+    }
+  } catch (e) {
+    showSendAlert('通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📨 このDMに返信';
+  }
+}
+
+function showSendAlert(msg, isError) {
+  const el = document.getElementById('sendAlert');
+  if (!el) return;
+  el.className = 'ap-alert ' + (isError ? 'ap-alert-error' : 'ap-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+</script>
+{% endblock %}

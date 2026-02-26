@@ -54,7 +54,18 @@ def approve_scheduled(request, pk):
 # --------------------------------------------------------------
 
 
-def _schedule_auto_reply(platform: str, text: str):
+def _schedule_auto_reply(platform: str, text: str, user_id: str = '', page_id: str = ''):
+    # アクセストークンをアカウントから取得
+    access_token = ''
+    if page_id and platform == Platform.INSTAGRAM:
+        try:
+            from ig.models import InstagramBusinessAccount
+            account = InstagramBusinessAccount.objects.filter(fb_page_id=page_id, is_active=True).first()
+            if account:
+                access_token = account.best_send_token or ''
+        except Exception:
+            pass
+
     rules = AutoReplyRule.objects.filter(platform=platform, enabled=True)
     for rule in rules:
         keywords = [k.strip() for k in rule.keywords.split(',') if k.strip()]
@@ -63,7 +74,11 @@ def _schedule_auto_reply(platform: str, text: str):
             Job.objects.create(
                 job_type=Job.Type.REPLY,
                 platform=platform,
-                args={"text": rule.reply_template.reply_text},
+                args={
+                    "text": rule.reply_template.reply_text,
+                    "access_token": access_token,
+                    "recipient_id": user_id,
+                },
                 run_at=run_at,
             )
 
@@ -128,7 +143,7 @@ def webhook_instagram(request):
                 raw_json=msg,
             )
             if is_within_24h(dm.sent_at):
-                _schedule_auto_reply(Platform.INSTAGRAM, dm.text)
+                _schedule_auto_reply(Platform.INSTAGRAM, dm.text, user_id=user_id, page_id=entry.get('id', ''))
 
     return JsonResponse({'status': 'ok'})
 

@@ -1,0 +1,181 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}自動返信設定{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; 自動返信設定</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ar-container { max-width: 960px; margin: 0 auto; }
+  .ar-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 20px;
+  }
+  .ar-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+  table.ar-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.ar-table th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
+  table.ar-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  table.ar-table tr:hover td { background: #fafafa; }
+  .ar-badge-on  { background: #d4edda; color: #155724; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+  .ar-badge-off { background: #f8d7da; color: #721c24; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+  .ar-toggle-btn {
+    padding: 5px 12px; border: none; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;
+  }
+  .ar-toggle-on  { background: #ffc107; color: #333; }
+  .ar-toggle-off { background: #28a745; color: #fff; }
+  .ar-toggle-on:hover  { background: #e0a800; }
+  .ar-toggle-off:hover { background: #218838; }
+  .ar-empty { text-align: center; color: #999; padding: 30px; }
+  .ar-alert { padding: 8px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .ar-alert-success { background: #d4edda; color: #155724; }
+  .ar-alert-error { background: #f8d7da; color: #721c24; }
+  .ar-keywords { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ar-reply-text { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+  .ar-admin-link { font-size: 12px; color: #1a73e8; text-decoration: none; }
+  .ar-admin-link:hover { text-decoration: underline; }
+</style>
+
+<div class="ar-container">
+
+  <div class="ar-panel">
+    <h3>自動返信ルール一覧</h3>
+    <div id="toggleAlert" class="ar-alert"></div>
+    <p style="font-size:13px; color:#666; margin-bottom:14px;">
+      ルールの追加・編集・削除は
+      <a href="/admin/social/autoreplyrule/" class="ar-admin-link" target="_blank">Django管理画面</a>
+      から行ってください。ここではON/OFFの切り替えが可能です。
+    </p>
+
+    {% if rules %}
+    <table class="ar-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>名称</th>
+          <th>プラットフォーム</th>
+          <th>キーワード</th>
+          <th>遅延（分）</th>
+          <th>返信テンプレート</th>
+          <th>状態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="rulesBody">
+        {% for rule in rules %}
+        <tr id="row-{{ rule.pk }}">
+          <td>{{ rule.pk }}</td>
+          <td>{{ rule.name }}</td>
+          <td>{{ rule.get_platform_display }}</td>
+          <td><div class="ar-keywords" title="{{ rule.keywords }}">{{ rule.keywords }}</div></td>
+          <td>{{ rule.delay_minutes }}</td>
+          <td>
+            <div class="ar-reply-text" title="{{ rule.reply_template.reply_text }}">
+              {{ rule.reply_template.name }}: {{ rule.reply_template.reply_text|truncatechars:30 }}
+            </div>
+          </td>
+          <td>
+            <span id="badge-{{ rule.pk }}" class="{% if rule.enabled %}ar-badge-on{% else %}ar-badge-off{% endif %}">
+              {% if rule.enabled %}ON{% else %}OFF{% endif %}
+            </span>
+          </td>
+          <td>
+            <button
+              id="btn-{{ rule.pk }}"
+              class="ar-toggle-btn {% if rule.enabled %}ar-toggle-on{% else %}ar-toggle-off{% endif %}"
+              onclick="toggleRule({{ rule.pk }}, {{ rule.enabled|yesno:'true,false' }})">
+              {% if rule.enabled %}無効化{% else %}有効化{% endif %}
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="ar-empty">
+      自動返信ルールがありません。
+      <a href="/admin/social/autoreplyrule/add/" class="ar-admin-link" target="_blank">Django管理画面</a>
+      で追加してください。
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ar-panel">
+    <h3>返信テンプレート一覧</h3>
+    <p style="font-size:13px; color:#666; margin-bottom:14px;">
+      テンプレートの追加・編集は
+      <a href="/admin/social/dmreplytemplate/" class="ar-admin-link" target="_blank">Django管理画面</a>
+      から行ってください。
+    </p>
+    {% if templates %}
+    <table class="ar-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>名称</th>
+          <th>本文プレビュー</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tpl in templates %}
+        <tr>
+          <td>{{ tpl.pk }}</td>
+          <td>{{ tpl.name }}</td>
+          <td style="color:#555;">{{ tpl.reply_text|truncatechars:80 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="ar-empty">テンプレートがありません。</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function showAlert(msg, isError) {
+  const el = document.getElementById('toggleAlert');
+  el.className = 'ar-alert ' + (isError ? 'ar-alert-error' : 'ar-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+async function toggleRule(pk, currentEnabled) {
+  const btn = document.getElementById('btn-' + pk);
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/console/api/auto-reply/' + pk + '/toggle/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const badge = document.getElementById('badge-' + pk);
+      if (data.enabled) {
+        badge.className = 'ar-badge-on';
+        badge.textContent = 'ON';
+        btn.className = 'ar-toggle-btn ar-toggle-on';
+        btn.textContent = '無効化';
+        btn.onclick = () => toggleRule(pk, true);
+      } else {
+        badge.className = 'ar-badge-off';
+        badge.textContent = 'OFF';
+        btn.className = 'ar-toggle-btn ar-toggle-off';
+        btn.textContent = '有効化';
+        btn.onclick = () => toggleRule(pk, false);
+      }
+      showAlert('ルールを' + (data.enabled ? '有効' : '無効') + 'にしました', false);
+    } else {
+      showAlert('エラー: ' + (data.error || '不明なエラー'), true);
+    }
+  } catch (e) {
+    showAlert('通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

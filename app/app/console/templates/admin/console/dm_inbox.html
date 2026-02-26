@@ -1,0 +1,223 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}DM受信管理{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; DM受信管理</div>{% endblock %}
+
+{% block content %}
+<style>
+  .dm-container { max-width: 1200px; margin: 0 auto; }
+  .dm-row { display: flex; gap: 16px; height: calc(100vh - 180px); min-height: 500px; }
+  .dm-col-left { flex: 0 0 340px; min-width: 260px; overflow-y: auto; }
+  .dm-col-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .dm-panel {
+    background: #fff; border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .dm-panel-header {
+    padding: 14px 16px; border-bottom: 1px solid #eee;
+    font-weight: 700; font-size: 14px; color: #333;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  /* 左ペイン: 会話一覧 */
+  .dm-conv-list { height: 100%; overflow-y: auto; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .dm-conv-item {
+    padding: 12px 14px; border-bottom: 1px solid #f0f0f0;
+    cursor: pointer; transition: background .12s;
+    text-decoration: none; display: block; color: inherit;
+  }
+  .dm-conv-item:hover { background: #f5f5f5; }
+  .dm-conv-item.active { background: #e8f0fe; border-left: 3px solid #4285f4; }
+  .dm-conv-uid { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dm-conv-preview { font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dm-conv-meta { font-size: 11px; color: #999; margin-top: 3px; }
+  .dm-conv-dir-out { color: #1a73e8; }
+
+  /* 右ペイン: スレッド */
+  .dm-thread { flex: 1; overflow-y: auto; padding: 14px; background: #f8f9fa; }
+  .dm-msg {
+    max-width: 75%; margin-bottom: 10px;
+    padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6;
+  }
+  .dm-msg-in { background: #fff; border: 1px solid #e0e0e0; align-self: flex-start; margin-right: auto; }
+  .dm-msg-out { background: #1a73e8; color: #fff; align-self: flex-end; margin-left: auto; }
+  .dm-msg-time { font-size: 11px; color: #999; margin-top: 4px; }
+  .dm-msg-out .dm-msg-time { color: rgba(255,255,255,.7); text-align: right; }
+  .dm-thread-inner { display: flex; flex-direction: column; }
+
+  /* 返信フォーム */
+  .dm-reply-form { padding: 14px; border-top: 1px solid #eee; background: #fff; border-radius: 0 0 8px 8px; }
+  .dm-reply-row { display: flex; gap: 10px; align-items: flex-end; }
+  .dm-reply-row select { flex: 0 0 200px; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+  .dm-reply-row textarea { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: none; min-height: 60px; }
+  .dm-reply-row button {
+    flex: 0 0 80px; padding: 10px 0; background: #1a73e8; color: #fff;
+    border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .dm-reply-row button:hover { background: #1557b0; }
+  .dm-reply-row button:disabled { background: #aaa; cursor: wait; }
+  .dm-appraisal-link { font-size: 12px; color: #1a73e8; text-decoration: none; }
+  .dm-appraisal-link:hover { text-decoration: underline; }
+
+  .dm-alert { padding: 8px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 10px; display: none; }
+  .dm-alert-success { background: #d4edda; color: #155724; }
+  .dm-alert-error { background: #f8d7da; color: #721c24; }
+  .dm-empty { text-align: center; color: #999; padding: 60px 20px; font-size: 14px; }
+  .dm-right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); background: #fff; }
+</style>
+
+<div class="dm-container">
+  <div class="dm-row">
+
+    <!-- 左ペイン: 会話一覧 -->
+    <div class="dm-col-left">
+      <div class="dm-conv-list">
+        <div style="padding: 12px 14px; border-bottom: 1px solid #eee; font-weight:700; font-size:13px; background:#fff;">
+          受信DM一覧（最新50件）
+        </div>
+        {% for cv in conversations %}
+        <a href="?user_id={{ cv.user_id }}"
+           class="dm-conv-item {% if cv.user_id == selected_user_id %}active{% endif %}">
+          <div class="dm-conv-uid">{{ cv.user_id }}</div>
+          <div class="dm-conv-preview">
+            {% if cv.direction == 'OUT' %}<span class="dm-conv-dir-out">[送信]</span> {% endif %}
+            {{ cv.preview|default:"(メッセージなし)" }}
+          </div>
+          <div class="dm-conv-meta">{{ cv.latest|date:"m/d H:i" }} &nbsp;|&nbsp; {{ cv.count }}件</div>
+        </a>
+        {% empty %}
+        <div class="dm-empty">DMデータがありません</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 右ペイン: スレッド + 返信フォーム -->
+    <div class="dm-col-right">
+      {% if selected_user_id %}
+      <div class="dm-right-panel">
+        <div class="dm-panel-header">
+          <span>会話: {{ selected_user_id }}</span>
+          <a href="{% url 'console:appraisal_gen' %}?user_id={{ selected_user_id }}" class="dm-appraisal-link">
+            ✨ AI鑑定文を生成してこのDMに返信
+          </a>
+        </div>
+
+        <!-- スレッド表示 -->
+        <div class="dm-thread" id="threadArea">
+          <div class="dm-thread-inner" id="threadInner"></div>
+        </div>
+
+        <!-- 返信フォーム -->
+        <div class="dm-reply-form">
+          <div id="replyAlert" class="dm-alert"></div>
+          <div class="dm-reply-row">
+            <select id="accountSelect">
+              <option value="">-- アカウント選択 --</option>
+              {% for acc in accounts %}
+              <option value="{{ acc.pk }}">{{ acc.display_name|default:acc.username }}</option>
+              {% endfor %}
+            </select>
+            <textarea id="replyText" placeholder="返信メッセージを入力..." rows="3"></textarea>
+            <button id="sendBtn" onclick="sendReply()">送信</button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="dm-right-panel" style="justify-content:center; align-items:center;">
+        <div class="dm-empty">左のリストから会話を選択してください</div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const SELECTED_USER_ID = '{{ selected_user_id|escapejs }}';
+const THREAD_MESSAGES = {{ thread_messages_json|safe }};
+
+function renderThread() {
+  const inner = document.getElementById('threadInner');
+  if (!inner) return;
+  inner.replaceChildren();
+  if (!THREAD_MESSAGES.length) {
+    const empty = document.createElement('div');
+    empty.className = 'dm-empty';
+    empty.textContent = 'メッセージがありません';
+    inner.appendChild(empty);
+    return;
+  }
+  THREAD_MESSAGES.forEach(m => {
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.marginBottom = '10px';
+    wrapper.style.alignItems = m.direction === 'OUT' ? 'flex-end' : 'flex-start';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'dm-msg ' + (m.direction === 'OUT' ? 'dm-msg-out' : 'dm-msg-in');
+    bubble.textContent = m.text || '';
+
+    const time = document.createElement('div');
+    time.className = 'dm-msg-time';
+    time.textContent = m.sent_at;
+
+    wrapper.appendChild(bubble);
+    wrapper.appendChild(time);
+    inner.appendChild(wrapper);
+  });
+  // 最下部にスクロール
+  const area = document.getElementById('threadArea');
+  if (area) area.scrollTop = area.scrollHeight;
+}
+
+function showAlert(msg, isError) {
+  const el = document.getElementById('replyAlert');
+  el.className = 'dm-alert ' + (isError ? 'dm-alert-error' : 'dm-alert-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+async function sendReply() {
+  const accountId = document.getElementById('accountSelect').value;
+  const text = document.getElementById('replyText').value.trim();
+  if (!accountId) { showAlert('アカウントを選択してください', true); return; }
+  if (!text) { showAlert('返信メッセージを入力してください', true); return; }
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    const res = await fetch('{% url "console:dm_reply_api" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ user_id: SELECTED_USER_ID, text: text, account_id: accountId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert(data.message, false);
+      document.getElementById('replyText').value = '';
+      // 送信済みメッセージをスレッドに追加
+      const now = new Date();
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const dd = String(now.getDate()).padStart(2,'0');
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mi = String(now.getMinutes()).padStart(2,'0');
+      THREAD_MESSAGES.push({ text: text, direction: 'OUT', sent_at: mm+'/'+dd+' '+hh+':'+mi });
+      renderThread();
+    } else {
+      showAlert('エラー: ' + (data.error || '不明なエラー'), true);
+    }
+  } catch (e) {
+    showAlert('通信エラー: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送信';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', renderThread);
+</script>
+{% endblock %}

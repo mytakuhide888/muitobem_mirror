@@ -10,6 +10,9 @@ from .views import scheduled_posts as sched_views
 from .views import ig_posts as ig_posts_views
 from .views import post_analytics as analytics_views
 from .views import tarot_reel as tarot_views
+from .views import dm_inbox as dm_inbox_views
+from .views import appraisal as appraisal_views
+from .views import auto_reply_settings as auto_reply_views
 
 app_name = "console"
 
@@ -99,4 +102,17 @@ urlpatterns = [
     path("tarot-reel/",                tarot_views.tarot_reel_gen,      name="tarot_reel_gen"),
     path("api/ig/tarot-generate/",     tarot_views.tarot_generate_api,  name="tarot_generate_api"),
     path("api/ig/tarot-schedule/",     tarot_views.tarot_schedule_api,  name="tarot_schedule_api"),
+
+    # Phase D: DM受信管理
+    path("dm-inbox/",                  dm_inbox_views.dm_inbox,         name="dm_inbox"),
+    path("api/dm/reply/",              dm_inbox_views.dm_reply_api,     name="dm_reply_api"),
+
+    # Phase D: AI鑑定文生成
+    path("appraisal-gen/",             appraisal_views.appraisal_gen,           name="appraisal_gen"),
+    path("api/appraisal/generate/",    appraisal_views.appraisal_generate_api,  name="appraisal_generate_api"),
+    path("api/appraisal/send-dm/",     appraisal_views.appraisal_send_dm_api,   name="appraisal_send_dm_api"),
+
+    # Phase D: 自動返信設定
+    path("auto-reply-settings/",               auto_reply_views.auto_reply_settings,    name="auto_reply_settings"),
+    path("api/auto-reply/<int:pk>/toggle/",    auto_reply_views.auto_reply_toggle_api,  name="auto_reply_toggle_api"),
 ]
