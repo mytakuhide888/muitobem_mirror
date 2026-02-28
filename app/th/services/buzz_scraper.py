@@ -5,6 +5,7 @@ Playwright (stealth) を使用して Threads 検索結果をスクレイピン�
 ページソースに埋め込まれた SSR JSON データを抽出する方式。
 Docker 環境では既にインストール済みの Chromium を使用する。
 """
+import html as html_lib
 import json
 import logging
 import os
@@ -621,6 +622,100 @@ def _extract_profile_pic_from_html(html: str, username: str) -> str:
     return ''
 
 
+def _parse_compact_count(raw: str) -> Optional[int]:
+    """3.8K / 12,345 / 1.2M のような表記を int に変換"""
+    if not raw:
+        return None
+    s = raw.strip().replace(',', '').upper()
+    mult = 1
+    if s.endswith('K'):
+        mult = 1000
+        s = s[:-1]
+    elif s.endswith('M'):
+        mult = 1000000
+        s = s[:-1]
+    elif s.endswith('B'):
+        mult = 1000000000
+        s = s[:-1]
+    try:
+        return int(float(s) * mult)
+    except (TypeError, ValueError):
+        return None
+
+
+def _extract_profile_meta_description(html: str) -> str:
+    """profile 用 meta description を UTF-8 テキストとして返す"""
+    meta = re.search(r'<meta\s+name="description"\s+content="((?:[^"\\]|\\.)*)"', html)
+    if not meta:
+        return ''
+    raw = html_lib.unescape(meta.group(1))
+    raw = raw.replace('\r\n', '\n').replace('\r', '\n')
+    return raw.strip()
+
+
+def _clean_profile_meta_bio(meta_desc: str, username: str) -> str:
+    """meta description から counts/定型文を除き、本来の bio 部分だけを取り出す"""
+    if not meta_desc:
+        return ''
+    bio = meta_desc.strip()
+    bio = re.sub(
+        r'^\s*[\d.,]+[KMB]?\s*Followers\s*[•·・]\s*[\d.,]+[KMB]?\s*Threads\s*[•·・]\s*',
+        '',
+        bio,
+        flags=re.IGNORECASE,
+    )
+    bio = re.sub(
+        r'^\s*フォロワー[\d,]+人\s*[•·・]\s*スレッド[\d,]+\s*件\s*[•·・]\s*',
+        '',
+        bio,
+    )
+    bio = re.sub(
+        rf'\.?\s*See the latest conversations with @{re.escape(username)}\.?\s*$',
+        '',
+        bio,
+        flags=re.IGNORECASE,
+    )
+    bio = re.sub(
+        rf'。?\s*@{re.escape(username)}の最新の会話をチェック。?\s*$',
+        '',
+        bio,
+    )
+    return bio.strip()
+
+
+def _extract_counts_from_html_fallback(html: str) -> Dict[str, Optional[int]]:
+    """SSR JSON が無い場合の follower/following 補完抽出"""
+    counts = {
+        'followers_count': None,
+        'following_count': None,
+    }
+
+    patterns = [
+        ('followers_count', r'([0-9][0-9,]*(?:\.[0-9]+)?[KMB]?)\s*Followers', re.IGNORECASE),
+        ('following_count', r'([0-9][0-9,]*(?:\.[0-9]+)?[KMB]?)\s*Following', re.IGNORECASE),
+        ('followers_count', r'フォロワー\s*([0-9,]+)\s*人', 0),
+        ('following_count', r'フォロー(?:中)?\s*([0-9,]+)\s*人', 0),
+    ]
+    for key, pattern, flags in patterns:
+        if counts[key] is not None:
+            continue
+        m = re.search(pattern, html, flags)
+        if m:
+            counts[key] = _parse_compact_count(m.group(1))
+
+    meta_desc = _extract_profile_meta_description(html)
+    if meta_desc and counts['followers_count'] is None:
+        m = re.search(r'([0-9][0-9,]*(?:\.[0-9]+)?[KMB]?)\s*Followers', meta_desc, re.IGNORECASE)
+        if m:
+            counts['followers_count'] = _parse_compact_count(m.group(1))
+    if meta_desc and counts['followers_count'] is None:
+        m = re.search(r'フォロワー\s*([0-9,]+)\s*人', meta_desc)
+        if m:
+            counts['followers_count'] = _parse_compact_count(m.group(1))
+
+    return counts
+
+
 def _extract_profile_from_html(html: str, username: str) -> Dict:
     """ページ HTML からプロフィール情報を抽出"""
     profile = {
@@ -704,11 +799,17 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
     if not profile['profile_pic_url']:
         profile['profile_pic_url'] = _extract_profile_pic_from_html(html, username)
 
-    # meta description からの bio 取得（フォールバック）
+    # follower/following の補完抽出
+    fallback_counts = _extract_counts_from_html_fallback(html)
+    if profile['followers_count'] is None:
+        profile['followers_count'] = fallback_counts['followers_count']
+    if profile['following_count'] is None:
+        profile['following_count'] = fallback_counts['following_count']
+
+    # meta description から bio を補完
     if not profile['bio']:
-        meta = re.search(r'<meta\s+name="description"\s+content="((?:[^"\\]|\\.)*)"', html)
-        if meta:
-            profile['bio'] = meta.group(1)
+        meta_desc = _extract_profile_meta_description(html)
+        profile['bio'] = _clean_profile_meta_bio(meta_desc, username)
 
     return profile
 
