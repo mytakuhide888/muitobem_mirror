@@ -716,6 +716,45 @@ def _extract_counts_from_html_fallback(html: str) -> Dict[str, Optional[int]]:
     return counts
 
 
+def _extract_counts_from_visible_text(text: str) -> Dict[str, Optional[int]]:
+    """Playwright の body.innerText から follower/following を補完抽出"""
+    counts = {
+        'followers_count': None,
+        'following_count': None,
+    }
+    if not text:
+        return counts
+
+    m = re.search(r'フォロワー\s*([0-9,]+)\s*人', text)
+    if m:
+        counts['followers_count'] = _parse_compact_count(m.group(1))
+    if counts['followers_count'] is None:
+        m = re.search(r'([0-9][0-9,]*(?:\.[0-9]+)?[KMB]?)\s*Followers', text, re.IGNORECASE)
+        if m:
+            counts['followers_count'] = _parse_compact_count(m.group(1))
+
+    lines = [line.strip() for line in text.splitlines()]
+    for idx, line in enumerate(lines):
+        if line in ('フォロー中', 'Following'):
+            # Threads のUIでは見出し直前の行に following 数が出るケースがある
+            if idx > 0:
+                prev = lines[idx - 1].strip('· ')
+                n = _parse_compact_count(prev)
+                if n is not None:
+                    counts['following_count'] = n
+                    break
+        m = re.search(r'フォロー(?:中)?\s*([0-9,]+)\s*人', line)
+        if m:
+            counts['following_count'] = _parse_compact_count(m.group(1))
+            break
+        m = re.search(r'([0-9][0-9,]*(?:\.[0-9]+)?[KMB]?)\s*Following', line, re.IGNORECASE)
+        if m:
+            counts['following_count'] = _parse_compact_count(m.group(1))
+            break
+
+    return counts
+
+
 def _extract_profile_from_html(html: str, username: str) -> Dict:
     """ページ HTML からプロフィール情報を抽出"""
     profile = {
@@ -1052,6 +1091,16 @@ class ThreadsBuzzScraper:
             logger.warning("[DEBUG] プロフィールページ: ログインウォールの可能性")
 
         profile = _extract_profile_from_html(html, username)
+        if profile.get('followers_count') is None or profile.get('following_count') is None:
+            try:
+                visible_text = _sanitize(self._page.evaluate('document.body.innerText'))
+                text_counts = _extract_counts_from_visible_text(visible_text)
+                if profile.get('followers_count') is None:
+                    profile['followers_count'] = text_counts['followers_count']
+                if profile.get('following_count') is None:
+                    profile['following_count'] = text_counts['following_count']
+            except Exception as e:
+                logger.debug("[DEBUG] visible text count fallback failed: %s", e)
         logger.info("[DEBUG] プロフィール抽出結果: display_name=%s, followers=%s, following=%s, profile_pic_url=%s",
                     profile.get('display_name'), profile.get('followers_count'), profile.get('following_count'),
                     (profile.get('profile_pic_url') or '')[:80])
