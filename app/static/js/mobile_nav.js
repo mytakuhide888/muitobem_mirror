@@ -10,34 +10,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const groups = [
         {
-            label: "基本設定",
-            description: "日常運用と環境まわり",
-            icon: "fas fa-house",
+            label: "共通設定",
+            description: "連携と運用の基本設定",
+            icon: "fas fa-sliders-h",
             items: [
-                { label: "ダッシュボード", url: "/console/" },
                 { label: "アカウント連携", url: "/console/accounts/" },
                 { label: "権限チェック", url: "/console/permissions/" },
-                { label: "セットアップ", url: "/console/setup/" },
-                { label: "統合ガイド", url: "/console/help/" },
-                { label: "ログ", url: "/console/logs/" },
-                { label: "接続テスト", url: "/console/connection-test/" },
-            ],
-        },
-        {
-            label: "連携 / Webhook",
-            description: "投稿同期と疎通確認",
-            icon: "fas fa-plug",
-            items: [
                 { label: "投稿インポート", url: "/social/post-import/" },
                 { label: "投稿同期", url: "/social/post-sync/" },
                 { label: "Webhook受信テスト", url: "/console/webhook-test/" },
                 { label: "Webhookイベント一覧", url: "/console/webhook-events/" },
                 { label: "Webhook設定", url: "/console/webhook/setup/" },
+                { label: "セットアップ", url: "/console/setup/" },
             ],
         },
         {
-            label: "企画 / リサーチ",
-            description: "バズ分析と企画設計",
+            label: "企画 / Threads分析",
+            description: "企画設計とThreadsリサーチ",
             icon: "fas fa-lightbulb",
             items: [
                 { label: "コンセプト設計", url: "/console/concept-design/" },
@@ -48,13 +37,13 @@ document.addEventListener("DOMContentLoaded", function () {
             ],
         },
         {
-            label: "制作 / 運用",
-            description: "テンプレと投稿制作",
+            label: "制作 / 投稿運用",
+            description: "テンプレとSNS制作",
             icon: "fas fa-pen-ruler",
             items: [
                 { label: "テンプレ一覧", url: "/console/templates/" },
                 { label: "テンプレ新規", url: "/console/templates/new/" },
-                { label: "テンプレ書出し", url: "/console/templates/export/" },
+                { label: "テンプレ書き出し", url: "/console/templates/export/" },
                 { label: "テンプレ読込", url: "/console/templates/import/" },
                 { label: "投稿文AI生成", url: "/console/content-generator/" },
                 { label: "予約投稿管理", url: "/console/scheduled-posts/" },
@@ -64,13 +53,24 @@ document.addEventListener("DOMContentLoaded", function () {
             ],
         },
         {
-            label: "顧客対応",
-            description: "DMと鑑定運用",
+            label: "顧客対応 / 鑑定",
+            description: "DMと鑑定の運用",
             icon: "fas fa-comments",
             items: [
                 { label: "DM受信管理", url: "/console/dm-inbox/" },
                 { label: "AI鑑定文生成", url: "/console/appraisal-gen/" },
                 { label: "自動返信設定", url: "/console/auto-reply-settings/" },
+            ],
+        },
+        {
+            label: "共通ツール",
+            description: "ガイドと保守確認",
+            icon: "fas fa-tools",
+            items: [
+                { label: "ダッシュボード", url: "/console/" },
+                { label: "統合ガイド", url: "/console/help/" },
+                { label: "ログ", url: "/console/logs/" },
+                { label: "接続テスト", url: "/console/connection-test/" },
             ],
         },
     ];
