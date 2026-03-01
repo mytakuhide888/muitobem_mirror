@@ -219,7 +219,7 @@ JAZZMIN_SETTINGS = {
         {"name": "接続テスト",            "url": "console:connection_test",  "permissions": ["auth.view_user"]},
         {"name": "接続テスト",            "url": "console:connection_test",  "permissions": ["auth.view_user"]},
     ],
-    "custom_js": "js/mobile_nav.js",
+    "custom_js": "js/mobile_nav.js?v=20260302",
 }
 
 # Top menu buttons are intentionally disabled in favor of the structured sidebar accordion.
