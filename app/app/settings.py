@@ -222,6 +222,9 @@ JAZZMIN_SETTINGS = {
     "custom_js": "js/mobile_nav.js",
 }
 
+# Top menu buttons are intentionally disabled in favor of the structured sidebar accordion.
+JAZZMIN_SETTINGS["topmenu_links"] = []
+
 # === Database (env優先 → 個別MYSQL_* → SQLite fallback) ===
 def _db_from_url(url: str):
     u = urlparse(url)

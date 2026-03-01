@@ -1,5 +1,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
+    if (document.getElementById("console-sidebar-menu-root")) return;
+
     // Only run if sidebar exists
     const navSidebar = document.querySelector('ul.nav-sidebar');
     if (!navSidebar) return;
