@@ -13,6 +13,7 @@ from .views import tarot_reel as tarot_views
 from .views import dm_inbox as dm_inbox_views
 from .views import appraisal as appraisal_views
 from .views import auto_reply_settings as auto_reply_views
+from .views import concept_design as concept_views
 
 app_name = "console"
 
@@ -119,4 +120,13 @@ urlpatterns = [
     # Phase D: 自動返信設定
     path("auto-reply-settings/",               auto_reply_views.auto_reply_settings,    name="auto_reply_settings"),
     path("api/auto-reply/<int:pk>/toggle/",    auto_reply_views.auto_reply_toggle_api,  name="auto_reply_toggle_api"),
+
+    # コンセプト設計
+    path("concept-design/",                     concept_views.concept_design,          name="concept_design"),
+    path("concept-design/<int:pk>/",            concept_views.concept_project_detail,  name="concept_project_detail"),
+    path("api/concept/analyze/",                concept_views.concept_analyze_api,     name="concept_analyze_api"),
+    path("api/concept/proposals/",              concept_views.concept_proposals_api,   name="concept_proposals_api"),
+    path("api/concept/detail/",                 concept_views.concept_detail_api,      name="concept_detail_api"),
+    path("api/concept/save/",                   concept_views.concept_save_api,        name="concept_save_api"),
+    path("api/concept/edit-md/",                concept_views.concept_edit_md_api,     name="concept_edit_md_api"),
 ]

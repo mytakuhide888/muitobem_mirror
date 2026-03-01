@@ -27,6 +27,7 @@ def root(request):
 
 urlpatterns = [
     path("", root),
+    path("admin/console/", include(("app.console.urls", "console_admin"), namespace="console_admin")),
     path('admin/', admin.site.urls),
     path("console/", include(("app.console.urls", "console"), namespace="console")),
     path('social/', include('social.urls')),

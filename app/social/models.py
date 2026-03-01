@@ -217,6 +217,9 @@ class AppraisalCharacter(models.Model):
         ThreadsAccount, verbose_name='THアカウント',
         on_delete=models.SET_NULL, null=True, blank=True, related_name='appraisal_characters',
     )
+    concept_document_md = models.TextField('コンセプト設計書（MD形式）', blank=True, default='')
+    profile_bio = models.TextField('プロフィールbio', blank=True, default='')
+    pinned_post_samples = models.JSONField('固定投稿サンプル', default=list, blank=True)
     is_active = models.BooleanField('有効', default=True)
     created_at = models.DateTimeField('作成日時', auto_now_add=True)
     updated_at = models.DateTimeField('更新日時', auto_now=True)

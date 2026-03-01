@@ -1,0 +1,704 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}コンセプト設計: {{ project.title|default:"無題" }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">ダッシュボード</a> &gt;
+  <a href="{% url 'console:concept_design' %}">コンセプト設計</a> &gt;
+  {{ project.title|default:"無題" }}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .cp-container { max-width: 1100px; margin: 0 auto; padding: 0 10px; }
+  .cp-panel {
+    background: #fff; border-radius: 8px; padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .cp-panel h3 {
+    font-size: 15px; margin: 0 0 12px; color: #333;
+    border-bottom: 1px solid #eee; padding-bottom: 6px;
+  }
+  .cp-step-indicator {
+    display: flex; gap: 4px; margin-bottom: 20px;
+  }
+  .cp-step {
+    flex: 1; text-align: center; padding: 10px 8px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; background: #f5f5f5; color: #888;
+    transition: all .2s;
+  }
+  .cp-step.active { background: #9c27b0; color: #fff; }
+  .cp-step.done { background: #e8f5e9; color: #2e7d32; }
+
+  .cp-field { margin-bottom: 12px; }
+  .cp-field label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 3px; color: #555; }
+  .cp-field input, .cp-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 13px; box-sizing: border-box;
+  }
+  .cp-field textarea { resize: vertical; min-height: 60px; }
+
+  .cp-btn {
+    padding: 9px 16px; border: none; border-radius: 5px;
+    font-size: 13px; font-weight: bold; cursor: pointer; transition: background .2s;
+  }
+  .cp-btn-primary { background: #9c27b0; color: #fff; }
+  .cp-btn-primary:hover { background: #7b1fa2; }
+  .cp-btn-primary:disabled { background: #ccc; cursor: wait; }
+  .cp-btn-success { background: #2e7d32; color: #fff; }
+  .cp-btn-success:hover { background: #1b5e20; }
+  .cp-btn-outline { background: #fff; color: #555; border: 1px solid #ccc; }
+  .cp-btn-outline:hover { background: #f5f5f5; }
+
+  .cp-username-list { display: flex; flex-direction: column; gap: 8px; }
+  .cp-username-row { display: flex; gap: 8px; align-items: center; }
+  .cp-username-row input { flex: 1; }
+  .cp-username-row .remove-btn {
+    background: none; border: none; color: #c62828; cursor: pointer; font-size: 18px; padding: 4px;
+  }
+
+  .cp-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .cp-suggest-chip {
+    display: inline-block; padding: 4px 10px; background: #f3e5f5; color: #7b1fa2;
+    border-radius: 14px; font-size: 12px; cursor: pointer; border: 1px solid #ce93d8;
+  }
+  .cp-suggest-chip:hover { background: #e1bee7; }
+
+  .cp-analysis-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .cp-analysis-card {
+    background: #fafafa; border-radius: 6px; padding: 14px; border: 1px solid #eee;
+  }
+  .cp-analysis-card h4 { margin: 0 0 8px; font-size: 14px; }
+  .cp-analysis-card .item { margin-bottom: 6px; font-size: 12px; }
+  .cp-analysis-card .item strong { color: #555; }
+  .cp-bones { margin-top: 6px; }
+  .cp-bones li { font-size: 12px; margin-bottom: 2px; }
+
+  .cp-proposal-cards { display: flex; flex-direction: column; gap: 10px; }
+  .cp-proposal-card {
+    background: #fafafa; border-radius: 6px; padding: 14px; border: 2px solid #eee;
+    cursor: pointer; transition: border-color .2s;
+  }
+  .cp-proposal-card.selected { border-color: #9c27b0; background: #fce4ec; }
+  .cp-proposal-card h4 { margin: 0 0 8px; font-size: 14px; }
+  .cp-proposal-card .detail { font-size: 12px; color: #555; margin-bottom: 3px; }
+
+  .cp-md-preview {
+    background: #fafafa; border: 1px solid #eee; border-radius: 6px;
+    padding: 16px; font-size: 13px; line-height: 1.7; max-height: 600px; overflow-y: auto;
+  }
+  .cp-md-preview h2 { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .cp-md-preview h3 { font-size: 14px; }
+  .cp-md-preview ul { padding-left: 20px; }
+
+  .cp-md-edit {
+    width: 100%; min-height: 400px; font-family: monospace; font-size: 12px;
+    padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
+  }
+
+  .cp-loading { text-align: center; padding: 20px; color: #888; }
+  .cp-loading .spinner {
+    display: inline-block; width: 24px; height: 24px; border: 3px solid #ddd;
+    border-top-color: #9c27b0; border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .cp-error { color: #c62828; font-size: 12px; margin-top: 6px; }
+  .cp-summary-box { background: #f3e5f5; border-radius: 6px; padding: 12px; font-size: 13px; margin-top: 10px; }
+  .cp-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .cp-list-editor { display:flex; flex-direction:column; gap:8px; }
+  .cp-list-row { display:flex; gap:8px; align-items:flex-start; }
+  .cp-list-row textarea { min-height:72px; }
+  .cp-hidden { display:none; }
+</style>
+
+<div class="cp-container">
+  <!-- ステップインジケーター -->
+  <div class="cp-step-indicator">
+    <div class="cp-step" id="stepInd1">Step 1: 参考アカウント</div>
+    <div class="cp-step" id="stepInd2">Step 2: AI分析</div>
+    <div class="cp-step" id="stepInd3">Step 3: コンセプト案</div>
+    <div class="cp-step" id="stepInd4">Step 4: 詳細化・保存</div>
+  </div>
+
+  <!-- Step 1: 参考アカウント指定 -->
+  <div class="cp-panel" id="step1Panel">
+    <h3>Step 1: 参考アカウントを指定</h3>
+    <p style="font-size:12px;color:#888;">急成長アカウントの @username を入力（最大3つ）</p>
+
+    <div class="cp-username-list" id="usernameList">
+      <div class="cp-username-row">
+        <input type="text" placeholder="@username" class="username-input" value="">
+        <button class="remove-btn" onclick="removeRow(this)" title="削除">&times;</button>
+      </div>
+    </div>
+    <button class="cp-btn cp-btn-outline" onclick="addUsernameRow()" style="margin-top:8px;font-size:12px;">+ アカウントを追加</button>
+
+    {% if suggest_authors %}
+    <div style="margin-top:12px;">
+      <label style="font-size:12px;color:#555;font-weight:600;">候補から選択:</label>
+      <div class="cp-suggest">
+        {% for a in suggest_authors %}
+        <span class="cp-suggest-chip" onclick="addSuggest('{{ a.username }}')">
+          @{{ a.username }}
+          {% if a.followers_count %}<small>({{ a.followers_count|floatformat:0 }})</small>{% endif %}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:16px;">
+      <button class="cp-btn cp-btn-primary" id="analyzeBtn" onclick="runAnalysis()">分析開始</button>
+    </div>
+    <div id="analyzeError" class="cp-error" style="display:none;"></div>
+  </div>
+
+  <!-- Step 2: AI分析結果 -->
+  <div class="cp-panel" id="step2Panel" style="display:none;">
+    <h3>Step 2: AI分析結果</h3>
+    <div id="analysisLoading" class="cp-loading" style="display:none;">
+      <div class="spinner"></div>
+      <p>AIが分析中です…（1〜2分かかる場合があります）</p>
+    </div>
+    <div id="analysisResults" class="cp-analysis-cards"></div>
+    <div id="analysisSummary" class="cp-summary-box" style="display:none;"></div>
+    <div id="analysisErrors" class="cp-error" style="display:none;"></div>
+    <div id="step2Actions" style="display:none;">
+      <div class="cp-field" style="margin-top:16px;">
+        <label>追加の要望・補足（オプション）</label>
+        <textarea id="userContext" placeholder="例: 20代女性向けに特化したい、タロットメインで..."></textarea>
+      </div>
+      <button class="cp-btn cp-btn-primary" id="proposalsBtn" onclick="runProposals()">コンセプト案を生成</button>
+    </div>
+  </div>
+
+  <!-- Step 3: ずらしコンセプト案 -->
+  <div class="cp-panel" id="step3Panel" style="display:none;">
+    <h3>Step 3: ずらしコンセプト案（5案）</h3>
+    <div id="proposalsLoading" class="cp-loading" style="display:none;">
+      <div class="spinner"></div>
+      <p>コンセプト案を生成中…</p>
+    </div>
+    <div id="proposalCards" class="cp-proposal-cards"></div>
+    <div id="step3Actions" style="display:none;">
+      <div class="cp-field" style="margin-top:16px;">
+        <label>要望メモ（オプション）</label>
+        <textarea id="userFeedback" placeholder="例: もう少しカジュアルな雰囲気で、価格は低めに..."></textarea>
+      </div>
+      <button class="cp-btn cp-btn-primary" id="detailBtn" onclick="runDetail()" disabled>選択した案を詳細化</button>
+    </div>
+  </div>
+
+  <!-- Step 4: 詳細化 + 保存 -->
+  <div class="cp-panel" id="step4Panel" style="display:none;">
+    <h3>Step 4: コンセプト詳細</h3>
+    <div id="detailLoading" class="cp-loading" style="display:none;">
+      <div class="spinner"></div>
+      <p>コンセプトを詳細化中…</p>
+    </div>
+    <div style="margin-bottom:10px;">
+      <button class="cp-btn cp-btn-outline" id="toggleEditBtn" onclick="toggleMdEdit()" style="font-size:12px;">編集モードに切替</button>
+    </div>
+    <div id="mdPreview" class="cp-md-preview"></div>
+    <textarea id="mdEditor" class="cp-md-edit" style="display:none;"></textarea>
+    <div class="cp-grid-2" style="margin-top:16px;">
+      <div class="cp-field">
+        <label>プロフィール bio</label>
+        <textarea id="profileBio" placeholder="Threads / Instagram 用 bio"></textarea>
+      </div>
+      <div class="cp-field">
+        <label>固定投稿サンプル</label>
+        <div id="pinnedSamples" class="cp-list-editor"></div>
+        <button type="button" class="cp-btn cp-btn-outline" onclick="addPinnedSample('')" style="margin-top:8px;font-size:12px;">+ サンプル追加</button>
+      </div>
+    </div>
+    <div id="step4Actions" style="display:none;margin-top:16px;display:flex;gap:8px;">
+      <button class="cp-btn cp-btn-outline" onclick="saveMdEdit()">MD保存</button>
+      <button class="cp-btn cp-btn-success" id="saveConceptBtn" onclick="saveConcept()">コンセプトとして保存</button>
+    </div>
+    <div id="saveResult" style="display:none;margin-top:10px;padding:12px;background:#e8f5e9;border-radius:6px;font-size:13px;"></div>
+  </div>
+</div>
+
+<!-- marked.js for MD rendering + DOMPurify for sanitization -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+const PROJECT_ID = {{ project.pk }};
+const CSRF = '{{ csrf_token }}';
+
+// ─── 初期状態の復元 ───
+const initialStatus = '{{ project.status }}';
+let currentStatus = initialStatus;
+const initialAnalysis = JSON.parse('{{ project.analysis_result|escapejs }}' || '{}');
+const initialAnalysisSummary = '{{ project.analysis_summary|escapejs }}';
+const initialProposals = JSON.parse('{{ project.concept_proposals|escapejs }}' || '[]');
+const initialDetailedMd = '{{ project.detailed_concept_md|escapejs }}';
+const initialSelectedIdx = {{ project.selected_proposal_index|default:"null" }};
+
+document.addEventListener('DOMContentLoaded', function() {
+  {% for pa in project_authors %}
+  setUsernameInput({{ forloop.counter0 }}, '{{ pa.author.username }}');
+  {% endfor %}
+  {% if preset_username %}
+  setUsernameInput(0, '{{ preset_username }}');
+  {% endif %}
+  restoreState();
+});
+
+function setUsernameInput(idx, username) {
+  const inputs = document.querySelectorAll('.username-input');
+  if (idx < inputs.length) {
+    inputs[idx].value = username;
+  } else {
+    addUsernameRow(username);
+  }
+}
+
+function restoreState() {
+  if (initialAnalysis && initialAnalysis.individual && initialAnalysis.individual.length > 0) {
+    showAnalysisResults(initialAnalysis.individual, []);
+    if (initialAnalysisSummary) {
+      document.getElementById('analysisSummary').textContent = initialAnalysisSummary;
+      document.getElementById('analysisSummary').style.display = 'block';
+    }
+  }
+  if (['CONCEPTS_GENERATED','DETAILING','COMPLETED'].includes(currentStatus)) {
+    if (initialProposals && initialProposals.length > 0) showProposals(initialProposals);
+  }
+  if (['DETAILING','COMPLETED'].includes(currentStatus)) {
+    if (initialDetailedMd) showDetailResult(initialDetailedMd);
+    if (initialSelectedIdx !== null) selectedProposalIndex = initialSelectedIdx;
+  }
+  currentStatus = initialStatus;
+  updateStepIndicator();
+}
+
+function updateStepIndicator() {
+  const els = ['stepInd1','stepInd2','stepInd3','stepInd4'].map(id => document.getElementById(id));
+  els.forEach(e => e.className = 'cp-step');
+
+  const statusMap = {
+    'DRAFT': [['active'],[],[],[]],
+    'ANALYZING': [['done'],['active'],[],[]],
+    'CONCEPTS_GENERATED': [['done'],['done'],['active'],[]],
+    'DETAILING': [['done'],['done'],['done'],['active']],
+    'COMPLETED': [['done'],['done'],['done'],['done']],
+  };
+  const classes = statusMap[currentStatus] || [['active'],[],[],[]];
+  classes.forEach((cls, i) => cls.forEach(c => els[i].classList.add(c)));
+}
+
+// ─── Step 1 ───
+function addUsernameRow(value) {
+  const list = document.getElementById('usernameList');
+  if (list.querySelectorAll('.cp-username-row').length >= 3) return;
+  const row = document.createElement('div');
+  row.className = 'cp-username-row';
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.placeholder = '@username'; inp.className = 'username-input';
+  inp.value = value || '';
+  const btn = document.createElement('button');
+  btn.className = 'remove-btn'; btn.title = '削除';
+  btn.textContent = '\u00d7';
+  btn.onclick = function() { removeRow(this); };
+  row.appendChild(inp);
+  row.appendChild(btn);
+  list.appendChild(row);
+}
+
+function removeRow(btn) {
+  const list = document.getElementById('usernameList');
+  if (list.querySelectorAll('.cp-username-row').length <= 1) return;
+  btn.closest('.cp-username-row').remove();
+}
+
+function addSuggest(username) {
+  const inputs = document.querySelectorAll('.username-input');
+  for (let inp of inputs) {
+    if (!inp.value.trim()) { inp.value = username; return; }
+  }
+  addUsernameRow(username);
+}
+
+function getCSRFHeader() {
+  return { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF };
+}
+
+// ─── Step 2: 分析 ───
+async function runAnalysis() {
+  const inputs = document.querySelectorAll('.username-input');
+  const usernames = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+  if (!usernames.length) { alert('ユーザー名を入力してください'); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = '分析中…';
+  document.getElementById('step2Panel').style.display = 'block';
+  document.getElementById('analysisLoading').style.display = 'block';
+  document.getElementById('analysisResults').textContent = '';
+  document.getElementById('analyzeError').style.display = 'none';
+
+  try {
+    const res = await fetch('{% url "console:concept_analyze_api" %}', {
+      method: 'POST', headers: getCSRFHeader(),
+      body: JSON.stringify({ project_id: PROJECT_ID, usernames }),
+    });
+    const data = await res.json();
+    document.getElementById('analysisLoading').style.display = 'none';
+
+    if (!data.ok) {
+      document.getElementById('analyzeError').textContent = data.error;
+      document.getElementById('analyzeError').style.display = 'block';
+      return;
+    }
+
+    const analyses = data.results.map(function(r) {
+      var a = r.analysis;
+      a.username = r.username;
+      a.display_name = r.display_name;
+      return a;
+    });
+    showAnalysisResults(analyses, data.errors);
+
+    if (data.summary) {
+      document.getElementById('analysisSummary').textContent = data.summary;
+      document.getElementById('analysisSummary').style.display = 'block';
+    }
+    currentStatus = 'ANALYZING';
+    updateStepIndicator();
+  } catch(e) {
+    document.getElementById('analysisLoading').style.display = 'none';
+    document.getElementById('analyzeError').textContent = 'エラー: ' + e.message;
+    document.getElementById('analyzeError').style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '分析開始';
+  }
+}
+
+function showAnalysisResults(analyses, errors) {
+  document.getElementById('step2Panel').style.display = 'block';
+  document.getElementById('analysisLoading').style.display = 'none';
+
+  var container = document.getElementById('analysisResults');
+  while (container.firstChild) container.removeChild(container.firstChild);
+
+  analyses.forEach(function(a) {
+    var card = document.createElement('div');
+    card.className = 'cp-analysis-card';
+
+    var h4 = document.createElement('h4');
+    h4.textContent = (a.username ? '@' + a.username : '') + (a.display_name ? ' (' + a.display_name + ')' : '');
+    card.appendChild(h4);
+
+    var fields = [
+      ['コンテンツの型', a.content_type],
+      ['感情のフック', a.emotion_hook],
+      ['運用面の強み', a.operation_strength],
+      ['キャラ特徴', a.character_traits],
+    ];
+    fields.forEach(function(f) {
+      var div = document.createElement('div');
+      div.className = 'item';
+      var strong = document.createElement('strong');
+      strong.textContent = f[0] + ': ';
+      div.appendChild(strong);
+      div.appendChild(document.createTextNode(f[1] || ''));
+      card.appendChild(div);
+    });
+
+    var bones = a.reproducible_bones || [];
+    if (bones.length) {
+      var bonesDiv = document.createElement('div');
+      bonesDiv.className = 'bones';
+      var bonesStrong = document.createElement('strong');
+      bonesStrong.textContent = '再現すべき骨格:';
+      bonesDiv.appendChild(bonesStrong);
+      var ul = document.createElement('ul');
+      bones.forEach(function(b) {
+        var li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+      bonesDiv.appendChild(ul);
+      card.appendChild(bonesDiv);
+    }
+
+    if (a.summary) {
+      var sumDiv = document.createElement('div');
+      sumDiv.className = 'item';
+      sumDiv.style.marginTop = '6px';
+      sumDiv.style.fontStyle = 'italic';
+      sumDiv.style.color = '#7b1fa2';
+      sumDiv.textContent = a.summary;
+      card.appendChild(sumDiv);
+    }
+
+    container.appendChild(card);
+  });
+
+  if (errors && errors.length) {
+    var errEl = document.getElementById('analysisErrors');
+    errEl.textContent = errors.join('; ');
+    errEl.style.display = 'block';
+  }
+
+  document.getElementById('step2Actions').style.display = 'block';
+  currentStatus = 'ANALYZING';
+  updateStepIndicator();
+}
+
+// ─── Step 3 ───
+var selectedProposalIndex = null;
+
+async function runProposals() {
+  var btn = document.getElementById('proposalsBtn');
+  btn.disabled = true; btn.textContent = '生成中…';
+  document.getElementById('step3Panel').style.display = 'block';
+  document.getElementById('proposalsLoading').style.display = 'block';
+
+  var userContext = document.getElementById('userContext').value;
+
+  try {
+    var res = await fetch('{% url "console:concept_proposals_api" %}', {
+      method: 'POST', headers: getCSRFHeader(),
+      body: JSON.stringify({ project_id: PROJECT_ID, user_context: userContext }),
+    });
+    var data = await res.json();
+    document.getElementById('proposalsLoading').style.display = 'none';
+    if (!data.ok) { alert(data.error); return; }
+    showProposals(data.proposals);
+    currentStatus = 'CONCEPTS_GENERATED';
+    updateStepIndicator();
+  } catch(e) {
+    document.getElementById('proposalsLoading').style.display = 'none';
+    alert('エラー: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'コンセプト案を生成';
+  }
+}
+
+function showProposals(proposals) {
+  document.getElementById('step3Panel').style.display = 'block';
+  document.getElementById('proposalsLoading').style.display = 'none';
+
+  var container = document.getElementById('proposalCards');
+  while (container.firstChild) container.removeChild(container.firstChild);
+
+  proposals.forEach(function(p, i) {
+    var card = document.createElement('div');
+    card.className = 'cp-proposal-card' + (selectedProposalIndex === i ? ' selected' : '');
+    card.id = 'proposal-' + i;
+    card.onclick = function() { selectProposal(i); };
+
+    var h4 = document.createElement('h4');
+    h4.textContent = String.fromCharCode(65+i) + '. ' + (p.title || '');
+    card.appendChild(h4);
+
+    var detailFields = [
+      ['ターゲット', p.target],
+      ['占術', p.divination],
+      ['キャラ', p.character],
+      ['投稿テンプレ', p.post_template],
+      ['ずらしポイント', p.shift_point],
+      ['マネタイズ', p.monetization],
+    ];
+    detailFields.forEach(function(f) {
+      var div = document.createElement('div');
+      div.className = 'detail';
+      var strong = document.createElement('strong');
+      strong.textContent = f[0] + ': ';
+      div.appendChild(strong);
+      div.appendChild(document.createTextNode(f[1] || ''));
+      card.appendChild(div);
+    });
+
+    container.appendChild(card);
+  });
+
+  document.getElementById('step3Actions').style.display = 'block';
+  currentStatus = 'CONCEPTS_GENERATED';
+  updateStepIndicator();
+}
+
+function selectProposal(idx) {
+  selectedProposalIndex = idx;
+  document.querySelectorAll('.cp-proposal-card').forEach(function(c, i) {
+    c.classList.toggle('selected', i === idx);
+  });
+  document.getElementById('detailBtn').disabled = false;
+}
+
+// ─── Step 4 ───
+async function runDetail() {
+  if (selectedProposalIndex === null) { alert('案を選択してください'); return; }
+
+  var btn = document.getElementById('detailBtn');
+  btn.disabled = true; btn.textContent = '詳細化中…';
+  document.getElementById('step4Panel').style.display = 'block';
+  document.getElementById('detailLoading').style.display = 'block';
+
+  var userFeedback = document.getElementById('userFeedback').value;
+
+  try {
+    var res = await fetch('{% url "console:concept_detail_api" %}', {
+      method: 'POST', headers: getCSRFHeader(),
+      body: JSON.stringify({
+        project_id: PROJECT_ID,
+        selected_index: selectedProposalIndex,
+        user_feedback: userFeedback,
+      }),
+    });
+    var data = await res.json();
+    document.getElementById('detailLoading').style.display = 'none';
+    if (!data.ok) { alert(data.error); return; }
+    showDetailResult(data.detailed_md);
+    currentStatus = 'DETAILING';
+    updateStepIndicator();
+  } catch(e) {
+    document.getElementById('detailLoading').style.display = 'none';
+    alert('エラー: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '選択した案を詳細化';
+  }
+}
+
+function renderSafeMarkdown(md) {
+  return DOMPurify.sanitize(marked.parse(md));
+}
+
+function showDetailResult(md) {
+  document.getElementById('step4Panel').style.display = 'block';
+  document.getElementById('detailLoading').style.display = 'none';
+  // marked.js output sanitized with DOMPurify
+  document.getElementById('mdPreview').innerHTML = renderSafeMarkdown(md);
+  document.getElementById('mdEditor').value = md;
+  hydrateDraftEditors(md);
+  document.getElementById('step4Actions').style.display = 'flex';
+  currentStatus = 'DETAILING';
+  updateStepIndicator();
+}
+
+var editMode = false;
+function toggleMdEdit() {
+  editMode = !editMode;
+  var preview = document.getElementById('mdPreview');
+  var editor = document.getElementById('mdEditor');
+  var btn = document.getElementById('toggleEditBtn');
+  if (editMode) {
+    preview.style.display = 'none';
+    editor.style.display = 'block';
+    btn.textContent = 'プレビューに切替';
+  } else {
+    var md = editor.value;
+    preview.innerHTML = renderSafeMarkdown(md);
+    preview.style.display = 'block';
+    editor.style.display = 'none';
+    btn.textContent = '編集モードに切替';
+  }
+}
+
+async function saveMdEdit() {
+  var md = document.getElementById('mdEditor').value;
+  try {
+    var res = await fetch('{% url "console:concept_edit_md_api" %}', {
+      method: 'POST', headers: getCSRFHeader(),
+      body: JSON.stringify({ project_id: PROJECT_ID, md_content: md }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      document.getElementById('mdPreview').innerHTML = renderSafeMarkdown(md);
+      alert('MD保存しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
+function extractLineValue(md, label) {
+  var pattern = new RegExp('-\\s*' + label + '[（(]?[^)）]*[）)]?\\s*[:：]\\s*(.+)');
+  var match = md.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
+function extractTemplateBlocks(md) {
+  var sectionMatch = md.match(/##\s*投稿テンプレート\s*\n([\s\S]*?)(?=\n##\s|\s*$)/);
+  if (!sectionMatch) return [];
+  return sectionMatch[1]
+    .split(/\n###\s+/)
+    .map(function(item) { return item.trim(); })
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function hydrateDraftEditors(md) {
+  document.getElementById('profileBio').value = extractLineValue(md, 'bio');
+  setPinnedSamples(extractTemplateBlocks(md));
+}
+
+function setPinnedSamples(samples) {
+  var container = document.getElementById('pinnedSamples');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  (samples.length ? samples : ['']).forEach(function(sample) {
+    addPinnedSample(sample);
+  });
+}
+
+function addPinnedSample(value) {
+  var container = document.getElementById('pinnedSamples');
+  if (container.querySelectorAll('.cp-list-row').length >= 3) return;
+  var row = document.createElement('div');
+  row.className = 'cp-list-row';
+  var area = document.createElement('textarea');
+  area.className = 'pinned-sample-input';
+  area.placeholder = '固定投稿サンプル';
+  area.value = value || '';
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'cp-btn cp-btn-outline';
+  btn.textContent = '削除';
+  btn.onclick = function() {
+    if (container.querySelectorAll('.cp-list-row').length <= 1) return;
+    row.remove();
+  };
+  row.appendChild(area);
+  row.appendChild(btn);
+  container.appendChild(row);
+}
+
+function getPinnedSamples() {
+  return Array.from(document.querySelectorAll('.pinned-sample-input'))
+    .map(function(el) { return el.value.trim(); })
+    .filter(Boolean);
+}
+
+async function saveConcept() {
+  if (!confirm('このコンセプトをAppraisalCharacterとして保存しますか？')) return;
+  var btn = document.getElementById('saveConceptBtn');
+  btn.disabled = true; btn.textContent = '保存中…';
+
+  try {
+    var res = await fetch('{% url "console:concept_save_api" %}', {
+      method: 'POST', headers: getCSRFHeader(),
+      body: JSON.stringify({
+        project_id: PROJECT_ID,
+        profile_bio: document.getElementById('profileBio').value.trim(),
+        pinned_post_samples: getPinnedSamples(),
+      }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      var resultEl = document.getElementById('saveResult');
+      resultEl.textContent = '保存完了！キャラクター「' + data.character_name + '」(ID: ' + data.character_id + ') を作成しました。';
+      resultEl.style.display = 'block';
+      currentStatus = 'COMPLETED';
+      updateStepIndicator();
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'コンセプトとして保存'; }
+}
+</script>
+{% endblock %}

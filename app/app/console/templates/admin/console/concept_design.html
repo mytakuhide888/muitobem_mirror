@@ -1,0 +1,112 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}コンセプト設計{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; コンセプト設計</div>{% endblock %}
+
+{% block content %}
+<style>
+  .cd-container { max-width: 1200px; margin: 0 auto; padding: 0 10px; }
+  .cd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .cd-header h2 { margin: 0; font-size: 20px; }
+  .cd-btn {
+    padding: 8px 16px; border: none; border-radius: 5px;
+    font-size: 13px; font-weight: bold; cursor: pointer; transition: background .2s;
+  }
+  .cd-btn-primary { background: #9c27b0; color: #fff; }
+  .cd-btn-primary:hover { background: #7b1fa2; }
+  .cd-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .cd-card {
+    background: #fff; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; transition: box-shadow .2s;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .cd-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .cd-card h3 { font-size: 15px; margin: 0 0 8px; }
+  .cd-card .meta { font-size: 12px; color: #888; }
+  .cd-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; margin-left: 8px;
+  }
+  .cd-badge-analyzing { background: #fff3e0; color: #e65100; }
+  .cd-badge-concepts { background: #e3f2fd; color: #1565c0; }
+  .cd-badge-detailing { background: #fce4ec; color: #c62828; }
+  .cd-badge-completed { background: #e8f5e9; color: #2e7d32; }
+  .cd-empty { text-align: center; padding: 40px; color: #888; }
+
+  /* 新規作成モーダル */
+  .cd-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.4); z-index: 1000; justify-content: center; align-items: center;
+  }
+  .cd-modal-overlay.active { display: flex; }
+  .cd-modal {
+    background: #fff; border-radius: 10px; padding: 24px; width: 400px; max-width: 90%;
+  }
+  .cd-modal h3 { margin: 0 0 16px; }
+  .cd-modal input {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 14px; box-sizing: border-box; margin-bottom: 16px;
+  }
+  .cd-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .cd-btn-cancel { background: #f5f5f5; color: #555; }
+</style>
+
+<div class="cd-container">
+  <div class="cd-header">
+    <h2>コンセプト設計プロジェクト</h2>
+    <button class="cd-btn cd-btn-primary" onclick="showNewModal()">＋ 新規プロジェクト</button>
+  </div>
+
+  {% if projects %}
+  <div class="cd-cards">
+    {% for p in projects %}
+    <a class="cd-card" href="{% url 'console:concept_project_detail' pk=p.pk %}">
+      <h3>
+        {{ p.title|default:"無題" }}
+        {% if p.status == 'DRAFT' %}<span class="cd-badge" style="background:#f3f4f6;color:#4b5563;">下書き</span>
+        {% elif p.status == 'ANALYZING' %}<span class="cd-badge cd-badge-analyzing">分析中</span>
+        {% elif p.status == 'CONCEPTS_GENERATED' %}<span class="cd-badge cd-badge-concepts">コンセプト案生成済</span>
+        {% elif p.status == 'DETAILING' %}<span class="cd-badge cd-badge-detailing">詳細化中</span>
+        {% elif p.status == 'COMPLETED' %}<span class="cd-badge cd-badge-completed">完了</span>
+        {% endif %}
+      </h3>
+      <div class="meta">
+        作成: {{ p.created_at|date:"Y/m/d H:i" }}
+        {% if p.character %} | キャラ: {{ p.character.name }}{% endif %}
+      </div>
+      {% if p.analysis_summary %}
+      <div style="margin-top:8px;font-size:12px;color:#555;">{{ p.analysis_summary|truncatechars:80 }}</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cd-empty">
+    <p>プロジェクトがありません。「新規プロジェクト」で始めましょう。</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 新規作成モーダル -->
+<div class="cd-modal-overlay" id="newModal">
+  <div class="cd-modal">
+    <h3>新規コンセプト設計</h3>
+    <form method="POST" action="{% url 'console:concept_design' %}">
+      {% csrf_token %}
+      <input type="text" name="title" placeholder="プロジェクト名（例: 復縁専門タロット）" autofocus>
+      <div class="cd-modal-actions">
+        <button type="button" class="cd-btn cd-btn-cancel" onclick="hideNewModal()">キャンセル</button>
+        <button type="submit" class="cd-btn cd-btn-primary">作成</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showNewModal() { document.getElementById('newModal').classList.add('active'); }
+function hideNewModal() { document.getElementById('newModal').classList.remove('active'); }
+document.getElementById('newModal').addEventListener('click', function(e) {
+  if (e.target === this) hideNewModal();
+});
+</script>
+{% endblock %}

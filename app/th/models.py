@@ -598,3 +598,64 @@ class THBuzzSearchJob(models.Model):
 
     def __str__(self):
         return f"[{self.get_status_display()}] {self.keywords[:50]}"
+
+
+# ─── コンセプト設計関連 ───
+
+class ConceptProject(models.Model):
+    """コンセプト設計プロジェクト"""
+    STATUS_CHOICES = [
+        ('DRAFT', '下書き'),
+        ('ANALYZING', '分析中'),
+        ('CONCEPTS_GENERATED', 'コンセプト案生成済み'),
+        ('DETAILING', '詳細化中'),
+        ('COMPLETED', '完了'),
+    ]
+    title = models.CharField('プロジェクト名', max_length=200, blank=True, default='')
+    status = models.CharField('ステータス', max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    analysis_result = models.JSONField('AI分析結果（統合）', default=dict, blank=True)
+    analysis_summary = models.TextField('分析まとめ', blank=True, default='')
+    concept_proposals = models.JSONField('ずらしコンセプト案', default=list, blank=True)
+    selected_proposal_index = models.IntegerField('選択した案番号', null=True, blank=True)
+    detailed_concept_md = models.TextField('詳細化結果（MD形式）', blank=True, default='')
+    user_feedback = models.TextField('ユーザー要望メモ', blank=True, default='')
+    character = models.ForeignKey(
+        'social.AppraisalCharacter', verbose_name='生成キャラクター',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='concept_projects',
+    )
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+    updated_at = models.DateTimeField('更新日時', auto_now=True)
+
+    class Meta:
+        db_table = 'meta_th_concept_projects'
+        verbose_name = 'コンセプト設計プロジェクト'
+        verbose_name_plural = verbose_name
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title or f"コンセプト #{self.pk}"
+
+
+class ConceptProjectAuthor(models.Model):
+    """コンセプト設計 — 参考アカウント中間テーブル"""
+    project = models.ForeignKey(
+        ConceptProject, on_delete=models.CASCADE,
+        related_name='project_authors', verbose_name='プロジェクト',
+    )
+    author = models.ForeignKey(
+        THBuzzAuthor, on_delete=models.CASCADE,
+        related_name='concept_usages', verbose_name='参考アカウント',
+    )
+    ai_analysis = models.JSONField('AI分析結果', default=dict, blank=True)
+    ai_summary = models.TextField('特徴まとめ', blank=True, default='')
+    order = models.IntegerField('表示順', default=0)
+
+    class Meta:
+        db_table = 'meta_th_concept_project_authors'
+        verbose_name = 'コンセプト参考アカウント'
+        verbose_name_plural = verbose_name
+        unique_together = [('project', 'author')]
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.project} — @{self.author.username}"

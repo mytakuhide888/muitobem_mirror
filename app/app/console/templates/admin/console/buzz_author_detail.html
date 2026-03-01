@@ -756,6 +756,8 @@
             style="text-decoration:none; font-size:20px; margin-left:8px; cursor:pointer; color:{% if author.is_favorited %}#f5a623{% else %}#ccc{% endif %};">{% if author.is_favorited %}★{% else %}☆{% endif %}</a>
           <a href="#" id="excluded-toggle" onclick="toggleExcluded(event)" title="対象外"
             style="text-decoration:none; font-size:13px; margin-left:10px; cursor:pointer; padding:2px 8px; border-radius:10px; {% if author.is_excluded %}background:#dc3545; color:#fff;{% else %}background:#e9ecef; color:#999;{% endif %}">対象外</a>
+          <a href="{% url 'console:concept_design' %}?username={{ author.username }}"
+            style="text-decoration:none; font-size:12px; margin-left:10px; padding:3px 10px; border-radius:10px; background:#9c27b0; color:#fff; font-weight:600;">コンセプト設計に使う</a>
         </h2>
         <div class="username">
           <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>

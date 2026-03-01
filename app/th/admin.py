@@ -5,6 +5,7 @@ from .models import (
     THBroadcast, THDMThread, THDMMessage,
     THAutoReplyTemplate, THAutoReplyRule, THWebhookEvent,
     THBuzzAuthor, THBuzzPost, THBuzzSearchJob,
+    ConceptProject, ConceptProjectAuthor,
 )
 
 
@@ -103,3 +104,18 @@ class THBuzzSearchJobAdmin(admin.ModelAdmin):
     @admin.display(description='キーワード')
     def keywords_short(self, obj):
         return obj.keywords[:50] + '...' if len(obj.keywords) > 50 else obj.keywords
+
+
+class ConceptProjectAuthorInline(admin.TabularInline):
+    model = ConceptProjectAuthor
+    extra = 0
+    readonly_fields = ('ai_summary',)
+
+
+@admin.register(ConceptProject)
+class ConceptProjectAdmin(admin.ModelAdmin):
+    list_display = ('title', 'status', 'character', 'created_at', 'updated_at')
+    list_filter = ('status',)
+    search_fields = ('title',)
+    readonly_fields = ('created_at', 'updated_at')
+    inlines = [ConceptProjectAuthorInline]
