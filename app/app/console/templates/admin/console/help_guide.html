@@ -548,66 +548,172 @@
   <section class="guide-panel" id="panel-concept" data-panel="concept" role="tabpanel" aria-labelledby="tab-concept" hidden>
     <div class="section-header">
       <h2>第3章: コンセプトを設計する</h2>
-      <p>リサーチ結果をもとに、AIで再現すべき骨格を抽出し、自分用のキャラクターとマネタイズ導線を固めます。</p>
-    </div>
-
-    <ol class="numbered-steps">
-      <li><strong>参考アカウントを 3〜5 件選ぶ</strong><br>リサーチで見つけた有望アカウントを選択します。</li>
-      <li><strong>AIに伸びている理由を分析させる</strong><br>投稿内容、口調、導線、感情フックなどをAIが整理します。</li>
-      <li><strong>再現すべき骨格を抽出する</strong><br>成功パターンのうち、自分でも再現可能な部分を残します。</li>
-      <li><strong>ずらしコンセプトを生成する</strong><br>差別化の方向を変えた案を複数作り、埋もれない軸を探します。</li>
-      <li><strong>詳細化して運用設定へ落とす</strong><br>キャラクター名、肩書き、bio、投稿テンプレ、価格設計まで具体化します。</li>
-      <li><strong>キャラクターとして保存する</strong><br>保存後は投稿文生成や鑑定文生成にその設定が引き継がれます。</li>
-    </ol>
-
-    <div class="guide-card">
-      <h3>設定すべき項目</h3>
-      <table class="config-table">
-        <tr>
-          <th>項目</th>
-          <th>意味</th>
-          <th>例</th>
-        </tr>
-        <tr>
-          <th>キャラクター名</th>
-          <td>投稿や鑑定で使う人格名</td>
-          <td>月詠ルナ</td>
-        </tr>
-        <tr>
-          <th>肩書き</th>
-          <td>一目で価値が伝わる肩書き</td>
-          <td>恋愛専門タロット占い師</td>
-        </tr>
-        <tr>
-          <th>占術</th>
-          <td>主に使う占術の種類</td>
-          <td>タロット、数秘術</td>
-        </tr>
-        <tr>
-          <th>口調</th>
-          <td>投稿と鑑定の話し方</td>
-          <td>やさしく背中を押す語り口</td>
-        </tr>
-        <tr>
-          <th>ターゲット層</th>
-          <td>主に届ける相手</td>
-          <td>20〜30代の恋愛相談層</td>
-        </tr>
-        <tr>
-          <th>マネタイズ導線</th>
-          <td>無料から有料へ進める流れ</td>
-          <td>無料鑑定 → 個別鑑定 → 継続サポート</td>
-        </tr>
-      </table>
+      <p>リサーチ結果をもとに、AIとの4ステップ対話で差別化されたキャラクターを作り、投稿・鑑定に連携させます。</p>
     </div>
 
     <div class="info-box hint">
-      <strong>ポイント</strong>
-      コンセプトは抽象的な理念より、「誰に」「どんな切り口で」「何を約束するか」まで具体化した方が、投稿にも鑑定にも流用しやすくなります。
+      <strong>前提</strong>
+      コンセプト設計を始める前に、第2章「リサーチ」で参考アカウントをいくつかお気に入り登録しておくとスムーズです。
+      お気に入りのアカウントは、コンセプト設計画面で候補として自動表示されます。
+    </div>
+
+    <!-- ── 全体フロー図 ── -->
+    <div class="roadmap" style="grid-template-columns:repeat(4,minmax(0,1fr));margin:18px 0">
+      <article class="roadmap-step">
+        <div class="step-num">1</div>
+        <h3>参考アカウント選択</h3>
+        <p>お気に入りから最大3つ指定</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">2</div>
+        <h3>AI分析</h3>
+        <p>成功パターンを自動抽出</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">3</div>
+        <h3>コンセプト案生成</h3>
+        <p>ずらし5案から1つ選択</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">4</div>
+        <h3>詳細化・保存</h3>
+        <p>キャラクターとしてDB保存</p>
+      </article>
+    </div>
+
+    <!-- ── Step 0: プロジェクト作成 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>まず: プロジェクトを作成する</h3>
+      <p>メニュー「<strong>コンセプト設計</strong>」を開くと、プロジェクト一覧画面が表示されます。</p>
+      <ol>
+        <li>右上の「<strong>＋ 新規プロジェクト</strong>」ボタンをクリック</li>
+        <li>プロジェクト名を入力（例: 「復縁専門タロット」「20代恋愛占い」など、テーマが分かる名前）</li>
+        <li>「作成」を押すと、4ステップのウィザード画面に遷移します</li>
+      </ol>
+      <div class="info-box hint" style="margin-bottom:0">
+        <strong>リサーチ画面からの近道</strong>
+        アカウント詳細画面にある「コンセプト設計に使う」ボタンからも、そのアカウントを紐づけた状態でプロジェクトを作成できます。
+      </div>
+    </article>
+
+    <!-- ── Step 1 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>Step 1: 参考アカウントを指定する</h3>
+      <p>ウィザード画面の最初のパネル「<strong>Step 1: 参考アカウントを指定</strong>」で操作します。</p>
+      <ol>
+        <li><strong>@username を入力</strong>（最大3つ）— テキスト欄に直接入力するか、下に表示される「候補から選択」チップをクリック</li>
+        <li>候補チップには、リサーチでお気に入り登録したアカウントが自動で表示されます（フォロワー数付き）</li>
+        <li>「<strong>+ アカウントを追加</strong>」で入力欄を増やせます（最大3枠）</li>
+      </ol>
+      <table class="config-table">
+        <tr><th>操作</th><th>説明</th></tr>
+        <tr><th>候補チップをクリック</th><td>空いている入力欄に自動でユーザー名が入ります</td></tr>
+        <tr><th>× ボタン</th><td>入力欄を削除します（最低1つは残ります）</td></tr>
+      </table>
+    </article>
+
+    <!-- ── Step 2 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>Step 2: AIに伸びている理由を分析させる</h3>
+      <p>Step 1 でアカウントを入力したら、「<strong>分析開始</strong>」ボタンを押します。</p>
+      <ol>
+        <li>AIが各アカウントの投稿データを読み込み、<strong>1〜2分</strong>で分析結果を表示</li>
+        <li>アカウントごとに以下の観点でカードが表示されます:
+          <ul style="margin:6px 0 0 16px">
+            <li><strong>コンテンツの型</strong> — どんな形式の投稿が多いか</li>
+            <li><strong>感情のフック</strong> — フォロワーが反応するポイント</li>
+            <li><strong>運用面の強み</strong> — 投稿頻度や時間帯の特徴</li>
+            <li><strong>キャラ特徴</strong> — 口調や世界観の特徴</li>
+            <li><strong>再現すべき骨格</strong> — 自分でも真似できる成功パターン</li>
+          </ul>
+        </li>
+        <li>複数アカウントの共通パターンが「<strong>統合分析サマリー</strong>」として表示されます</li>
+      </ol>
+      <div class="info-box warn" style="margin-bottom:0">
+        <strong>注意</strong>
+        分析にはAPIを使用するため、短時間に何度も実行するとレートリミットに達することがあります。結果はプロジェクトに自動保存されるので、再実行の必要はありません。
+      </div>
+    </article>
+
+    <!-- ── Step 2→3 の間 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>Step 3: ずらしコンセプト案を生成する</h3>
+      <p>AI分析の結果が表示された後、同じ画面の下部で操作を続けます。</p>
+      <ol>
+        <li>「<strong>追加の要望・補足</strong>」テキストエリアに、方向性を指定できます
+          <br><span style="font-size:13px;color:#5c7486">例: 「20代女性向けに特化したい」「タロットメインで」「カジュアルな雰囲気で」</span></li>
+        <li>「<strong>コンセプト案を生成</strong>」ボタンを押すと、AIが<strong>5つのずらしコンセプト案</strong>を自動生成</li>
+        <li>各案にはカード形式で以下が表示されます:
+          <ul style="margin:6px 0 0 16px">
+            <li><strong>タイトル</strong> — コンセプトの名前</li>
+            <li><strong>ターゲット</strong> — 誰に届けるか</li>
+            <li><strong>占術</strong> — メインの占術</li>
+            <li><strong>キャラ</strong> — 口調や人格の方向性</li>
+            <li><strong>投稿テンプレ</strong> — 投稿の型</li>
+            <li><strong>ずらしポイント</strong> — 参考アカウントとの差別化軸</li>
+            <li><strong>マネタイズ</strong> — 収益化の流れ</li>
+          </ul>
+        </li>
+        <li><strong>カードをクリックして1つ選択</strong>（選択すると紫色の枠が付きます）</li>
+        <li>「要望メモ」に追加の希望を書ける（オプション）</li>
+        <li>「<strong>選択した案を詳細化</strong>」ボタンを押して次へ</li>
+      </ol>
+      <div class="info-box hint" style="margin-bottom:0">
+        <strong>迷ったら</strong>
+        5案のうち「これが一番近い」と思うものを選べばOKです。次のステップで自由に編集・修正できます。
+      </div>
+    </article>
+
+    <!-- ── Step 4 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>Step 4: 詳細化してキャラクターとして保存する</h3>
+      <p>選択した案をAIが詳細化し、Markdown形式のコンセプト文書が生成されます。</p>
+      <ol>
+        <li><strong>プレビュー画面</strong>で、生成されたコンセプトの全体像を確認</li>
+        <li>修正が必要な場合は「<strong>編集モードに切替</strong>」ボタンでMarkdownを直接編集
+          <br><span style="font-size:13px;color:#5c7486">編集後に「プレビューに切替」で見た目を確認できます</span></li>
+        <li>画面下部の「<strong>プロフィール bio</strong>」欄を記入 — Threads/Instagramのプロフィールに使う自己紹介文</li>
+        <li>「<strong>固定投稿サンプル</strong>」を記入（最大3つ） — 最初に投稿するテンプレート文</li>
+        <li>内容が固まったら「<strong>MD保存</strong>」でコンセプト文書をプロジェクトに保存</li>
+        <li>最後に「<strong>コンセプトとして保存</strong>」ボタンを押すと:
+          <ul style="margin:6px 0 0 16px">
+            <li>AIがMarkdownからキャラクター名・肩書き・占術・口調などを自動抽出</li>
+            <li><strong>AppraisalCharacter</strong>（鑑定用キャラクター）としてDBに保存</li>
+            <li>以後の「投稿文AI生成」「AI鑑定文生成」で、このキャラクター設定が自動反映されます</li>
+          </ul>
+        </li>
+      </ol>
+    </article>
+
+    <!-- ── 保存後の活用 ── -->
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>保存後にキャラクターが使われる場面</h3>
+        <ul>
+          <li><strong>投稿文AI生成</strong>: キャラクターの口調・世界観で投稿文を自動生成</li>
+          <li><strong>AI鑑定文生成</strong>: キャラクター名・占術・口調で鑑定文を生成</li>
+          <li><strong>プロジェクト一覧</strong>: 完了済みプロジェクトのカードにキャラクター名が表示</li>
+        </ul>
+      </article>
+      <article class="guide-card">
+        <h3>コンセプトの修正・作り直し</h3>
+        <ul>
+          <li>プロジェクト一覧から既存プロジェクトをクリックすれば、途中のステップから再開できます</li>
+          <li>新しいコンセプトを試したいときは、新規プロジェクトを作成してください</li>
+          <li>保存済みのキャラクターは Django 管理画面（AppraisalCharacter）から直接編集も可能です</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="info-box hint">
+      <strong>全体のコツ</strong>
+      完璧なコンセプトを一発で作ろうとせず、まず1つ作って運用しながら磨くのが効率的です。
+      コンセプトは何度でも作り直せます。
     </div>
 
     <div class="cta">
-      <a class="button primary" href="{% url 'console:concept_design' %}">コンセプト設計</a>
+      <a class="button primary" href="{% url 'console:concept_design' %}">コンセプト設計を開く</a>
+      <a class="button" href="{% url 'console:buzz_search' %}">先にリサーチする</a>
     </div>
   </section>
 
