@@ -1,74 +1,853 @@
 {% extends "admin/console/base.html" %}
 
-{% block title %}連携ガイド{% endblock %}
-{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">運用コンソール</a> / 連携ガイド</div>{% endblock %}
+{% block title %}運用ガイド{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">運用コンソール</a> / 運用ガイド
+</div>
+{% endblock %}
 
 {% block content %}
-<h1>連携ガイド</h1>
-<p>Instagram / Threads の連携から自動返信の動作確認まで、最短で進めるための手順です。</p>
-
 <style>
-  .steps {display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:16px 0;}
-  .step-card{border:1px solid #e0e0e0;border-radius:8px;padding:16px;background:#fff}
-  .step-card h2{font-size:18px;margin:0 0 8px}
-  .step-card ol{margin:8px 0 0 20px}
-  .cta{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-  .note{font-size:12px;color:#666;margin-top:8px}
+  .guide-shell {
+    max-width: 1180px;
+  }
+
+  .guide-hero {
+    padding: 24px 28px;
+    border: 1px solid #d7e3ea;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, #f8fbfd 0%, #eef6fb 58%, #fefcf8 100%);
+    box-shadow: 0 10px 28px rgba(31, 64, 96, 0.08);
+  }
+
+  .guide-hero h1 {
+    margin: 0 0 10px;
+    font-size: 30px;
+    line-height: 1.25;
+    color: #1e3548;
+    letter-spacing: 0.01em;
+  }
+
+  .guide-hero p {
+    margin: 0;
+    max-width: 860px;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #496274;
+  }
+
+  .guide-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 22px 0 0;
+    padding-bottom: 4px;
+  }
+
+  .guide-tab {
+    appearance: none;
+    border: 1px solid #c8d8e3;
+    border-radius: 999px;
+    padding: 11px 16px;
+    background: #f4f8fb;
+    color: #315165;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
+
+  .guide-tab:hover,
+  .guide-tab:focus-visible {
+    background: #e8f1f7;
+    border-color: #9bbdd3;
+    color: #203847;
+    outline: none;
+  }
+
+  .guide-tab[aria-selected="true"] {
+    background: #2f6f96;
+    border-color: #2f6f96;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(47, 111, 150, 0.22);
+  }
+
+  .guide-panel {
+    display: none;
+    margin-top: 20px;
+    padding: 24px 26px;
+    border: 1px solid #dde7ee;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(19, 42, 61, 0.05);
+  }
+
+  .guide-panel.is-active {
+    display: block;
+  }
+
+  .guide-panel[hidden] {
+    display: none;
+  }
+
+  .section-header {
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #ebf0f4;
+  }
+
+  .section-header h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    line-height: 1.3;
+    color: #1f3444;
+  }
+
+  .section-header p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #5c7486;
+  }
+
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+  }
+
+  .roadmap-step {
+    position: relative;
+    padding: 18px 16px 16px;
+    border: 1px solid #d9e6ef;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+  }
+
+  .roadmap-step::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -10px;
+    width: 20px;
+    height: 2px;
+    background: #9ab7ca;
+  }
+
+  .roadmap-step:last-child::after {
+    display: none;
+  }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    background: #2f6f96;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .roadmap-step h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    color: #243947;
+  }
+
+  .roadmap-step p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #61798a;
+  }
+
+  .roadmap-step strong {
+    display: block;
+    font-size: 13px;
+    color: #2f5f7b;
+  }
+
+  .numbered-steps {
+    counter-reset: guide-step;
+    list-style: none;
+    margin: 18px 0;
+    padding: 0;
+  }
+
+  .numbered-steps li {
+    position: relative;
+    padding: 14px 14px 14px 56px;
+    border-bottom: 1px solid #edf2f6;
+    line-height: 1.8;
+    font-size: 14px;
+    color: #384f61;
+  }
+
+  .numbered-steps li:last-child {
+    border-bottom: none;
+  }
+
+  .numbered-steps li::before {
+    content: counter(guide-step);
+    counter-increment: guide-step;
+    position: absolute;
+    top: 13px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #2f6f96;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 30px;
+    text-align: center;
+  }
+
+  .guide-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .guide-card {
+    border: 1px solid #dde7ee;
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    background: #fbfdff;
+  }
+
+  .guide-card h3 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    color: #243947;
+  }
+
+  .guide-card h4 {
+    margin: 12px 0 8px;
+    font-size: 14px;
+    color: #284659;
+  }
+
+  .guide-card p,
+  .guide-card li {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #445c6e;
+  }
+
+  .guide-card ul,
+  .guide-card ol {
+    margin: 10px 0 0 20px;
+    padding: 0;
+  }
+
+  .info-box {
+    margin: 18px 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .info-box strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .info-box.hint {
+    border: 1px solid #b8dfc2;
+    background: #edf9f0;
+    color: #30533a;
+  }
+
+  .info-box.warn {
+    border: 1px solid #f0d0a6;
+    background: #fff6e8;
+    color: #6c4d1f;
+  }
+
+  .config-table {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .config-table th,
+  .config-table td {
+    padding: 11px 12px;
+    border: 1px solid #dce6ed;
+    vertical-align: top;
+    text-align: left;
+    line-height: 1.65;
+  }
+
+  .config-table th {
+    width: 24%;
+    background: #f3f7fa;
+    color: #294253;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .cta .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid #2f6f96;
+    background: #fff;
+    color: #2f6f96;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  }
+
+  .cta .button:hover,
+  .cta .button:focus-visible {
+    background: #edf5fa;
+    color: #244f6b;
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  .cta .button.primary {
+    background: #2f6f96;
+    color: #fff;
+  }
+
+  .cta .button.primary:hover,
+  .cta .button.primary:focus-visible {
+    background: #245877;
+    color: #fff;
+  }
+
+  .guide-footer {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid #ebf0f4;
+  }
+
+  @media (max-width: 960px) {
+    .roadmap {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .roadmap-step:nth-child(2n)::after {
+      display: none;
+    }
+
+    .guide-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .guide-hero {
+      padding: 20px 18px;
+    }
+
+    .guide-hero h1 {
+      font-size: 25px;
+    }
+
+    .guide-panel {
+      padding: 18px 16px;
+    }
+
+    .guide-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 8px;
+      scrollbar-width: thin;
+    }
+
+    .guide-tab {
+      flex: 0 0 auto;
+      min-width: 120px;
+      text-align: center;
+      padding: 10px 12px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .roadmap {
+      grid-template-columns: 1fr;
+    }
+
+    .roadmap-step::after {
+      display: none;
+    }
+
+    .config-table,
+    .config-table tbody,
+    .config-table tr,
+    .config-table th,
+    .config-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .config-table tr {
+      margin-bottom: 12px;
+    }
+
+    .config-table th {
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .config-table td {
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+    }
+  }
 </style>
 
-<div class="steps">
+<div class="guide-shell">
+  <section class="guide-hero">
+    <h1>運用ガイド</h1>
+    <p>
+      リサーチからコンセプト設計、投稿運用、AI鑑定まで、プラットフォーム全体の使い方を
+      6つの章に整理しました。初見でも流れがつかめるように、各章は「目的」「操作手順」「次に押す画面」まで一続きで確認できます。
+    </p>
+  </section>
 
-  <section class="step-card">
-    <h2>1. アカウント連携（Instagram）</h2>
-    <ol>
-      <li>管理画面左メニュー「インスタグラム管理」→各モデルが表示されることを確認</li>
-      <li>Instagram を<strong>プロアカウント（クリエイター推奨）</strong>に切替</li>
-      <li>Metaの許可ダイアログで <strong>すべてのアクセス</strong> を許可</li>
-    </ol>
-    <div class="cta">
-      <a class="button" href="{% url 'console:connection_test' %}">接続テスト</a>
-      <a class="button default" href="{% url 'admin:index' %}">管理トップを開く</a>
+  <nav class="guide-tabs" role="tablist" aria-label="運用ガイドの章">
+    <button class="guide-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">全体の流れ</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-research" id="tab-research" data-tab="research">リサーチ</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-concept" id="tab-concept" data-tab="concept">コンセプト設計</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-posting" id="tab-posting" data-tab="posting">投稿・運用</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-appraisal" id="tab-appraisal" data-tab="appraisal">占い鑑定</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-setup" id="tab-setup" data-tab="setup">初回セットアップ</button>
+  </nav>
+
+  <section class="guide-panel is-active" id="panel-overview" data-panel="overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="section-header">
+      <h2>全体の流れ</h2>
+      <p>まずは全体像をつかみます。実務は「リサーチ → コンセプト → 投稿運用 → 鑑定」の順で進めると整理しやすくなります。</p>
     </div>
-    <p class="note">※ 接続テストの「モデル参照」行が PASS になれば最低限の連携は完了です。</p>
-  </section>
 
-  <section class="step-card">
-    <h2>2. 自動返信の準備</h2>
-    <ol>
-      <li>「SNS管理」配下で <strong>返信テンプレート</strong> と <strong>自動返信ルール</strong> を作成</li>
-      <li>キーワードは略さず、<strong>「無料鑑定希望」</strong> 等の分かりやすい語を推奨</li>
-      <li>ルールの対象チャネル（DM / コメントなど）を用途別に設定</li>
-    </ol>
-    <p class="note">※ 送信用テンプレートは絵文字・改行もOK。長文でも可読性を意識します。</p>
-  </section>
-
-  <section class="step-card">
-    <h2>3. 動作確認</h2>
-    <ol>
-      <li><strong>Webhook受信テスト</strong>：サンプルJSONを送って受信ハンドラの疎通確認</li>
-      <li><strong>Webhookイベント一覧</strong>：受信履歴を横断検索・再処理（スタブ）</li>
-      <li><strong>直近ログ</strong>：標準出力 or ログファイルの末尾（最大1000行）</li>
-    </ol>
-    <div class="cta">
-      <a class="button" href="{% url 'console:webhook_test' %}">Webhook受信テスト</a>
-      <a class="button" href="{% url 'console:webhook_events' %}">Webhookイベント一覧</a>
-      <a class="button default" href="{% url 'console:logs' %}">直近ログ</a>
+    <div class="roadmap">
+      <article class="roadmap-step">
+        <div class="step-num">1</div>
+        <h3>リサーチ</h3>
+        <p>伸びているアカウントや投稿の型を集めて、再現すべき材料を見つけます。</p>
+        <strong>バズ検索 / 急成長ランキング / 一括巡回</strong>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">2</div>
+        <h3>コンセプト設計</h3>
+        <p>AI分析で成功パターンを抽出し、自分用のキャラクターと導線に落とし込みます。</p>
+        <strong>コンセプト設計</strong>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">3</div>
+        <h3>投稿・運用</h3>
+        <p>コンセプトに沿った投稿を作り、予約・分析・改善のサイクルを回します。</p>
+        <strong>投稿文AI生成 / 予約投稿管理 / パフォーマンス分析</strong>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">4</div>
+        <h3>占い鑑定</h3>
+        <p>保存済みキャラクターを使って鑑定文を生成し、DM対応と継続導線を整えます。</p>
+        <strong>AI鑑定文生成 / DM受信管理 / 自動返信設定</strong>
+      </article>
     </div>
-    <p class="note">※ エラーはログ/イベント一覧に出ます。接続テストの WARN（環境変数）は後で設定。</p>
+
+    <div class="info-box hint">
+      <strong>進め方の目安</strong>
+      いきなり投稿を量産するより、先にリサーチとコンセプト設計を固めた方が、投稿の一貫性と反応率が安定します。
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:buzz_search' %}">リサーチから始める</a>
+      <a class="button" href="{% url 'console:concept_design' %}">コンセプト設計へ進む</a>
+      <a class="button" href="{% url 'console:help' %}#panel-setup">初回セットアップを見る</a>
+    </div>
+
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>最初によく使う入口</h3>
+        <ul>
+          <li>参考アカウントを探す: バズ検索、急成長ランキング</li>
+          <li>世界観を固める: コンセプト設計</li>
+          <li>量産と改善を回す: 投稿文AI生成、予約投稿、分析</li>
+          <li>収益導線をつなぐ: AI鑑定文生成、DM受信管理</li>
+        </ul>
+      </article>
+      <article class="guide-card">
+        <h3>事前に整えておく設定</h3>
+        <ul>
+          <li>アカウント連携と権限チェックを最初に済ませる</li>
+          <li>Webhook 受信テストとイベント一覧で疎通を確認する</li>
+          <li>テンプレートを事前に作ると投稿と鑑定の運用が速くなる</li>
+        </ul>
+        <div class="cta">
+          <a class="button" href="{% url 'console:accounts' %}">アカウント連携</a>
+          <a class="button" href="{% url 'console:permissions' %}">権限チェック</a>
+          <a class="button" href="{% url 'console:webhook_events' %}">Webhookイベント一覧</a>
+        </div>
+      </article>
+    </div>
   </section>
 
-  <section class="step-card">
-    <h2>4. よくある詰まりどころ</h2>
-    <ul>
-      <li>初回連携で <code>OAuth Exception / 404</code> など → Instagramの「アカウントセンター」から「今後のアクティビティをリンク」解除→必要なものだけ再リンク</li>
-      <li>ビジネス/クリエイター切替前 → 先に<strong>プロアカウント化</strong>してください</li>
-      <li>キーワード不一致 → 省略語（例：IG）は避け、本文そのままの語でルール作成</li>
-    </ul>
+  <section class="guide-panel" id="panel-research" data-panel="research" role="tabpanel" aria-labelledby="tab-research" hidden>
+    <div class="section-header">
+      <h2>第2章: 伸びているアカウントをリサーチする</h2>
+      <p>目的は、参考にすべきアカウントを効率的に見つけることです。数字だけでなく「何が刺さっているか」を記録する前提で見ます。</p>
+    </div>
+
+    <ol class="numbered-steps">
+      <li><strong>バズ検索で候補を集める</strong><br>「占い」「恋愛」「タロット」などのキーワードで検索し、反応が強い投稿と投稿者を拾います。</li>
+      <li><strong>急成長ランキングで勢いのあるアカウントを発見する</strong><br>短期間で伸びている候補を優先し、伸び方の傾向を確認します。</li>
+      <li><strong>アカウント詳細で投稿パターンを分解する</strong><br>頻度、投稿時間、エンゲージメント、導線の置き方を見て、伸びた理由を仮説化します。</li>
+      <li><strong>構造化分析メモを残す</strong><br>「なぜ伸びているか」を文章で保存し、後でコンセプト設計に流用します。</li>
+      <li><strong>比較画面で候補を横並びで検討する</strong><br>複数アカウントを比較し、共通点と差分を切り分けます。</li>
+    </ol>
+
+    <div class="info-box hint">
+      <strong>見るべきポイント</strong>
+      フォロワー数だけで判断せず、投稿頻度、コメントの付き方、投稿導線、プロフィールの一貫性まで見てください。
+    </div>
+
+    <div class="info-box warn">
+      <strong>注意</strong>
+      検索や深掘りは対象を広げすぎると管理が散ります。最初は 1 テーマに絞って候補をためる方が効率的です。
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:buzz_search' %}">バズ検索</a>
+      <a class="button" href="{% url 'console:buzz_growth_ranking' %}">急成長ランキング</a>
+      <a class="button" href="{% url 'console:buzz_compare' %}">アカウント比較</a>
+      <a class="button" href="{% url 'console:buzz_keyword_scan' %}">キーワード一括巡回</a>
+    </div>
   </section>
 
+  <section class="guide-panel" id="panel-concept" data-panel="concept" role="tabpanel" aria-labelledby="tab-concept" hidden>
+    <div class="section-header">
+      <h2>第3章: コンセプトを設計する</h2>
+      <p>リサーチ結果をもとに、AIで再現すべき骨格を抽出し、自分用のキャラクターとマネタイズ導線を固めます。</p>
+    </div>
+
+    <ol class="numbered-steps">
+      <li><strong>参考アカウントを 3〜5 件選ぶ</strong><br>リサーチで見つけた有望アカウントを選択します。</li>
+      <li><strong>AIに伸びている理由を分析させる</strong><br>投稿内容、口調、導線、感情フックなどをAIが整理します。</li>
+      <li><strong>再現すべき骨格を抽出する</strong><br>成功パターンのうち、自分でも再現可能な部分を残します。</li>
+      <li><strong>ずらしコンセプトを生成する</strong><br>差別化の方向を変えた案を複数作り、埋もれない軸を探します。</li>
+      <li><strong>詳細化して運用設定へ落とす</strong><br>キャラクター名、肩書き、bio、投稿テンプレ、価格設計まで具体化します。</li>
+      <li><strong>キャラクターとして保存する</strong><br>保存後は投稿文生成や鑑定文生成にその設定が引き継がれます。</li>
+    </ol>
+
+    <div class="guide-card">
+      <h3>設定すべき項目</h3>
+      <table class="config-table">
+        <tr>
+          <th>項目</th>
+          <th>意味</th>
+          <th>例</th>
+        </tr>
+        <tr>
+          <th>キャラクター名</th>
+          <td>投稿や鑑定で使う人格名</td>
+          <td>月詠ルナ</td>
+        </tr>
+        <tr>
+          <th>肩書き</th>
+          <td>一目で価値が伝わる肩書き</td>
+          <td>恋愛専門タロット占い師</td>
+        </tr>
+        <tr>
+          <th>占術</th>
+          <td>主に使う占術の種類</td>
+          <td>タロット、数秘術</td>
+        </tr>
+        <tr>
+          <th>口調</th>
+          <td>投稿と鑑定の話し方</td>
+          <td>やさしく背中を押す語り口</td>
+        </tr>
+        <tr>
+          <th>ターゲット層</th>
+          <td>主に届ける相手</td>
+          <td>20〜30代の恋愛相談層</td>
+        </tr>
+        <tr>
+          <th>マネタイズ導線</th>
+          <td>無料から有料へ進める流れ</td>
+          <td>無料鑑定 → 個別鑑定 → 継続サポート</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="info-box hint">
+      <strong>ポイント</strong>
+      コンセプトは抽象的な理念より、「誰に」「どんな切り口で」「何を約束するか」まで具体化した方が、投稿にも鑑定にも流用しやすくなります。
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:concept_design' %}">コンセプト設計</a>
+    </div>
+  </section>
+
+  <section class="guide-panel" id="panel-posting" data-panel="posting" role="tabpanel" aria-labelledby="tab-posting" hidden>
+    <div class="section-header">
+      <h2>第4章: 投稿を作成・運用する</h2>
+      <p>コンセプトに沿った投稿を生成し、チェックして、予約し、反応を見ながら改善します。</p>
+    </div>
+
+    <ol class="numbered-steps">
+      <li><strong>投稿文AI生成で案を作る</strong><br>保存済みコンセプトを前提に、テーマや用途に応じた投稿案を作成します。</li>
+      <li><strong>NGワードチェッカーで法令・倫理を確認する</strong><br>広告表現や占い表現で危険な文言が混じっていないかを見ます。</li>
+      <li><strong>予約投稿として登録する</strong><br>承認フローを通したうえで、時間指定して自動投稿します。</li>
+      <li><strong>パフォーマンスを見て改善する</strong><br>反応の良かった切り口を次回の生成条件に戻します。</li>
+    </ol>
+
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>運用ポイント</h3>
+        <ul>
+          <li>投稿頻度は無理なく継続できる回数に固定する</li>
+          <li>投稿時間帯はターゲットの生活時間に合わせる</li>
+          <li>ハッシュタグは広すぎず狭すぎない粒度にする</li>
+          <li>反応が良い型をテンプレ化して再利用する</li>
+        </ul>
+      </article>
+      <article class="guide-card">
+        <h3>見直しの観点</h3>
+        <ul>
+          <li>保存・コメント・プロフィール遷移が取れているか</li>
+          <li>投稿の冒頭 2 行でフックできているか</li>
+          <li>CTA が強すぎず弱すぎないか</li>
+          <li>コンセプトの口調と実際の文面が一致しているか</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="info-box warn">
+      <strong>注意</strong>
+      予約投稿は「承認待ち」のままだと公開されません。公開日だけでなく状態も必ず確認してください。
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:content_generator' %}">投稿文AI生成</a>
+      <a class="button" href="{% url 'console:scheduled_posts' %}">予約投稿管理</a>
+      <a class="button" href="{% url 'console:buzz_ng_checker' %}">NGワードチェッカー</a>
+      <a class="button" href="{% url 'console:post_analytics' %}">パフォーマンス分析</a>
+    </div>
+  </section>
+
+  <section class="guide-panel" id="panel-appraisal" data-panel="appraisal" role="tabpanel" aria-labelledby="tab-appraisal" hidden>
+    <div class="section-header">
+      <h2>第5章: 占い鑑定で信頼関係を築く</h2>
+      <p>保存済みキャラクターを使って鑑定文を生成し、DM対応と継続導線まで一貫して管理します。</p>
+    </div>
+
+    <ol class="numbered-steps">
+      <li><strong>キャラクター設定を確認する</strong><br>コンセプト設計で保存した名前・口調・占術が引き継がれます。</li>
+      <li><strong>顧客情報を取得する</strong><br>生年月日、相談内容、過去のやり取りを確認します。</li>
+      <li><strong>テンプレートを選んでAI鑑定文を生成する</strong><br>無料・有料など用途に応じてテンプレートを切り替えます。</li>
+      <li><strong>DM受信管理でやり取りを続ける</strong><br>生成結果を送るだけでなく、返信の履歴も管理します。</li>
+      <li><strong>自動返信設定で初回対応を効率化する</strong><br>よくある導入対応をルール化して、反応速度を上げます。</li>
+    </ol>
+
+    <div class="guide-card">
+      <h3>マネタイズ導線の基本</h3>
+      <table class="config-table">
+        <tr>
+          <th>段階</th>
+          <th>役割</th>
+          <th>狙い</th>
+        </tr>
+        <tr>
+          <th>無料鑑定</th>
+          <td>世界観と相性を知ってもらう入口</td>
+          <td>信頼獲得と見込み客化</td>
+        </tr>
+        <tr>
+          <th>有料鑑定</th>
+          <td>詳細な個別提案を提供する</td>
+          <td>収益化の主軸</td>
+        </tr>
+        <tr>
+          <th>アップセル</th>
+          <td>継続相談や高単価支援へ接続する</td>
+          <td>LTV の最大化</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>テンプレート運用</h3>
+        <p>鑑定文の品質を安定させるには、無料鑑定、有料鑑定、フォローアップのテンプレートを先に揃えておくと運用が崩れにくくなります。</p>
+        <h4>整えておくと良い項目</h4>
+        <ul>
+          <li>無料鑑定: 入口用の短い鑑定と次アクション</li>
+          <li>有料鑑定: 深掘り観点、価格、納品形式</li>
+          <li>継続導線: 再訪を促すクロージング文</li>
+        </ul>
+      </article>
+      <article class="guide-card">
+        <h3>鑑定運用で詰まりやすい点</h3>
+        <ul>
+          <li>テンプレ未整備のまま都度生成すると品質がぶれやすい</li>
+          <li>DM返信だけで完結させると顧客情報の引き継ぎが抜けやすい</li>
+          <li>無料から有料への切り替え条件を曖昧にすると成約率が落ちる</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="info-box hint">
+      <strong>ポイント</strong>
+      無料鑑定は「全部を出し切る場」ではなく、価値を体験してもらい、次の有料導線へ自然につなげる場として設計します。
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:appraisal_gen' %}">AI鑑定文生成</a>
+      <a class="button" href="{% url 'console:dm_inbox' %}">DM受信管理</a>
+      <a class="button" href="{% url 'console:auto_reply_settings' %}">自動返信設定</a>
+      <a class="button" href="{% url 'console:tpl_list' %}">テンプレ一覧</a>
+      <a class="button" href="{% url 'console:tpl_new' %}">テンプレ新規</a>
+      <a class="button" href="{% url 'console:tpl_export' %}">テンプレ書き出し</a>
+      <a class="button" href="{% url 'console:tpl_import' %}">テンプレ読込</a>
+    </div>
+  </section>
+
+  <section class="guide-panel" id="panel-setup" data-panel="setup" role="tabpanel" aria-labelledby="tab-setup" hidden>
+    <div class="section-header">
+      <h2>補足: 初回セットアップ</h2>
+      <p>アカウント連携と Webhook の基本だけを短くまとめています。最初の接続確認用です。</p>
+    </div>
+
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>1. アカウント連携</h3>
+        <ol>
+          <li>管理画面で Instagram / Threads の接続状態を確認する</li>
+          <li>必要な権限が不足していないかを見る</li>
+          <li>接続後にプロフィール情報が取得できるかを確認する</li>
+        </ol>
+        <div class="cta">
+          <a class="button" href="{% url 'console:accounts' %}">アカウント連携</a>
+          <a class="button" href="{% url 'console:permissions' %}">権限チェック</a>
+        </div>
+      </article>
+      <article class="guide-card">
+        <h3>2. Webhook 設定</h3>
+        <ol>
+          <li>セットアップ画面で必要な環境項目を確認する</li>
+          <li>テンプレートや自動返信ルールを先に作る</li>
+          <li>Webhook 受信テストで疎通を確認する</li>
+          <li>イベント一覧で受信履歴が残るかを見る</li>
+        </ol>
+        <div class="cta">
+          <a class="button" href="{% url 'console:setup_env' %}">セットアップ</a>
+          <a class="button" href="{% url 'console:webhook_test' %}">Webhook受信テスト</a>
+          <a class="button" href="{% url 'console:webhook_events' %}">Webhookイベント一覧</a>
+        </div>
+      </article>
+      <article class="guide-card">
+        <h3>3. トラブルシューティング</h3>
+        <ul>
+          <li>接続エラー時は接続テストを最初に確認する</li>
+          <li>Webhook の不達時はイベント一覧とログを合わせて見る</li>
+          <li>権限不足はアカウント再連携で解消することが多い</li>
+        </ul>
+        <div class="cta">
+          <a class="button" href="{% url 'console:connection_test' %}">接続テスト</a>
+          <a class="button" href="{% url 'console:logs' %}">ログ</a>
+        </div>
+      </article>
+      <article class="guide-card">
+        <h3>4. 最初に開く画面</h3>
+        <div class="cta">
+          <a class="button primary" href="{% url 'console:accounts' %}">アカウント連携</a>
+          <a class="button" href="{% url 'console:webhook_test' %}">Webhook受信テスト</a>
+          <a class="button" href="{% url 'console:connection_test' %}">接続テスト</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="guide-footer">
+    <div class="cta">
+      <a class="button" href="{% url 'console:index' %}">&larr; ダッシュボードへ戻る</a>
+    </div>
+  </div>
 </div>
 
-<div class="cta">
-  <a class="button" href="{% url 'console:index' %}">← ダッシュボードへ戻る</a>
-</div>
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".guide-tab"));
+    var panels = Array.prototype.slice.call(document.querySelectorAll(".guide-panel"));
+
+    function activateTab(name) {
+      tabs.forEach(function (tab) {
+        var selected = tab.getAttribute("data-tab") === name;
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+        tab.tabIndex = selected ? 0 : -1;
+      });
+
+      panels.forEach(function (panel) {
+        var selected = panel.getAttribute("data-panel") === name;
+        panel.classList.toggle("is-active", selected);
+        panel.hidden = !selected;
+      });
+    }
+
+    tabs.forEach(function (tab, index) {
+      tab.tabIndex = index === 0 ? 0 : -1;
+
+      tab.addEventListener("click", function () {
+        activateTab(tab.getAttribute("data-tab"));
+      });
+
+      tab.addEventListener("keydown", function (event) {
+        var currentIndex = tabs.indexOf(tab);
+        var nextIndex = currentIndex;
+
+        if (event.key === "ArrowRight") {
+          nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === "ArrowLeft") {
+          nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else {
+          return;
+        }
+
+        event.preventDefault();
+        tabs[nextIndex].focus();
+        activateTab(tabs[nextIndex].getAttribute("data-tab"));
+      });
+    });
+
+    if (window.location.hash) {
+      var hashTab = window.location.hash.replace("#panel-", "");
+      if (hashTab) {
+        activateTab(hashTab);
+      }
+    }
+  })();
+</script>
 {% endblock %}
