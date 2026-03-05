@@ -33,6 +33,50 @@
   .cd-badge-completed { background: #e8f5e9; color: #2e7d32; }
   .cd-empty { text-align: center; padding: 40px; color: #888; }
 
+  /* インラインガイド */
+  .cd-guide {
+    border: 1px solid #d7e3ea; border-radius: 12px; padding: 20px 22px;
+    background: linear-gradient(135deg, #f8fbfd 0%, #eef6fb 60%, #fefcf8 100%);
+    margin-bottom: 20px;
+  }
+  .cd-guide h3 { margin: 0 0 12px; font-size: 16px; color: #1e3548; }
+  .cd-guide-flow {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0;
+  }
+  .cd-guide-step {
+    background: #fff; border: 1px solid #d9e6ef; border-radius: 10px;
+    padding: 12px 10px; text-align: center; position: relative;
+  }
+  .cd-guide-step::after {
+    content: "\2192"; position: absolute; right: -12px; top: 50%;
+    transform: translateY(-50%); color: #9ab7ca; font-size: 16px; font-weight: 700;
+  }
+  .cd-guide-step:last-child::after { display: none; }
+  .cd-guide-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #9c27b0; color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 6px;
+  }
+  .cd-guide-step strong { display: block; font-size: 13px; color: #243947; margin-bottom: 2px; }
+  .cd-guide-step small { font-size: 11px; color: #61798a; }
+  .cd-guide-text { font-size: 13px; line-height: 1.75; color: #496274; margin: 0; }
+  .cd-guide-text strong { color: #1e3548; }
+  .cd-guide-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .cd-guide-actions a {
+    display: inline-block; padding: 7px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; text-decoration: none;
+    border: 1px solid #9c27b0; color: #9c27b0; background: #fff; transition: all .2s;
+  }
+  .cd-guide-actions a:hover { background: #f3e5f5; }
+  .cd-guide-toggle {
+    background: none; border: none; color: #7b1fa2; font-size: 12px;
+    cursor: pointer; padding: 0; margin-top: 8px; font-weight: 600;
+  }
+  @media (max-width: 720px) {
+    .cd-guide-flow { grid-template-columns: 1fr 1fr; }
+    .cd-guide-step:nth-child(2n)::after { display: none; }
+  }
+
   /* 新規作成モーダル */
   .cd-modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -52,6 +96,44 @@
 </style>
 
 <div class="cd-container">
+  <!-- ── インラインガイド ── -->
+  <div class="cd-guide" id="cdGuide">
+    <h3>コンセプト設計の進め方</h3>
+    <div class="cd-guide-flow">
+      <div class="cd-guide-step">
+        <div class="cd-guide-num">1</div>
+        <strong>プロジェクト作成</strong>
+        <small>テーマ名を付けて開始</small>
+      </div>
+      <div class="cd-guide-step">
+        <div class="cd-guide-num">2</div>
+        <strong>参考アカウント → AI分析</strong>
+        <small>成功パターンを自動抽出</small>
+      </div>
+      <div class="cd-guide-step">
+        <div class="cd-guide-num">3</div>
+        <strong>ずらしコンセプト案</strong>
+        <small>5案から1つ選択</small>
+      </div>
+      <div class="cd-guide-step">
+        <div class="cd-guide-num">4</div>
+        <strong>詳細化 → 保存</strong>
+        <small>キャラクターとしてDB保存</small>
+      </div>
+    </div>
+    <p class="cd-guide-text" id="cdGuideDetail">
+      <strong>1.</strong> 下の「<strong>＋ 新規プロジェクト</strong>」ボタンでプロジェクトを作成します（例:「復縁タロット」「20代恋愛占い」）。<br>
+      <strong>2.</strong> プロジェクトを開くと4ステップのウィザードに進みます。まず参考にしたいアカウントの <strong>@username を入力</strong>（最大3つ）し、「<strong>分析開始</strong>」を押すとAIがコンテンツの型・感情フック・キャラ特徴などを自動分析します。<br>
+      <strong>3.</strong> 分析結果を元に「<strong>コンセプト案を生成</strong>」を押すと、差別化された<strong>5つのコンセプト案</strong>がカード形式で表示されます。気に入った案をクリックして選択します。<br>
+      <strong>4.</strong> 「<strong>選択した案を詳細化</strong>」でキャラクター名・肩書き・口調・bio・投稿テンプレートなどが自動生成されます。内容を確認・編集した後、「<strong>コンセプトとして保存</strong>」を押すとキャラクターがDBに保存され、投稿文AI生成やAI鑑定文生成にそのまま連携されます。
+    </p>
+    <div class="cd-guide-actions">
+      <a href="{% url 'console:buzz_search' %}">先にリサーチする</a>
+      <a href="{% url 'console:help' %}#panel-concept">詳しいガイドを見る</a>
+    </div>
+    <button class="cd-guide-toggle" onclick="toggleGuide()" id="cdGuideToggle">ガイドを閉じる</button>
+  </div>
+
   <div class="cd-header">
     <h2>コンセプト設計プロジェクト</h2>
     <button class="cd-btn cd-btn-primary" onclick="showNewModal()">＋ 新規プロジェクト</button>
@@ -108,5 +190,29 @@ function hideNewModal() { document.getElementById('newModal').classList.remove('
 document.getElementById('newModal').addEventListener('click', function(e) {
   if (e.target === this) hideNewModal();
 });
+
+// ガイド開閉（状態をlocalStorageで記憶）
+function toggleGuide() {
+  var detail = document.getElementById('cdGuideDetail');
+  var flow = document.querySelector('.cd-guide-flow');
+  var actions = document.querySelector('.cd-guide-actions');
+  var btn = document.getElementById('cdGuideToggle');
+  var collapsed = detail.style.display !== 'none';
+  detail.style.display = collapsed ? 'none' : 'block';
+  flow.style.display = collapsed ? 'none' : 'grid';
+  actions.style.display = collapsed ? 'none' : 'flex';
+  btn.textContent = collapsed ? 'ガイドを開く' : 'ガイドを閉じる';
+  try { localStorage.setItem('cd_guide_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+(function() {
+  try {
+    if (localStorage.getItem('cd_guide_collapsed') === '1') {
+      document.getElementById('cdGuideDetail').style.display = 'none';
+      document.querySelector('.cd-guide-flow').style.display = 'none';
+      document.querySelector('.cd-guide-actions').style.display = 'none';
+      document.getElementById('cdGuideToggle').textContent = 'ガイドを開く';
+    }
+  } catch(e) {}
+})();
 </script>
 {% endblock %}

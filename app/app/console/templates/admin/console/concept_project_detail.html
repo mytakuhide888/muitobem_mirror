@@ -105,6 +105,11 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .cp-error { color: #c62828; font-size: 12px; margin-top: 6px; }
+  .cp-hint {
+    background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.7; color: #4a148c;
+  }
+  .cp-hint strong { color: #6a1b9a; }
   .cp-summary-box { background: #f3e5f5; border-radius: 6px; padding: 12px; font-size: 13px; margin-top: 10px; }
   .cp-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .cp-list-editor { display:flex; flex-direction:column; gap:8px; }
@@ -125,7 +130,11 @@
   <!-- Step 1: 参考アカウント指定 -->
   <div class="cp-panel" id="step1Panel">
     <h3>Step 1: 参考アカウントを指定</h3>
-    <p style="font-size:12px;color:#888;">急成長アカウントの @username を入力（最大3つ）</p>
+    <div class="cp-hint">
+      リサーチで見つけた<strong>伸びているアカウントの @username</strong> を最大3つ入力します。
+      下の紫色チップはお気に入り登録済みアカウントです。クリックすると自動入力されます。
+      入力したら「<strong>分析開始</strong>」ボタンを押して次へ進みます。
+    </div>
 
     <div class="cp-username-list" id="usernameList">
       <div class="cp-username-row">
@@ -158,6 +167,10 @@
   <!-- Step 2: AI分析結果 -->
   <div class="cp-panel" id="step2Panel" style="display:none;">
     <h3>Step 2: AI分析結果</h3>
+    <div class="cp-hint">
+      AIが各アカウントの<strong>コンテンツの型・感情フック・運用面・キャラ特徴・再現すべき骨格</strong>を自動分析します。
+      結果を確認したら、下の「<strong>追加の要望</strong>」に方向性を入力し（省略可）、「<strong>コンセプト案を生成</strong>」を押してください。
+    </div>
     <div id="analysisLoading" class="cp-loading" style="display:none;">
       <div class="spinner"></div>
       <p>AIが分析中です…（1〜2分かかる場合があります）</p>
@@ -177,6 +190,11 @@
   <!-- Step 3: ずらしコンセプト案 -->
   <div class="cp-panel" id="step3Panel" style="display:none;">
     <h3>Step 3: ずらしコンセプト案（5案）</h3>
+    <div class="cp-hint">
+      差別化された<strong>5つのコンセプト案</strong>が表示されます。
+      各カードにはターゲット・占術・キャラ・投稿テンプレ・ずらしポイント・マネタイズが記載されています。
+      <strong>カードをクリックして1つ選択</strong>し、「<strong>選択した案を詳細化</strong>」を押してください。
+    </div>
     <div id="proposalsLoading" class="cp-loading" style="display:none;">
       <div class="spinner"></div>
       <p>コンセプト案を生成中…</p>
@@ -194,6 +212,11 @@
   <!-- Step 4: 詳細化 + 保存 -->
   <div class="cp-panel" id="step4Panel" style="display:none;">
     <h3>Step 4: コンセプト詳細</h3>
+    <div class="cp-hint">
+      AIが選択案を詳細化し、<strong>キャラクター名・肩書き・口調・bio・投稿テンプレート</strong>などを含むコンセプト文書を生成します。
+      「編集モードに切替」で内容を修正できます。
+      最終確認後、「<strong>コンセプトとして保存</strong>」を押すとキャラクターがDBに保存され、投稿文AI生成・AI鑑定文生成に自動連携されます。
+    </div>
     <div id="detailLoading" class="cp-loading" style="display:none;">
       <div class="spinner"></div>
       <p>コンセプトを詳細化中…</p>
