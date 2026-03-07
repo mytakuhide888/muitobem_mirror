@@ -53,11 +53,21 @@ class Command(BaseCommand):
             '--fetch-posts', action='store_true',
             help='各投稿者の過去投稿もスクロール取得する（プロフ画像・サムネも確実に収集。時間が大幅に増加）',
         )
+        parser.add_argument(
+            '--author-post-scrolls', type=int, default=30,
+            help='--fetch-posts 時の各投稿者に対するスクロール回数（デフォルト: 30）',
+        )
 
-    def _save_author_posts(self, scraper, author):
+    def _save_author_posts(self, scraper, author, max_scrolls=30):
         """著者の過去投稿を取得してDBに保存する（--fetch-posts 時に使用）"""
         from th.services.buzz_scraper import ViralityDetector
-        posts = scraper.fetch_author_posts(author.username, max_scrolls=5, exclude_replies=True)
+        posts = scraper.fetch_author_posts(author.username, max_scrolls=max_scrolls, exclude_replies=True)
+        # 取得件数が少ない場合は、スクロール上限を増やして再試行（再実行の手間を削減）
+        if len(posts) < 30 and max_scrolls < 60:
+            retry_scrolls = min(max_scrolls * 2, 60)
+            retry_posts = scraper.fetch_author_posts(author.username, max_scrolls=retry_scrolls, exclude_replies=True)
+            if len(retry_posts) > len(posts):
+                posts = retry_posts
         new_count = 0
         for post_data in posts:
             text = post_data.get('text_content', '')
@@ -149,6 +159,7 @@ class Command(BaseCommand):
             return
 
         growth_filter = opts.get('growth_filter', False)
+        author_post_scrolls = max(5, min(int(opts.get('author_post_scrolls', 30)), 80))
         self.stdout.write(f"検索キーワード: {keywords}")
         logger.info("[CMD] th_buzz_search 開始: keywords=%s, job_id=%s", keywords, opts.get('job_id'))
         total_count = 0
@@ -273,7 +284,7 @@ class Command(BaseCommand):
                                 # 過去投稿も取得する（--fetch-posts 時）
                                 if opts.get('fetch_posts'):
                                     try:
-                                        self._save_author_posts(scraper, author)
+                                        self._save_author_posts(scraper, author, author_post_scrolls)
                                         author.update_growth_stats()
                                     except Exception as fe:
                                         logger.warning("過去投稿取得失敗 @%s: %s", username, fe)

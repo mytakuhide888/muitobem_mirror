@@ -37,8 +37,8 @@ class Command(BaseCommand):
             help='THBuzzSearchJob の ID を指定して実行',
         )
         parser.add_argument(
-            '--max-scrolls', type=int, default=10,
-            help='各アカウントの最大スクロール回数（デフォルト: 10）',
+            '--max-scrolls', type=int, default=30,
+            help='各アカウントの最大スクロール回数（デフォルト: 30）',
         )
         parser.add_argument(
             '--include-replies', action='store_true',

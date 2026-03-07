@@ -415,6 +415,8 @@ def buzz_run_search(request):
             cmd.append('--growth-filter')
         if request.POST.get('fetch_posts'):
             cmd.append('--fetch-posts')
+            # 「投稿者情報を詳細取得」ON時は過去投稿を深く取得
+            cmd.extend(['--author-post-scrolls', '30'])
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_search_stdout.log', 'a')
@@ -848,6 +850,8 @@ def buzz_run_keyword_scan(request):
             cmd.append('--growth-filter')
         if request.POST.get('fetch_posts'):
             cmd.append('--fetch-posts')
+            # 「投稿者情報を詳細取得」ON時は過去投稿を深く取得
+            cmd.extend(['--author-post-scrolls', '30'])
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
         log_out = open(log_dir / 'buzz_keyword_scan_stdout.log', 'a')
@@ -1027,7 +1031,10 @@ def buzz_run_deep_scan(request):
     """投稿不足アカウントの深掘りスキャンジョブを開始する API"""
     try:
         max_authors = int(request.POST.get('max_authors', 10))
-        max_authors = max(1, min(max_authors, 1000))
+        max_authors = max(1, min(max_authors, 5000))
+        # 投稿不足解消を優先し、1アカウントあたりの取得深度を上げる
+        max_scrolls = int(request.POST.get('max_scrolls', 30))
+        max_scrolls = max(5, min(max_scrolls, 80))
 
         # 深掘り対象数を確認（フォロワー未取得 or 投稿不足 or プロフィール画像未取得）
         target_count = THBuzzAuthor.objects.filter(
@@ -1058,6 +1065,7 @@ def buzz_run_deep_scan(request):
             sys.executable, 'manage.py', 'th_buzz_deep_scan',
             '--job-id', str(job.id),
             '--max-authors', str(max_authors),
+            '--max-scrolls', str(max_scrolls),
         ]
         log_dir = settings.BASE_DIR / 'deploy'
         log_dir.mkdir(parents=True, exist_ok=True)
