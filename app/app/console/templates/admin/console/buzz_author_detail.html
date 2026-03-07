@@ -5,23 +5,19 @@
 
 {% block content %}
 <style>
-  /* ─── 上段: プロフィール + ピン留め ─── */
+  /* ─── 上段: プロフィール + ピン留め（縦積み） ─── */
   .ad-top-row {
-    display: flex;
-    gap: 16px;
+    display: block;
     margin-bottom: 16px;
-    align-items: flex-start;
   }
 
   .ad-top-row>.author-profile {
-    flex: 1;
     min-width: 0;
   }
 
   .ad-top-row>.pinned-section {
-    flex: 1;
     min-width: 0;
-    max-width: 50%;
+    max-width: none;
   }
 
   .author-profile {
@@ -151,6 +147,7 @@
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    margin-top: 12px;
   }
 
   .pinned-section h3 {
@@ -279,6 +276,16 @@
 
   .ad-table .text-col:hover {
     color: #007bff;
+  }
+
+  .ad-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ad-table-wrap .ad-table {
+    min-width: 980px;
   }
 
   .ad-table .num {
@@ -726,6 +733,112 @@
     margin-top: 8px;
     white-space: pre-wrap;
     word-break: break-all;
+  }
+
+  /* ─── 投稿一覧モバイルカード ─── */
+  .ad-post-cards {
+    display: none;
+    margin-top: 12px;
+  }
+
+  .ad-post-card {
+    background: #fff;
+    border: 1px solid #e4eaef;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+  }
+
+  .ad-post-card:last-child {
+    margin-bottom: 0;
+  }
+
+  .ad-post-card .card-text {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #27343f;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  .ad-post-card .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    font-size: 11px;
+    color: #566674;
+    margin-bottom: 8px;
+  }
+
+  .ad-post-card .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 900px) {
+    .author-profile {
+      padding: 14px;
+    }
+
+    .author-profile h2 {
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    .author-stats {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .ad-tabs > div {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+    }
+
+    .ad-tab-btn {
+      flex: 0 0 auto;
+      padding: 8px 14px !important;
+      font-size: 13px !important;
+    }
+
+    .ad-filters {
+      padding: 10px;
+    }
+
+    .ad-filters form {
+      gap: 8px;
+    }
+
+    .ad-filters form > div {
+      min-width: 140px;
+      flex: 1 1 140px;
+    }
+
+    .ad-filters input,
+    .ad-filters select {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .ad-filters .range-group {
+      gap: 6px;
+    }
+
+    .ad-filters .range-group input[type="number"] {
+      width: 100%;
+    }
+
+    .ad-table-wrap {
+      display: none;
+    }
+
+    .ad-post-cards {
+      display: block;
+    }
   }
 </style>
 
@@ -1235,63 +1348,99 @@
 </div>
 
 <!-- 投稿一覧 -->
+<div class="ad-table-wrap">
+  <table class="ad-table">
+    <thead>
+      <tr>
+        <th>投稿文</th>
+        <th>メディア</th>
+        <th>いいね</th>
+        <th>リプライ</th>
+        <th>リポスト</th>
+        <th>IMP</th>
+        <th>スコア</th>
+        <th>ER%</th>
+        <th>バズ</th>
+        <th>投稿日</th>
+        <th>取得日</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in page_obj %}
+      <tr>
+        <td class="text-col" onclick="openPostModal({{ post.pk }})">
+          {% if post.raw_json.is_pinned %}<span class="pinned-badge">固定</span> {% endif %}
+          {{ post.text_content|truncatechars:60 }}
+        </td>
+        <td style="white-space:nowrap;">
+          {% if post.media_type == 'image' %}
+          <span class="media-badge media-image">画像</span>
+          {% elif post.media_type == 'video' %}
+          <span class="media-badge media-video">動画</span>
+          {% elif post.media_type == 'carousel' %}
+          <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
+          {% else %}
+          <span style="color:#ccc; font-size:11px;">-</span>
+          {% endif %}
+        </td>
+        <td class="num">{{ post.like_count }}</td>
+        <td class="num">{{ post.reply_count }}</td>
+        <td class="num">{{ post.repost_count }}</td>
+        <td class="num">{{ post.impressions|default:"-" }}</td>
+        <td class="num">{{ post.engagement_score|floatformat:1|default:"-" }}</td>
+        <td class="num">{{ post.engagement_rate|floatformat:1|default:"-" }}</td>
+        <td>{% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}</td>
+        <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
+        <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
+        <td style="white-space:nowrap;">
+          {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not page_obj.object_list %}
+      <tr>
+        <td colspan="12" style="color:#999; text-align:center; padding:24px;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
 
-<table class="ad-table">
-  <thead>
-    <tr>
-      <th>投稿文</th>
-      <th>メディア</th>
-      <th>いいね</th>
-      <th>リプライ</th>
-      <th>リポスト</th>
-      <th>IMP</th>
-      <th>スコア</th>
-      <th>ER%</th>
-      <th>バズ</th>
-      <th>投稿日</th>
-      <th>取得日</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for post in page_obj %}
-    <tr>
-      <td class="text-col" onclick="openPostModal({{ post.pk }})">
-        {% if post.raw_json.is_pinned %}<span class="pinned-badge">固定</span> {% endif %}
-        {{ post.text_content|truncatechars:60 }}
-      </td>
-      <td style="white-space:nowrap;">
-        {% if post.media_type == 'image' %}
-        <span class="media-badge media-image">画像</span>
-        {% elif post.media_type == 'video' %}
-        <span class="media-badge media-video">動画</span>
-        {% elif post.media_type == 'carousel' %}
-        <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
-        {% else %}
-        <span style="color:#ccc; font-size:11px;">-</span>
-        {% endif %}
-      </td>
-      <td class="num">{{ post.like_count }}</td>
-      <td class="num">{{ post.reply_count }}</td>
-      <td class="num">{{ post.repost_count }}</td>
-      <td class="num">{{ post.impressions|default:"-" }}</td>
-      <td class="num">{{ post.engagement_score|floatformat:1|default:"-" }}</td>
-      <td class="num">{{ post.engagement_rate|floatformat:1|default:"-" }}</td>
-      <td>{% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}</td>
-      <td style="white-space:nowrap; font-size:12px;">{{ post.posted_at|date:"m/d H:i"|default:"-" }}</td>
-      <td style="white-space:nowrap; font-size:12px;">{{ post.scraped_at|date:"m/d H:i" }}</td>
-      <td style="white-space:nowrap;">
-        {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-    {% if not page_obj.object_list %}
-    <tr>
-      <td colspan="12" style="color:#999; text-align:center; padding:24px;">投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。</td>
-    </tr>
-    {% endif %}
-  </tbody>
-</table>
+<div class="ad-post-cards">
+  {% for post in page_obj %}
+  <article class="ad-post-card">
+    <div class="card-text" onclick="openPostModal({{ post.pk }})">
+      {% if post.raw_json.is_pinned %}<span class="pinned-badge">固定</span> {% endif %}
+      {{ post.text_content|truncatechars:120 }}
+    </div>
+    <div class="card-meta">
+      {% if post.media_type == 'image' %}
+      <span class="media-badge media-image">画像</span>
+      {% elif post.media_type == 'video' %}
+      <span class="media-badge media-video">動画</span>
+      {% elif post.media_type == 'carousel' %}
+      <span class="media-badge media-carousel">{{ post.media_urls|length }}枚</span>
+      {% endif %}
+      <span>❤ {{ post.like_count }}</span>
+      <span>↩ {{ post.reply_count }}</span>
+      <span>🔁 {{ post.repost_count }}</span>
+      <span>IMP {{ post.impressions|default:"-" }}</span>
+      <span>ER {{ post.engagement_rate|floatformat:1|default:"-" }}%</span>
+      {% if post.is_viral %}<span class="viral-badge viral-yes">BUZZ</span>{% endif %}
+    </div>
+    <div class="card-actions">
+      <button type="button" class="buzz-btn-secondary-sm" onclick="openPostModal({{ post.pk }})">詳細を見る</button>
+      {% if post.post_url %}<a href="{{ post.post_url }}" target="_blank" rel="noopener" class="link-btn">元投稿</a>{% endif %}
+      <span style="font-size:11px; color:#778694;">{{ post.posted_at|date:"m/d H:i"|default:"-" }} / 取得 {{ post.scraped_at|date:"m/d H:i" }}</span>
+    </div>
+  </article>
+  {% empty %}
+  <div style="color:#999; text-align:center; padding:20px; background:#fff; border-radius:8px; border:1px solid #e7edf2;">
+    投稿データがまだありません。「投稿文を取得」ボタンを押して取得してください。
+  </div>
+  {% endfor %}
+</div>
 
 <!-- ページネーション -->
 {% if page_obj.has_other_pages %}
