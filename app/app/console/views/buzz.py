@@ -1029,6 +1029,87 @@ def buzz_bulk_exclude(request):
 
 @staff_member_required
 @require_POST
+def buzz_refresh_selected_authors(request):
+    """チェック済み投稿者を一括で最新化する API"""
+    try:
+        author_ids = []
+        max_scrolls = 30
+        include_replies = False
+
+        try:
+            body = json.loads(request.body or '{}')
+            body_ids = body.get('author_ids', [])
+            if isinstance(body_ids, list):
+                author_ids = body_ids
+            if body.get('max_scrolls') is not None:
+                max_scrolls = int(body.get('max_scrolls'))
+            include_replies = bool(body.get('include_replies', False))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            author_ids = request.POST.getlist('author_ids[]') or request.POST.getlist('author_ids')
+            if request.POST.get('max_scrolls'):
+                max_scrolls = int(request.POST.get('max_scrolls'))
+            include_replies = request.POST.get('include_replies') == '1'
+
+        ids = []
+        for v in author_ids:
+            try:
+                ids.append(int(v))
+            except (TypeError, ValueError):
+                continue
+        ids = list(dict.fromkeys(ids))
+
+        if not ids:
+            return JsonResponse({'ok': False, 'error': 'author_ids が空です'}, status=400)
+        if len(ids) > 200:
+            return JsonResponse({'ok': False, 'error': '一度に更新できる件数は200件までです'}, status=400)
+
+        max_scrolls = max(5, min(max_scrolls, 80))
+
+        authors = list(THBuzzAuthor.objects.filter(pk__in=ids).only('id', 'username'))
+        username_map = {a.id: a.username for a in authors if a.username}
+        usernames = [username_map[i] for i in ids if i in username_map]
+        if not usernames:
+            return JsonResponse({'ok': False, 'error': '有効な投稿者が見つかりません'}, status=400)
+
+        job = THBuzzSearchJob.objects.create(
+            job_type='account',
+            keywords=json.dumps(usernames, ensure_ascii=False),
+            status='RUNNING',
+            started_at=timezone.now(),
+        )
+
+        cmd = [
+            sys.executable, 'manage.py', 'th_buzz_fetch_author',
+            '--job-id', str(job.id),
+            '--max-scrolls', str(max_scrolls),
+        ]
+        if include_replies:
+            cmd.append('--include-replies')
+
+        log_dir = settings.BASE_DIR / 'deploy'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_out = open(log_dir / 'buzz_fetch_stdout.log', 'a')
+        log_err = open(log_dir / 'buzz_fetch_stderr.log', 'a')
+        subprocess.Popen(
+            cmd,
+            cwd=str(settings.BASE_DIR),
+            stdout=log_out,
+            stderr=log_err,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'message': f'{len(usernames)}件の投稿者最新化を開始しました (ID: {job.id})',
+            'job_id': job.id,
+            'target_count': len(usernames),
+        })
+    except Exception as e:
+        logger.exception("buzz_refresh_selected_authors エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
 def buzz_recalc_er(request):
     """フォロワー既知の投稿者の投稿について ER/バズ判定を一括再計算する API"""
     try:
