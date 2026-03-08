@@ -290,6 +290,14 @@
     margin-bottom: 8px;
   }
 
+  .gr-card .joined-at {
+    color: #7b8798;
+    font-size: 12px;
+    margin-top: -4px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
   .gr-card .username a {
     color: #007bff;
     text-decoration: none;
@@ -777,6 +785,23 @@
       <input type="number" name="max_age_days" value="{{ current_max_age_days }}" placeholder="例: 90">
     </div>
     <div>
+      <label>参加日(下限)</label>
+      <div style="display:flex; gap:6px;">
+        <select name="joined_from_year">
+          <option value="">年</option>
+          {% for y in joined_year_choices %}
+          <option value="{{ y }}" {% if current_joined_from_year == y|stringformat:'s' %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <select name="joined_from_month">
+          <option value="">月</option>
+          {% for m in joined_month_choices %}
+          <option value="{{ m }}" {% if current_joined_from_month == m|stringformat:'s' %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div>
       <label>カテゴリ</label>
       <select name="category">
         <option value="">全て</option>
@@ -910,6 +935,9 @@
           <div class="username">
             <a href="https://www.threads.com/@{{ author.username }}" target="_blank" rel="noopener">@{{ author.username }}</a>
           </div>
+          {% if author.raw_json.joined_at %}
+          <div class="joined-at">参加日: {{ author.raw_json.joined_at }}</div>
+          {% endif %}
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import json
 import logging
 import subprocess
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
@@ -634,6 +634,8 @@ def buzz_growth_ranking(request):
     min_fortune_score = request.GET.get('min_fortune_score', '')
     has_memo = request.GET.get('has_memo', '')
     attention_only = request.GET.get('attention_only', '')
+    joined_from_year = request.GET.get('joined_from_year', '')
+    joined_from_month = request.GET.get('joined_from_month', '')
 
     allowed_sorts = {
         'growth_score', '-growth_score',
@@ -690,6 +692,24 @@ def buzz_growth_ranking(request):
     if not include_excluded:
         qs = qs.filter(is_excluded=False)
 
+    # 参加日下限（年/月）
+    joined_from_dt = None
+    if joined_from_year and joined_from_month:
+        try:
+            y = int(joined_from_year)
+            m = int(joined_from_month)
+            if 1 <= m <= 12:
+                joined_from_dt = datetime(y, m, 1, tzinfo=dt_timezone.utc)
+        except (ValueError, TypeError):
+            joined_from_dt = None
+    if joined_from_dt:
+        matched_ids = []
+        for author in qs.only('id', 'raw_json').iterator():
+            joined_dt = author._parse_joined_at()
+            if joined_dt and joined_dt >= joined_from_dt:
+                matched_ids.append(author.pk)
+        qs = qs.filter(pk__in=matched_ids) if matched_ids else qs.none()
+
     qs = qs.order_by(sort_by)
 
     # ─── ページネーション ───
@@ -742,6 +762,7 @@ def buzz_growth_ranking(request):
         first_scraped_at__gte=week_ago, is_excluded=False,
     ).count()
     analyzed_count = THBuzzAuthor.objects.filter(is_analyzed=True).count()
+    current_year = timezone.now().year
 
     ctx = {
         'title': '急成長アカウントランキング',
@@ -774,12 +795,18 @@ def buzz_growth_ranking(request):
         'current_has_memo_str': '1' if has_memo else '',
         'current_attention_only': bool(attention_only),
         'current_attention_only_str': '1' if attention_only else '',
+        'current_joined_from_year': joined_from_year,
+        'current_joined_from_month': joined_from_month,
+        'joined_year_choices': list(range(current_year, 2018, -1)),
+        'joined_month_choices': list(range(1, 13)),
         # ページネーション用クエリパラメータ
         'query_params': (
             f"&sort={sort_by}&q={q}"
             f"&min_followers={min_followers or ''}"
             f"&min_score={min_score or ''}"
             f"&max_age_days={max_age_days or ''}"
+            f"&joined_from_year={joined_from_year or ''}"
+            f"&joined_from_month={joined_from_month or ''}"
             f"&category={category or ''}"
             f"&candidates_only={'1' if candidates_only else ''}"
             f"&quality_only={'1' if quality_only else ''}"
