@@ -57,7 +57,11 @@ class Command(BaseCommand):
         author.following_count = profile.get('following_count')
         author.is_verified = profile.get('is_verified', False)
         author.profile_pic_url = profile.get('profile_pic_url', '') or author.profile_pic_url
-        author.raw_json = profile
+        old_raw = author.raw_json or {}
+        merged_profile = dict(profile or {})
+        if not merged_profile.get('joined_at') and old_raw.get('joined_at'):
+            merged_profile['joined_at'] = old_raw.get('joined_at')
+        author.raw_json = merged_profile
         author.save()
 
         # 過去投稿取得
@@ -140,7 +144,7 @@ class Command(BaseCommand):
                 self.stderr.write(f"ジョブ ID {opts['job_id']} が見つかりません")
                 return
 
-        # 深掘り対象: フォロワー不明 OR 投稿不足 OR プロフィール画像未取得のアカウント
+        # 深掘り対象: フォロワー不明 OR 投稿不足 OR プロフィール画像未取得 OR 参加日未取得
         from django.db.models import Q
 
         # 1. フォロワー未取得アカウント（最優先: プロフィールすら取れていない）
@@ -186,7 +190,23 @@ class Command(BaseCommand):
         else:
             no_pic = []
 
-        all_targets = no_followers + low_posts + no_pic
+        remaining -= len(no_pic)
+        fetched_pks |= {a.pk for a in no_pic}
+
+        # 4. 参加日未取得アカウント（joined_at が欠落）
+        if remaining > 0:
+            no_joined = list(
+                THBuzzAuthor.objects.filter(
+                    is_excluded=False,
+                ).filter(
+                    Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
+                ).exclude(pk__in=fetched_pks)
+                .order_by('-growth_score', '-followers_count')[:remaining]
+            )
+        else:
+            no_joined = []
+
+        all_targets = no_followers + low_posts + no_pic + no_joined
         all_targets = all_targets[:max_authors]
 
         if not all_targets:

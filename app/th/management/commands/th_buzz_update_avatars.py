@@ -72,7 +72,11 @@ class Command(BaseCommand):
                             if profile.get('following_count') is not None:
                                 author.following_count = profile['following_count']
                             author.is_verified = profile.get('is_verified', False)
-                            author.raw_json = profile
+                            old_raw = author.raw_json or {}
+                            merged_profile = dict(profile or {})
+                            if not merged_profile.get('joined_at') and old_raw.get('joined_at'):
+                                merged_profile['joined_at'] = old_raw.get('joined_at')
+                            author.raw_json = merged_profile
                             author.save()
                             updated += 1
                             self.stdout.write(f"  OK: @{author.username} → {pic_url[:60]}...")

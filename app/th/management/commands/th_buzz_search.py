@@ -274,7 +274,11 @@ class Command(BaseCommand):
                                 author.following_count = profile.get('following_count')
                                 author.is_verified = profile.get('is_verified', False)
                                 author.profile_pic_url = profile.get('profile_pic_url', '') or author.profile_pic_url
-                                author.raw_json = profile
+                                old_raw = author.raw_json or {}
+                                merged_profile = dict(profile or {})
+                                if not merged_profile.get('joined_at') and old_raw.get('joined_at'):
+                                    merged_profile['joined_at'] = old_raw.get('joined_at')
+                                author.raw_json = merged_profile
                                 author.save()
                                 # 成長指標を計算（占い分類も含む）
                                 author.update_growth_stats()

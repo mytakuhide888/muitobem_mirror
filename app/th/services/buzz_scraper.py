@@ -755,6 +755,38 @@ def _extract_counts_from_visible_text(text: str) -> Dict[str, Optional[int]]:
     return counts
 
 
+def _normalize_joined_at_text(raw: str) -> Optional[str]:
+    """参加日テキストを正規化し `YYYY年M月` または `Month YYYY` で返す。"""
+    if not raw:
+        return None
+    s = _sanitize(str(raw)).strip()
+    if not s:
+        return None
+
+    # 例: "2026年3月 · 1億人以上" の後半を除去
+    s = s.split('·', 1)[0].strip()
+    s = s.split('•', 1)[0].strip()
+    s = re.sub(r'\s+', ' ', s)
+
+    m = re.search(r'(\d{4})年\s*(\d{1,2})月', s)
+    if m:
+        return f"{int(m.group(1))}年{int(m.group(2))}月"
+
+    m = re.search(
+        r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})',
+        s,
+        re.IGNORECASE,
+    )
+    if m:
+        return f"{m.group(1).capitalize()} {m.group(2)}"
+
+    m = re.search(r'(?:参加日|Joined)\s*[:：]?\s*(.+)', s, re.IGNORECASE)
+    if m:
+        return _normalize_joined_at_text(m.group(1))
+
+    return None
+
+
 def _extract_profile_from_html(html: str, username: str) -> Dict:
     """ページ HTML からプロフィール情報を抽出"""
     profile = {
@@ -766,6 +798,7 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
         'is_verified': False,
         'profile_url': f"{THREADS_BASE}/@{username}",
         'profile_pic_url': '',
+        'joined_at': '',
     }
 
     # SSR JSON からユーザー情報を探す
@@ -808,6 +841,32 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
         iv = re.search(r'"is_verified":(true|false)', chunk)
         if iv:
             profile['is_verified'] = iv.group(1) == 'true'
+
+        # joined_at（文字列フィールド）
+        for field in ('date_joined', 'joined_at', 'created_at', 'joined'):
+            jm = re.search(rf'"{field}"\s*:\s*"([^"]+)"', chunk)
+            if not jm:
+                continue
+            normalized = _normalize_joined_at_text(jm.group(1))
+            if normalized:
+                profile['joined_at'] = normalized
+                break
+
+        # joined_at（UNIXタイムスタンプフィールド）
+        if not profile['joined_at']:
+            for field in ('date_joined', 'joined_at', 'created_at'):
+                jm = re.search(rf'"{field}"\s*:\s*(\d{{10,13}})', chunk)
+                if not jm:
+                    continue
+                try:
+                    ts = int(jm.group(1))
+                    if ts > 10**12:
+                        ts //= 1000
+                    dt = datetime.fromtimestamp(ts, tz=dt_timezone.utc)
+                    profile['joined_at'] = f"{dt.year}年{dt.month}月"
+                    break
+                except Exception:
+                    continue
 
         # profile_pic_url — SSR JSON から抽出
         # (A) "profile_pic_url":"<url>" （文字列値）
@@ -1108,7 +1167,7 @@ class ThreadsBuzzScraper:
         # 参加日を取得（モーダル経由）
         joined_at = self._extract_join_date()
         if joined_at:
-            profile['joined_at'] = joined_at
+            profile['joined_at'] = _normalize_joined_at_text(joined_at) or joined_at
 
         return profile
 
@@ -1127,8 +1186,10 @@ class ThreadsBuzzScraper:
                 pattern = rf'"{field}"\s*:\s*"([^"]+)"'
                 m = re.search(pattern, html)
                 if m:
-                    logger.info("[DEBUG] 参加日: SSR JSON の %s から取得: %s", field, m.group(1))
-                    return m.group(1)
+                    normalized = _normalize_joined_at_text(m.group(1))
+                    if normalized:
+                        logger.info("[DEBUG] 参加日: SSR JSON の %s から取得: %s", field, normalized)
+                        return normalized
         except Exception as e:
             logger.warning("[DEBUG] 参加日: SSR JSON 検索エラー: %s", e)
 
@@ -1245,18 +1306,18 @@ class ThreadsBuzzScraper:
             page_html = _sanitize(self._page.content())
 
             # 「参加日」の後の日付を抽出（例: "2025年2月"）
-            match = re.search(r'参加日.*?(\d{4}年\d{1,2}月)', page_html)
+            match = re.search(r'参加日.*?(\d{4}年\s*\d{1,2}月(?:\s*[·•]\s*[^<\n]+)?)', page_html)
             if match:
-                joined_at = match.group(1)
+                joined_at = _normalize_joined_at_text(match.group(1)) or match.group(1)
                 logger.info("[DEBUG] 参加日抽出成功: %s", joined_at)
                 self._page.keyboard.press('Escape')
                 time.sleep(0.5)
                 return joined_at
 
             # 英語フォールバック（"Joined February 2025"）
-            match = re.search(r'Joined\s+(\w+\s+\d{4})', page_html)
+            match = re.search(r'Joined\s+([A-Za-z]+\s+\d{4}(?:\s*[·•]\s*[^<\n]+)?)', page_html)
             if match:
-                joined_at = match.group(1)
+                joined_at = _normalize_joined_at_text(match.group(1)) or match.group(1)
                 logger.info("[DEBUG] 参加日抽出成功(EN): %s", joined_at)
                 self._page.keyboard.press('Escape')
                 time.sleep(0.5)

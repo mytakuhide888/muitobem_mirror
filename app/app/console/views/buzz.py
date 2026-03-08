@@ -706,7 +706,7 @@ def buzz_growth_ranking(request):
                 all_tags.add(tag)
     all_tags = sorted(all_tags)
 
-    # 深掘り対象アカウント数（フォロワー不明 + 投稿不足のアカウント）
+    # 深掘り対象アカウント数（フォロワー不明 + 投稿不足 + 参加日未取得）
     deep_scan_target_count = (
         # フォロワー不明
         THBuzzAuthor.objects.filter(
@@ -721,6 +721,13 @@ def buzz_growth_ranking(request):
             is_excluded=False,
         ).filter(
             Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
+        ).count()
+        +
+        # 参加日未取得
+        THBuzzAuthor.objects.filter(
+            is_excluded=False,
+        ).filter(
+            Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
         ).count()
     )
 
@@ -1036,13 +1043,14 @@ def buzz_run_deep_scan(request):
         max_scrolls = int(request.POST.get('max_scrolls', 30))
         max_scrolls = max(5, min(max_scrolls, 80))
 
-        # 深掘り対象数を確認（フォロワー未取得 or 投稿不足 or プロフィール画像未取得）
+        # 深掘り対象数を確認（フォロワー未取得 or 投稿不足 or プロフィール画像未取得 or 参加日未取得）
         target_count = THBuzzAuthor.objects.filter(
             is_excluded=False,
         ).filter(
             Q(followers_count__isnull=True) | Q(followers_count=0)
             | Q(total_post_count__lte=5) | Q(total_post_count__isnull=True)
             | Q(profile_pic_url='')
+            | Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
         ).count()
 
         if target_count == 0:
