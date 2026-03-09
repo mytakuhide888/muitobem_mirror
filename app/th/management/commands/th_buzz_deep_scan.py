@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # 投稿数がこの値以下のアカウントを深掘り対象とする
 POSTS_THRESHOLD = 5
+MAX_CONSECUTIVE_FAILS = 3
 
 
 class Command(BaseCommand):
@@ -145,14 +146,25 @@ class Command(BaseCommand):
                 return
 
         # 深掘り対象: フォロワー不明 OR 投稿不足 OR プロフィール画像未取得 OR 参加日未取得
+        # ただし連続失敗回数が閾値以上のものは自動スキップ
         from django.db.models import Q
+        base_filter = Q(is_excluded=False, deep_scan_fail_count__lt=MAX_CONSECUTIVE_FAILS)
+        skipped_due_failures = THBuzzAuthor.objects.filter(
+            is_excluded=False,
+            deep_scan_fail_count__gte=MAX_CONSECUTIVE_FAILS,
+        ).filter(
+            Q(followers_count__isnull=True) | Q(followers_count=0)
+            | Q(total_post_count__lte=POSTS_THRESHOLD) | Q(total_post_count__isnull=True)
+            | Q(profile_pic_url='')
+            | Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
+        ).count()
 
         # 1. フォロワー未取得アカウント（最優先: プロフィールすら取れていない）
         no_followers = list(
             THBuzzAuthor.objects.filter(
                 Q(followers_count__isnull=True) | Q(followers_count=0),
-                is_excluded=False,
-            ).order_by('-updated_at')[:max_authors]
+            ).filter(base_filter)
+            .order_by('-updated_at')[:max_authors]
         )
 
         remaining = max_authors - len(no_followers)
@@ -164,8 +176,7 @@ class Command(BaseCommand):
                 THBuzzAuthor.objects.filter(
                     followers_count__isnull=False,
                     followers_count__gt=0,
-                    is_excluded=False,
-                ).filter(
+                ).filter(base_filter).filter(
                     Q(total_post_count__lte=POSTS_THRESHOLD) | Q(total_post_count__isnull=True)
                 ).exclude(pk__in=fetched_pks)
                 .order_by('-growth_score', '-followers_count')[:remaining]
@@ -182,9 +193,8 @@ class Command(BaseCommand):
                 THBuzzAuthor.objects.filter(
                     followers_count__isnull=False,
                     followers_count__gt=0,
-                    is_excluded=False,
                     profile_pic_url='',
-                ).exclude(pk__in=fetched_pks)
+                ).filter(base_filter).exclude(pk__in=fetched_pks)
                 .order_by('-growth_score', '-followers_count')[:remaining]
             )
         else:
@@ -196,9 +206,7 @@ class Command(BaseCommand):
         # 4. 参加日未取得アカウント（joined_at が欠落）
         if remaining > 0:
             no_joined = list(
-                THBuzzAuthor.objects.filter(
-                    is_excluded=False,
-                ).filter(
+                THBuzzAuthor.objects.filter(base_filter).filter(
                     Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
                 ).exclude(pk__in=fetched_pks)
                 .order_by('-growth_score', '-followers_count')[:remaining]
@@ -210,7 +218,9 @@ class Command(BaseCommand):
         all_targets = all_targets[:max_authors]
 
         if not all_targets:
-            msg = "深掘り対象のアカウントがありません（全アカウントの投稿が十分です）"
+            msg = "深掘り対象のアカウントがありません"
+            if skipped_due_failures:
+                msg += f"（連続失敗により自動スキップ中: {skipped_due_failures}件）"
             self.stdout.write(msg)
             if job:
                 job.status = 'COMPLETED'
@@ -232,20 +242,32 @@ class Command(BaseCommand):
             with ThreadsBuzzScraper() as scraper:
                 for author in all_targets:
                     self.stdout.write(f"\n--- @{author.username} (現在投稿数: {author.total_post_count or 0}) ---")
+                    author.deep_scan_last_attempt_at = timezone.now()
+                    author.save(update_fields=['deep_scan_last_attempt_at'])
                     try:
                         new_count = self._fetch_author_posts(
                             scraper, author, max_scrolls, exclude_replies,
                         )
                         total_new += new_count
                         processed += 1
+                        author.deep_scan_fail_count = 0
+                        author.deep_scan_last_error = ''
+                        author.save(update_fields=['deep_scan_fail_count', 'deep_scan_last_error'])
                         self.stdout.write(
                             f"  完了: 新規 {new_count} 件, "
                             f"score={author.growth_score}, "
                             f"投稿数={author.total_post_count}"
                         )
                     except Exception as e:
+                        processed += 1
+                        author.deep_scan_fail_count = (author.deep_scan_fail_count or 0) + 1
+                        author.deep_scan_last_error = str(e)[:2000]
+                        author.save(update_fields=['deep_scan_fail_count', 'deep_scan_last_error'])
                         logger.exception("[CMD] 深掘り失敗 @%s", author.username)
-                        self.stderr.write(f"  @{author.username} エラー（スキップ）: {e}")
+                        self.stderr.write(
+                            f"  @{author.username} エラー（スキップ）: {e} "
+                            f"[連続失敗={author.deep_scan_fail_count}]"
+                        )
 
                     # アカウント処理完了ごとに途中経過を保存
                     if job and total_new > 0:

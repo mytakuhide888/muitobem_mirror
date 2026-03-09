@@ -53,6 +53,7 @@ urlpatterns = [
     path("api/buzz/author-exclude/<int:pk>/", buzz_views.buzz_toggle_excluded,   name="buzz_toggle_excluded"),
     path("api/buzz/author-memo/<int:pk>/",    buzz_views.buzz_save_memo,         name="buzz_save_memo"),
     path("api/buzz/bulk-exclude/",            buzz_views.buzz_bulk_exclude,       name="buzz_bulk_exclude"),
+    path("api/buzz/exclude-unfetchable/",     buzz_views.buzz_exclude_unfetchable, name="buzz_exclude_unfetchable"),
     path("api/buzz/refresh-selected/",        buzz_views.buzz_refresh_selected_authors, name="buzz_refresh_selected_authors"),
 
     # 急成長アカウント発見

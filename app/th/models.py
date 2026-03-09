@@ -150,6 +150,9 @@ class THBuzzAuthor(models.Model):
     attention_set_at = models.DateTimeField('要注目フラグ設定日時', null=True, blank=True)
     is_analyzed = models.BooleanField('分析済み', default=False,
         help_text='構造化分析メモが記入済み')
+    deep_scan_fail_count = models.IntegerField('深堀スキャン連続失敗回数', default=0)
+    deep_scan_last_error = models.TextField('深堀スキャン最終エラー', blank=True, default='')
+    deep_scan_last_attempt_at = models.DateTimeField('深堀スキャン最終試行日時', null=True, blank=True)
 
     class Meta:
         db_table = 'meta_th_buzz_authors'
@@ -166,6 +169,7 @@ class THBuzzAuthor(models.Model):
             models.Index(fields=['account_age_days'], name='bza_account_age_days'),
             models.Index(fields=['-fortune_relevance_score'], name='bza_fortune_score_desc'),
             models.Index(fields=['is_attention_needed'], name='bza_attention_needed'),
+            models.Index(fields=['deep_scan_fail_count'], name='bza_deep_scan_fail_count'),
         ]
 
     def __str__(self):

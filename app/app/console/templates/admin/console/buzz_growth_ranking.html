@@ -892,6 +892,45 @@
     </label>
     <span id="deep-scan-message" class="buzz-msg" style="margin:0;"></span>
   </div>
+  {% if unfetchable_count %}
+  <div style="margin-top:12px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; padding:10px;">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+      <strong style="font-size:14px; color:#374151;">取得不能候補 {{ unfetchable_count }}件</strong>
+      <span style="font-size:12px; color:#6b7280;">連続失敗{{ deep_scan_max_fails }}回以上は深掘り対象から自動除外</span>
+      <button class="buzz-btn buzz-btn-secondary" onclick="toggleAllUnfetchableChecks()">候補を全選択/解除</button>
+      <button class="buzz-btn" style="background:#ef4444; color:#fff;" onclick="excludeUnfetchableCandidates()">取得不能候補を一括対象外</button>
+      <span id="unfetchable-message" class="buzz-msg" style="margin:0;"></span>
+    </div>
+    <div style="max-height:220px; overflow:auto; border:1px solid #f1f5f9; border-radius:8px;">
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead style="background:#f8fafc; position:sticky; top:0;">
+          <tr>
+            <th style="padding:6px; border-bottom:1px solid #e5e7eb; width:36px;"></th>
+            <th style="padding:6px; border-bottom:1px solid #e5e7eb; text-align:left;">投稿者</th>
+            <th style="padding:6px; border-bottom:1px solid #e5e7eb; width:90px;">失敗回数</th>
+            <th style="padding:6px; border-bottom:1px solid #e5e7eb; width:140px;">最終試行</th>
+            <th style="padding:6px; border-bottom:1px solid #e5e7eb; text-align:left;">最終エラー</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for author in unfetchable_candidates %}
+          <tr>
+            <td style="padding:6px; border-bottom:1px solid #f1f5f9;">
+              <input type="checkbox" class="unfetchable-check" data-author-id="{{ author.pk }}">
+            </td>
+            <td style="padding:6px; border-bottom:1px solid #f1f5f9;">
+              <a href="{% url 'console:buzz_author_detail' pk=author.pk %}">@{{ author.username }}</a>
+            </td>
+            <td style="padding:6px; border-bottom:1px solid #f1f5f9; text-align:center;">{{ author.deep_scan_fail_count }}</td>
+            <td style="padding:6px; border-bottom:1px solid #f1f5f9;">{{ author.deep_scan_last_attempt_at|date:"Y-m-d H:i"|default:"-" }}</td>
+            <td style="padding:6px; border-bottom:1px solid #f1f5f9; color:#6b7280;">{{ author.deep_scan_last_error|default:"-"|truncatechars:80 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <!-- カード一覧 -->
@@ -1492,6 +1531,7 @@
   var toggleFavUrl = '{% url "console:buzz_toggle_favorite" pk=0 %}';
   var toggleExclUrl = '{% url "console:buzz_toggle_excluded" pk=0 %}';
   var bulkExcludeUrl = '{% url "console:buzz_bulk_exclude" %}';
+  var excludeUnfetchableUrl = '{% url "console:buzz_exclude_unfetchable" %}';
   var refreshSelectedUrl = '{% url "console:buzz_refresh_selected_authors" %}';
 
   function toggleFav(authorId, btn) {
@@ -1689,6 +1729,62 @@
           // ignore transient polling errors
         });
     }, 5000);
+  }
+
+  function toggleAllUnfetchableChecks() {
+    var checks = document.querySelectorAll('.unfetchable-check');
+    if (!checks.length) return;
+    var selected = document.querySelectorAll('.unfetchable-check:checked').length;
+    var shouldSelectAll = selected !== checks.length;
+    for (var i = 0; i < checks.length; i++) {
+      checks[i].checked = shouldSelectAll;
+    }
+  }
+
+  function excludeUnfetchableCandidates() {
+    var checks = document.querySelectorAll('.unfetchable-check:checked');
+    var ids = [];
+    for (var i = 0; i < checks.length; i++) {
+      ids.push(parseInt(checks[i].dataset.authorId, 10));
+    }
+    if (!ids.length) {
+      alert('対象外にする候補をチェックしてください');
+      return;
+    }
+    if (!confirm(ids.length + '件を対象外にします。実行しますか？')) return;
+
+    var msgEl = document.getElementById('unfetchable-message');
+    if (msgEl) {
+      msgEl.className = 'buzz-msg ok';
+      msgEl.textContent = '対象外更新中...';
+    }
+
+    fetch(excludeUnfetchableUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({ author_ids: ids })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          if (msgEl) {
+            msgEl.className = 'buzz-msg err';
+            msgEl.textContent = data.error || '更新に失敗しました';
+          }
+          return;
+        }
+        if (msgEl) {
+          msgEl.className = 'buzz-msg ok';
+          msgEl.textContent = (data.updated_count || 0) + '件を対象外に更新しました。';
+        }
+        setTimeout(function () { window.location.reload(); }, 700);
+      })
+      .catch(function (err) {
+        if (msgEl) {
+          msgEl.className = 'buzz-msg err';
+          msgEl.textContent = 'リクエストエラー: ' + err;
+        }
+      });
   }
 
   function runPipeline() {

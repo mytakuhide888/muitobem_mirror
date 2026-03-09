@@ -24,6 +24,20 @@ from th.models import THBuzzAuthor, THBuzzAuthorAnalysis, THBuzzPost, THBuzzSear
 from th.services.buzz_scraper import ViralityDetector, check_session_validity
 
 logger = logging.getLogger(__name__)
+DEEP_SCAN_POSTS_THRESHOLD = 5
+DEEP_SCAN_MAX_FAILS = 3
+
+
+def _deep_scan_target_q():
+    return (
+        Q(followers_count__isnull=True)
+        | Q(followers_count=0)
+        | Q(total_post_count__lte=DEEP_SCAN_POSTS_THRESHOLD)
+        | Q(total_post_count__isnull=True)
+        | Q(profile_pic_url='')
+        | Q(raw_json__joined_at__isnull=True)
+        | Q(raw_json__joined_at='')
+    )
 
 
 @staff_member_required
@@ -726,29 +740,20 @@ def buzz_growth_ranking(request):
                 all_tags.add(tag)
     all_tags = sorted(all_tags)
 
-    # 深掘り対象アカウント数（フォロワー不明 + 投稿不足 + 参加日未取得）
-    deep_scan_target_count = (
-        # フォロワー不明
-        THBuzzAuthor.objects.filter(
-            Q(followers_count__isnull=True) | Q(followers_count=0),
-            is_excluded=False,
-        ).count()
-        +
-        # フォロワー既知 + 投稿不足
-        THBuzzAuthor.objects.filter(
-            followers_count__isnull=False,
-            followers_count__gt=0,
-            is_excluded=False,
-        ).filter(
-            Q(total_post_count__lte=3) | Q(total_post_count__isnull=True)
-        ).count()
-        +
-        # 参加日未取得
-        THBuzzAuthor.objects.filter(
-            is_excluded=False,
-        ).filter(
-            Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
-        ).count()
+    # 深掘り対象アカウント数
+    # 実処理と同条件で重複なく算出し、連続失敗で自動スキップ中のアカウントは除外する。
+    deep_scan_target_count = THBuzzAuthor.objects.filter(
+        is_excluded=False,
+        deep_scan_fail_count__lt=DEEP_SCAN_MAX_FAILS,
+    ).filter(_deep_scan_target_q()).count()
+
+    unfetchable_qs = THBuzzAuthor.objects.filter(
+        is_excluded=False,
+        deep_scan_fail_count__gte=DEEP_SCAN_MAX_FAILS,
+    ).filter(_deep_scan_target_q())
+    unfetchable_total_count = unfetchable_qs.count()
+    unfetchable_candidates = list(
+        unfetchable_qs.order_by('-deep_scan_last_attempt_at', '-updated_at')[:100]
     )
 
     # パイプライン統計
@@ -770,6 +775,9 @@ def buzz_growth_ranking(request):
         'all_tags': all_tags,
         'total_count': paginator.count,
         'deep_scan_target_count': deep_scan_target_count,
+        'deep_scan_max_fails': DEEP_SCAN_MAX_FAILS,
+        'unfetchable_candidates': unfetchable_candidates,
+        'unfetchable_count': unfetchable_total_count,
         # パイプライン統計
         'attention_total': attention_total,
         'attention_new_this_week': attention_new_this_week,
@@ -1029,6 +1037,37 @@ def buzz_bulk_exclude(request):
 
 @staff_member_required
 @require_POST
+def buzz_exclude_unfetchable(request):
+    """取得不能候補（連続失敗閾値到達）を一括で対象外にする API"""
+    try:
+        selected_ids = []
+        try:
+            body = json.loads(request.body or '{}')
+            body_ids = body.get('author_ids', [])
+            if isinstance(body_ids, list):
+                selected_ids = [int(v) for v in body_ids]
+        except (json.JSONDecodeError, TypeError, ValueError):
+            selected_ids = []
+
+        qs = THBuzzAuthor.objects.filter(
+            is_excluded=False,
+            deep_scan_fail_count__gte=DEEP_SCAN_MAX_FAILS,
+        ).filter(_deep_scan_target_q())
+        if selected_ids:
+            qs = qs.filter(pk__in=selected_ids)
+
+        updated_count = qs.update(
+            is_excluded=True,
+            auto_excluded_reason='deep_scan_unfetchable',
+        )
+        return JsonResponse({'ok': True, 'updated_count': updated_count})
+    except Exception as e:
+        logger.exception("buzz_exclude_unfetchable エラー")
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
 def buzz_refresh_selected_authors(request):
     """チェック済み投稿者を一括で最新化する API"""
     try:
@@ -1151,20 +1190,23 @@ def buzz_run_deep_scan(request):
         max_scrolls = int(request.POST.get('max_scrolls', 30))
         max_scrolls = max(5, min(max_scrolls, 80))
 
-        # 深掘り対象数を確認（フォロワー未取得 or 投稿不足 or プロフィール画像未取得 or 参加日未取得）
+        # 深掘り対象数を確認（UI表示と同一条件）
         target_count = THBuzzAuthor.objects.filter(
             is_excluded=False,
-        ).filter(
-            Q(followers_count__isnull=True) | Q(followers_count=0)
-            | Q(total_post_count__lte=5) | Q(total_post_count__isnull=True)
-            | Q(profile_pic_url='')
-            | Q(raw_json__joined_at__isnull=True) | Q(raw_json__joined_at='')
-        ).count()
+            deep_scan_fail_count__lt=DEEP_SCAN_MAX_FAILS,
+        ).filter(_deep_scan_target_q()).count()
+        skipped_count = THBuzzAuthor.objects.filter(
+            is_excluded=False,
+            deep_scan_fail_count__gte=DEEP_SCAN_MAX_FAILS,
+        ).filter(_deep_scan_target_q()).count()
 
         if target_count == 0:
             return JsonResponse({
                 'ok': True,
-                'message': '深掘り対象のアカウントがありません（全アカウントの情報が揃っています）',
+                'message': (
+                    '深掘り対象のアカウントがありません'
+                    + (f'（連続失敗で自動スキップ中: {skipped_count}件）' if skipped_count else '')
+                ),
                 'job_id': None,
             })
 
