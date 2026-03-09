@@ -19,7 +19,7 @@ def fetch_customer_posts(username: str, platform: str = 'THREADS') -> list[dict]
     """
     if platform == 'THREADS':
         try:
-            from th.services.buzz_scraper import BuzzScraper
+            from th.services.buzz_scraper import ThreadsBuzzScraper as BuzzScraper
             scraper = BuzzScraper()
             posts = scraper.fetch_author_posts(username, max_scrolls=5)
             scraper.close()

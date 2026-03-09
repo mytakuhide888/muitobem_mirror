@@ -131,7 +131,7 @@ def analyze_author(author) -> dict:
 def ensure_author_data(username: str):
     """DBにTHBuzzAuthorが無ければスクレイピングで取得。投稿が少なければ追加取得。"""
     from th.models import THBuzzAuthor, THBuzzPost
-    from th.services.buzz_scraper import BuzzScraper
+    from th.services.buzz_scraper import ThreadsBuzzScraper as BuzzScraper
 
     username = username.lstrip('@').strip()
     author = THBuzzAuthor.objects.filter(username=username).first()
