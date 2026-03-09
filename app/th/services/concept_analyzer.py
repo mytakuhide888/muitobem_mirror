@@ -73,10 +73,15 @@ def _format_top_posts(posts):
 
 
 def _extract_text_block(raw: str) -> str:
+    import re
     if '```json' in raw:
         return raw.split('```json')[1].split('```')[0].strip()
     if '```' in raw:
         return raw.split('```')[1].split('```')[0].strip()
+    # コードブロックなしで JSON 配列/オブジェクトが直接返された場合
+    m = re.search(r'(\[[\s\S]*\]|\{[\s\S]*\})', raw)
+    if m:
+        return m.group(1).strip()
     return raw.strip()
 
 
@@ -358,18 +363,27 @@ def generate_concept_proposals(analysis_results: list, user_context: str = '') -
         client = _get_client()
         message = client.messages.create(
             model=MODEL_ID,
-            max_tokens=3000,
+            max_tokens=4000,
             messages=[{'role': 'user', 'content': prompt}],
         )
-        raw = _extract_text_block(message.content[0].text.strip())
+        full_text = message.content[0].text.strip()
+        raw = _extract_text_block(full_text)
 
         proposals = json.loads(raw)
         if not isinstance(proposals, list):
             proposals = [proposals]
+        if not proposals:
+            raise ValueError('AIが空のリストを返しました')
         return proposals[:5]
     except json.JSONDecodeError:
-        logger.warning('generate_concept_proposals: JSON parse failed, raw=%s', raw[:200])
-        return []
+        logger.warning(
+            'generate_concept_proposals: JSON parse failed, raw(200)=%s, full(500)=%s',
+            raw[:200] if raw else '(empty)',
+            full_text[:500] if full_text else '(empty)',
+        )
+        raise ValueError(f'AIの応答をJSONとして解析できませんでした。再度お試しください。')
+    except ValueError:
+        raise
     except Exception as e:
         logger.exception('generate_concept_proposals: 失敗')
         raise
