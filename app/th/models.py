@@ -36,6 +36,24 @@ class THPost(BasePost):
 class THScheduledPost(BaseScheduledPost):
     account = models.ForeignKey(ThreadsAccount, on_delete=models.CASCADE, related_name='scheduled_posts')
 
+    # ─── 自動投稿ワークフロー用 ───
+    source_buzz_post = models.ForeignKey(
+        'THBuzzPost', null=True, blank=True, on_delete=models.SET_NULL,
+        verbose_name='リライト元バズ投稿',
+        help_text='リライト元のバズ投稿',
+    )
+    concept_project = models.ForeignKey(
+        'ConceptProject', null=True, blank=True, on_delete=models.SET_NULL,
+        verbose_name='コンセプトプロジェクト',
+        help_text='生成元のコンセプトプロジェクト',
+    )
+
+    # ─── パフォーマンストラッキング用 ───
+    external_post_id = models.CharField('外部投稿ID', max_length=100, blank=True, default='')
+    impressions = models.IntegerField('インプレッション数', default=0)
+    engagement = models.IntegerField('エンゲージメント数', default=0)
+    insights_updated_at = models.DateTimeField('インサイト更新日時', null=True, blank=True)
+
     class Meta:
         db_table = 'meta_th_scheduled_posts'
         verbose_name = 'Threads予約投稿'

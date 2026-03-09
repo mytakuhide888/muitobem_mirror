@@ -14,6 +14,7 @@ from .views import dm_inbox as dm_inbox_views
 from .views import appraisal as appraisal_views
 from .views import auto_reply_settings as auto_reply_views
 from .views import concept_design as concept_views
+from .views import auto_posting as auto_views
 
 app_name = "console"
 
@@ -131,4 +132,11 @@ urlpatterns = [
     path("api/concept/detail/",                 concept_views.concept_detail_api,      name="concept_detail_api"),
     path("api/concept/save/",                   concept_views.concept_save_api,        name="concept_save_api"),
     path("api/concept/edit-md/",                concept_views.concept_edit_md_api,     name="concept_edit_md_api"),
+
+    # 自動投稿ワークフロー
+    path("auto-posting/",                            auto_views.auto_posting,                      name="auto_posting"),
+    path("api/auto-posting/generate/",               auto_views.auto_posting_generate_api,         name="auto_posting_generate"),
+    path("api/auto-posting/<int:pk>/edit/",          auto_views.auto_posting_edit_api,             name="auto_posting_edit"),
+    path("api/auto-posting/bulk-approve/",           auto_views.auto_posting_bulk_approve_api,     name="auto_posting_bulk_approve"),
+    path("api/auto-posting/refresh-insights/",       auto_views.auto_posting_refresh_insights_api, name="auto_posting_refresh_insights"),
 ]

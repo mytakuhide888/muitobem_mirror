@@ -1,0 +1,377 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}自動投稿ワークフロー{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; 自動投稿ワークフロー</div>{% endblock %}
+
+{% block content %}
+<style>
+  .ap-container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .ap-panel {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .ap-panel h3 { font-size: 16px; margin: 0 0 14px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+  .ap-field { margin-bottom: 14px; }
+  .ap-field label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #555; }
+  .ap-field select, .ap-field input[type="text"], .ap-field input[type="number"], .ap-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box;
+  }
+  .ap-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .ap-col-left { flex: 0 0 380px; min-width: 320px; }
+  .ap-col-right { flex: 1; min-width: 400px; }
+
+  .ap-char-info { display: flex; gap: 12px; align-items: flex-start; padding: 12px; background: #f8f9fa; border-radius: 6px; }
+  .ap-char-info .name { font-weight: bold; font-size: 15px; color: #333; }
+  .ap-char-info .concept { font-size: 13px; color: #666; margin-top: 4px; }
+  .ap-char-info .style { font-size: 12px; color: #888; margin-top: 2px; }
+
+  .ap-author-item { padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: border-color .2s; }
+  .ap-author-item:hover, .ap-author-item.selected { border-color: #007bff; background: #f0f7ff; }
+  .ap-author-item .username { font-weight: bold; color: #007bff; }
+  .ap-author-item .summary { font-size: 12px; color: #666; margin-top: 4px; }
+
+  .ap-btn {
+    padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ap-btn-primary { background: #007bff; color: #fff; }
+  .ap-btn-primary:hover { background: #0056b3; }
+  .ap-btn-primary:disabled { background: #aaa; cursor: wait; }
+  .ap-btn-success { background: #28a745; color: #fff; }
+  .ap-btn-success:hover { background: #1e7e34; }
+  .ap-btn-warning { background: #ffc107; color: #333; }
+  .ap-btn-danger { background: #dc3545; color: #fff; }
+  .ap-btn-sm { padding: 6px 12px; font-size: 12px; }
+  .ap-btn-outline { background: transparent; border: 1px solid #007bff; color: #007bff; }
+
+  .ap-post-card {
+    background: #fff; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 12px;
+    border-left: 4px solid #6c757d; position: relative;
+  }
+  .ap-post-card.draft { border-left-color: #ffc107; }
+  .ap-post-card.approved { border-left-color: #28a745; }
+  .ap-post-card.sent { border-left-color: #007bff; }
+  .ap-post-card.failed { border-left-color: #dc3545; }
+  .ap-post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .ap-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; }
+  .ap-badge.draft { background: #ffc107; color: #333; }
+  .ap-badge.approved { background: #28a745; }
+  .ap-badge.sent { background: #007bff; }
+  .ap-badge.failed { background: #dc3545; }
+  .ap-post-body { font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 10px; }
+  .ap-post-body textarea { width: 100%; min-height: 120px; font-size: 14px; line-height: 1.6; border: 1px solid #ccc; border-radius: 4px; padding: 8px; box-sizing: border-box; }
+  .ap-post-meta { font-size: 12px; color: #888; display: flex; gap: 16px; flex-wrap: wrap; }
+  .ap-post-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .ap-checkbox { width: 18px; height: 18px; cursor: pointer; }
+
+  .ap-insights { display: flex; gap: 16px; margin-top: 8px; }
+  .ap-insight-item { font-size: 12px; color: #555; }
+  .ap-insight-item strong { color: #333; }
+
+  .ap-empty { text-align: center; padding: 40px; color: #999; }
+  .ap-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="ap-container">
+  <!-- プロジェクト選択 -->
+  <div class="ap-panel">
+    <h3>コンセプトプロジェクト選択</h3>
+    <form method="get" style="display:flex; gap:12px; align-items:end;">
+      <div class="ap-field" style="flex:1; margin-bottom:0;">
+        <label>プロジェクト</label>
+        <select name="project_id" onchange="this.form.submit()">
+          <option value="">-- プロジェクトを選択 --</option>
+          {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>
+              {{ p.title|default:p.id }} — {{ p.character.name|default:"キャラ未設定" }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </div>
+
+  {% if selected_project %}
+  <div class="ap-row">
+    <!-- 左カラム: キャラ情報 + 参考アカウント -->
+    <div class="ap-col-left">
+      <!-- キャラクター情報 -->
+      <div class="ap-panel">
+        <h3>キャラクター</h3>
+        {% if character %}
+        <div class="ap-char-info">
+          <div>
+            <div class="name">{{ character.name }}</div>
+            <div class="concept">{{ character.concept|truncatewords:30 }}</div>
+            <div class="style">文体: {{ character.writing_style|truncatewords:15 }}</div>
+            {% if character.th_account %}
+            <div class="style">Threads: @{{ character.th_account.username }}</div>
+            {% else %}
+            <div class="style" style="color:#dc3545;">Threadsアカウント未紐付け</div>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p style="color:#dc3545;">キャラクターが設定されていません</p>
+        {% endif %}
+      </div>
+
+      <!-- 参考アカウント -->
+      <div class="ap-panel">
+        <h3>参考アカウント</h3>
+        {% if project_authors %}
+          {% for pa in project_authors %}
+          <div class="ap-author-item" data-username="{{ pa.author.username }}" onclick="selectAuthor(this)">
+            <div class="username">@{{ pa.author.username }}</div>
+            {% if pa.ai_summary %}
+            <div class="summary">{{ pa.ai_summary|truncatewords:20 }}</div>
+            {% endif %}
+            <div class="summary">
+              フォロワー: {{ pa.author.followers_count|default:"—" }}
+              | 平均いいね: {{ pa.author.avg_likes|default:"—" }}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="ap-empty">参考アカウントがありません</p>
+        {% endif %}
+      </div>
+
+      <!-- 生成設定 -->
+      <div class="ap-panel">
+        <h3>投稿を生成</h3>
+        <div class="ap-field">
+          <label>選択中の参考アカウント</label>
+          <input type="text" id="selectedAuthor" readonly placeholder="上のリストから選択" />
+        </div>
+        <div class="ap-field">
+          <label>投稿間隔（時間）</label>
+          <input type="number" id="intervalHours" value="8" min="1" max="72" />
+        </div>
+        <div class="ap-field">
+          <label>最大生成数</label>
+          <input type="number" id="maxPosts" value="5" min="1" max="10" />
+        </div>
+        <div class="ap-field">
+          <label>追加スタイル指示（任意）</label>
+          <textarea id="styleHint" rows="2" placeholder="例: 絵文字多めで親しみやすく"></textarea>
+        </div>
+        <button class="ap-btn ap-btn-primary" style="width:100%;" onclick="generatePosts()" id="btnGenerate"
+          {% if not character or not character.th_account %}disabled{% endif %}>
+          投稿を生成
+        </button>
+        <div id="generateStatus" style="margin-top:8px; font-size:13px; color:#666;"></div>
+      </div>
+    </div>
+
+    <!-- 右カラム: スケジュール一覧 -->
+    <div class="ap-col-right">
+      <div class="ap-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h3 style="margin-bottom:0; border-bottom:none; padding-bottom:0;">スケジュール一覧</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="ap-btn ap-btn-success ap-btn-sm" onclick="bulkApprove()">一括承認</button>
+            <button class="ap-btn ap-btn-outline ap-btn-sm" onclick="toggleSelectAll()">全選択</button>
+            <button class="ap-btn ap-btn-warning ap-btn-sm" onclick="refreshInsights()">インサイト更新</button>
+          </div>
+        </div>
+
+        <div id="postList">
+          {% if scheduled_posts %}
+            {% for post in scheduled_posts %}
+            <div class="ap-post-card {{ post.status|lower }}" data-id="{{ post.id }}">
+              <div class="ap-post-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" class="ap-checkbox post-check" value="{{ post.id }}" />
+                  <span class="ap-badge {{ post.status|lower }}">{{ post.get_status_display }}</span>
+                </div>
+                <div>
+                  {% if post.status == 'DRAFT' or post.status == 'APPROVED' %}
+                  <button class="ap-btn ap-btn-sm ap-btn-outline" onclick="toggleEdit({{ post.id }})">編集</button>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="ap-post-body" id="body-display-{{ post.id }}">{{ post.body }}</div>
+              <div id="body-edit-{{ post.id }}" style="display:none;">
+                <textarea class="ap-post-body" id="body-input-{{ post.id }}">{{ post.body }}</textarea>
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                  <button class="ap-btn ap-btn-primary ap-btn-sm" onclick="saveEdit({{ post.id }})">保存</button>
+                  <button class="ap-btn ap-btn-sm ap-btn-outline" onclick="toggleEdit({{ post.id }})">キャンセル</button>
+                </div>
+              </div>
+              <div class="ap-post-meta">
+                <span>予定: {{ post.scheduled_at|date:"Y/m/d H:i" }}</span>
+                {% if post.source_buzz_post %}
+                <span>元: @{{ post.source_buzz_post.author.username }}</span>
+                {% endif %}
+                <span>{{ post.body|length }}文字</span>
+              </div>
+              {% if post.status == 'SENT' and post.external_post_id %}
+              <div class="ap-insights">
+                <div class="ap-insight-item">インプレッション: <strong>{{ post.impressions }}</strong></div>
+                <div class="ap-insight-item">エンゲージメント: <strong>{{ post.engagement }}</strong></div>
+                {% if post.insights_updated_at %}
+                <div class="ap-insight-item" style="color:#aaa;">更新: {{ post.insights_updated_at|date:"m/d H:i" }}</div>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="ap-empty" id="emptyMsg">
+              まだスケジュール投稿がありません。<br>参考アカウントを選択して「投稿を生成」してください。
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="ap-panel">
+    <div class="ap-empty">
+      コンセプトプロジェクト（完了済み・キャラクター紐付け済み）を選択してください。
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const PROJECT_ID = {{ selected_project.id|default:"null" }};
+
+function selectAuthor(el) {
+  document.querySelectorAll('.ap-author-item').forEach(function(e) { e.classList.remove('selected'); });
+  el.classList.add('selected');
+  document.getElementById('selectedAuthor').value = '@' + el.dataset.username;
+}
+
+async function generatePosts() {
+  const authorField = document.getElementById('selectedAuthor').value;
+  if (!authorField) { alert('参考アカウントを選択してください'); return; }
+
+  const btn = document.getElementById('btnGenerate');
+  const status = document.getElementById('generateStatus');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+  status.textContent = 'AIがリライト中です。しばらくお待ちください...';
+
+  try {
+    const resp = await fetch('{% url "console:auto_posting_generate" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+      body: JSON.stringify({
+        project_id: PROJECT_ID,
+        author_username: authorField.replace('@', ''),
+        interval_hours: parseInt(document.getElementById('intervalHours').value) || 8,
+        max_posts: parseInt(document.getElementById('maxPosts').value) || 5,
+        style_hint: document.getElementById('styleHint').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      status.textContent = 'エラー: ' + (data.error || '不明なエラー');
+      status.style.color = '#dc3545';
+    } else {
+      status.textContent = data.count + '件の投稿を生成しました。';
+      status.style.color = '#28a745';
+      setTimeout(function() { location.reload(); }, 1000);
+    }
+  } catch (e) {
+    status.textContent = '通信エラー: ' + e.message;
+    status.style.color = '#dc3545';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '投稿を生成';
+  }
+}
+
+function toggleEdit(id) {
+  var display = document.getElementById('body-display-' + id);
+  var edit = document.getElementById('body-edit-' + id);
+  if (edit.style.display === 'none') {
+    edit.style.display = 'block';
+    display.style.display = 'none';
+  } else {
+    edit.style.display = 'none';
+    display.style.display = 'block';
+  }
+}
+
+async function saveEdit(id) {
+  var body = document.getElementById('body-input-' + id).value;
+  try {
+    var resp = await fetch('/admin/console/api/auto-posting/' + id + '/edit/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+      body: JSON.stringify({body: body}),
+    });
+    var data = await resp.json();
+    if (resp.ok) {
+      document.getElementById('body-display-' + id).textContent = data.body;
+      toggleEdit(id);
+    } else {
+      alert(data.error || 'エラー');
+    }
+  } catch (e) {
+    alert('通信エラー: ' + e.message);
+  }
+}
+
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.post-check:checked')).map(function(c) { return parseInt(c.value); });
+}
+
+function toggleSelectAll() {
+  var checks = document.querySelectorAll('.post-check');
+  var allChecked = Array.from(checks).every(function(c) { return c.checked; });
+  checks.forEach(function(c) { c.checked = !allChecked; });
+}
+
+async function bulkApprove() {
+  var ids = getSelectedIds();
+  if (!ids.length) { alert('投稿を選択してください'); return; }
+  if (!confirm(ids.length + '件の投稿を承認しますか？')) return;
+
+  try {
+    var resp = await fetch('{% url "console:auto_posting_bulk_approve" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+      body: JSON.stringify({post_ids: ids}),
+    });
+    var data = await resp.json();
+    if (resp.ok) {
+      alert(data.updated_count + '件を承認しました');
+      location.reload();
+    } else {
+      alert(data.error || 'エラー');
+    }
+  } catch (e) {
+    alert('通信エラー: ' + e.message);
+  }
+}
+
+async function refreshInsights() {
+  var ids = getSelectedIds();
+  if (!ids.length) { alert('投稿を選択してください'); return; }
+
+  try {
+    var resp = await fetch('{% url "console:auto_posting_refresh_insights" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+      body: JSON.stringify({post_ids: ids}),
+    });
+    var data = await resp.json();
+    if (resp.ok) {
+      alert(data.updated_count + '件のインサイトを更新しました');
+      location.reload();
+    } else {
+      alert(data.error || 'エラー');
+    }
+  } catch (e) {
+    alert('通信エラー: ' + e.message);
+  }
+}
+</script>
+{% endblock %}

@@ -58,6 +58,10 @@ class Command(BaseCommand):
             client = ThreadsApiClient(ThreadsCredentials(user_id=user_id, access_token=token))
             creation_id = client.create_text_container(text=post.body or "")
             published_id = client.publish_container(creation_id=creation_id)
+            # 外部投稿IDを保存（インサイト取得で使用）
+            if published_id:
+                post.external_post_id = str(published_id)
+                post.save(update_fields=["external_post_id"])
             return True, published_id
         except ThreadsApiError as e:
             logger.warning("Threads API error: %s", e)
