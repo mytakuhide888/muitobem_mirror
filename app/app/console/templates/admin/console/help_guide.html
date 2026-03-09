@@ -439,6 +439,7 @@
     <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-research" id="tab-research" data-tab="research">リサーチ</button>
     <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-concept" id="tab-concept" data-tab="concept">コンセプト設計</button>
     <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-posting" id="tab-posting" data-tab="posting">投稿・運用</button>
+    <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-autopost" id="tab-autopost" data-tab="autopost">自動投稿</button>
     <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-appraisal" id="tab-appraisal" data-tab="appraisal">占い鑑定</button>
     <button class="guide-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-setup" id="tab-setup" data-tab="setup">初回セットアップ</button>
   </nav>
@@ -466,7 +467,7 @@
         <div class="step-num">3</div>
         <h3>投稿・運用</h3>
         <p>コンセプトに沿った投稿を作り、予約・分析・改善のサイクルを回します。</p>
-        <strong>投稿文AI生成 / 予約投稿管理 / パフォーマンス分析</strong>
+        <strong>投稿文AI生成 / 自動投稿 / 予約投稿管理</strong>
       </article>
       <article class="roadmap-step">
         <div class="step-num">4</div>
@@ -493,7 +494,7 @@
         <ul>
           <li>参考アカウントを探す: バズ検索、急成長ランキング</li>
           <li>世界観を固める: コンセプト設計</li>
-          <li>量産と改善を回す: 投稿文AI生成、予約投稿、分析</li>
+          <li>量産と改善を回す: 自動投稿、投稿文AI生成、予約投稿管理</li>
           <li>収益導線をつなぐ: AI鑑定文生成、DM受信管理</li>
         </ul>
       </article>
@@ -724,9 +725,10 @@
     </div>
 
     <ol class="numbered-steps">
-      <li><strong>投稿文AI生成で案を作る</strong><br>保存済みコンセプトを前提に、テーマや用途に応じた投稿案を作成します。</li>
+      <li><strong>自動投稿ワークフローで一括生成する（推奨）</strong><br>コンセプト設計済みのキャラクターで、参考アカウントの投稿をAIリライトし、スケジュール投稿を一括生成します。詳細は「自動投稿」タブを参照。</li>
+      <li><strong>または、投稿文AI生成で個別に案を作る</strong><br>テーマや用途に応じた投稿案を個別に作成します。</li>
       <li><strong>NGワードチェッカーで法令・倫理を確認する</strong><br>広告表現や占い表現で危険な文言が混じっていないかを見ます。</li>
-      <li><strong>予約投稿として登録する</strong><br>承認フローを通したうえで、時間指定して自動投稿します。</li>
+      <li><strong>予約投稿管理で確認・承認する</strong><br>承認フローを通したうえで、時間指定して自動投稿します。</li>
       <li><strong>パフォーマンスを見て改善する</strong><br>反応の良かった切り口を次回の生成条件に戻します。</li>
     </ol>
 
@@ -757,10 +759,184 @@
     </div>
 
     <div class="cta">
-      <a class="button primary" href="{% url 'console:content_generator' %}">投稿文AI生成</a>
+      <a class="button primary" href="{% url 'console:auto_posting' %}">自動投稿ワークフロー</a>
+      <a class="button" href="{% url 'console:content_generator' %}">投稿文AI生成</a>
       <a class="button" href="{% url 'console:scheduled_posts' %}">予約投稿管理</a>
       <a class="button" href="{% url 'console:buzz_ng_checker' %}">NGワードチェッカー</a>
       <a class="button" href="{% url 'console:post_analytics' %}">パフォーマンス分析</a>
+    </div>
+  </section>
+
+  <!-- ═══ 自動投稿ワークフロー ═══ -->
+  <section class="guide-panel" id="panel-autopost" data-panel="autopost" role="tabpanel" aria-labelledby="tab-autopost" hidden>
+    <div class="section-header">
+      <h2>自動投稿ワークフロー</h2>
+      <p>
+        参考アカウントの投稿をAIでリライトし、キャラクターの口調でスケジュール投稿を一括生成します。
+        コンセプト設計の成果物をそのまま投稿運用に直結させるための機能です。
+      </p>
+    </div>
+
+    <!-- ── 前提条件 ── -->
+    <div class="info-box warn">
+      <strong>この機能を使うための前提条件（3つ）</strong>
+      以下がすべて揃っていないと「投稿を生成」ボタンが無効になります。先に準備してください。
+      <ol style="margin:8px 0 0 18px">
+        <li><strong>コンセプト設計が「完了」済み</strong> — コンセプト設計でキャラクターを保存済みであること</li>
+        <li><strong>キャラクターにThreadsアカウントが紐付け済み</strong> — 下記の手順で紐付けること</li>
+        <li><strong>参考アカウントがプロジェクトに登録済み</strong> — コンセプト設計の Step 1 で指定したアカウント</li>
+      </ol>
+    </div>
+
+    <!-- ── Threadsアカウント紐付け手順 ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>事前準備: Threadsアカウントをキャラクターに紐付ける</h3>
+      <p>コンセプト設計で保存されたキャラクター（AppraisalCharacter）に、実際に投稿する Threads アカウントを紐付ける必要があります。</p>
+      <ol>
+        <li>Django 管理画面にログイン: <code>/admin/</code></li>
+        <li>左メニュー「<strong>SOCIAL &gt; 占い師キャラクター</strong>」（AppraisalCharacter）を開く</li>
+        <li>対象のキャラクターをクリック</li>
+        <li>「<strong>Threadsアカウント</strong>」プルダウンから連携済みのアカウントを選択</li>
+        <li>「保存」をクリック</li>
+      </ol>
+      <div class="info-box hint" style="margin-bottom:0">
+        <strong>Threads アカウントが選択肢に出ない場合</strong>
+        先に「<a href="{% url 'console:accounts' %}">アカウント連携</a>」画面で Threads アカウントを連携してください。
+        連携に必要なのは Threads ユーザーID とアクセストークンです。
+      </div>
+    </article>
+
+    <!-- ── 全体フロー図 ── -->
+    <div class="roadmap" style="grid-template-columns:repeat(4,minmax(0,1fr));margin:18px 0">
+      <article class="roadmap-step">
+        <div class="step-num">1</div>
+        <h3>プロジェクト選択</h3>
+        <p>完了済みコンセプトから選ぶ</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">2</div>
+        <h3>参考アカウント選択</h3>
+        <p>リライト元を1つ指定</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">3</div>
+        <h3>AI一括生成</h3>
+        <p>リライト+スケジュール生成</p>
+      </article>
+      <article class="roadmap-step">
+        <div class="step-num">4</div>
+        <h3>編集・承認・分析</h3>
+        <p>確認して一括承認</p>
+      </article>
+    </div>
+
+    <!-- ── Step by Step ── -->
+    <ol class="numbered-steps">
+      <li>
+        <strong>コンセプトプロジェクトを選択する</strong><br>
+        画面上部のドロップダウンから、完了済みのプロジェクトを選びます。
+        選択すると、キャラクター情報と参考アカウントが左カラムに自動表示されます。
+      </li>
+      <li>
+        <strong>参考アカウントを1つ選択する</strong><br>
+        左カラムの「参考アカウント」から、リライト元にしたいアカウントをクリックします。
+        選択されたアカウントは青枠でハイライトされ、「選択中の参考アカウント」欄に表示されます。
+      </li>
+      <li>
+        <strong>生成設定を調整する</strong><br>
+        <table class="config-table">
+          <tr><th>投稿間隔（時間）</th><td>生成される投稿の予約間隔。初期値は8時間（1日3投稿ペース）。短くすると密な投稿、長くするとゆるやかな投稿になります。</td></tr>
+          <tr><th>最大生成数</th><td>一度に生成する投稿の上限。1〜10件。参考アカウントのエンゲージメントスコア上位の投稿が選ばれます。</td></tr>
+          <tr><th>追加スタイル指示</th><td>リライト時にAIに伝える追加指示。例:「絵文字多めで」「スピリチュアル寄りに」「CTA強めに」</td></tr>
+        </table>
+      </li>
+      <li>
+        <strong>「投稿を生成」ボタンを押す</strong><br>
+        AIが参考投稿をキャラクターの口調でリライトし、NGワードチェックを通過した投稿を「下書き（DRAFT）」として一括登録します。
+        生成には1件あたり数秒〜10秒程度かかります。
+      </li>
+      <li>
+        <strong>生成結果を確認・編集する</strong><br>
+        右カラムのスケジュール一覧に、生成された投稿がカード形式で表示されます。
+        各カードの「編集」ボタンで、本文をインラインで修正できます。
+      </li>
+      <li>
+        <strong>一括承認する</strong><br>
+        チェックボックスで投稿を選択し、「一括承認」ボタンで DRAFT → APPROVED に変更します。
+        承認された投稿は、予約時刻になると自動で Threads に投稿されます。
+      </li>
+    </ol>
+
+    <!-- ── ステータスの流れ ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>投稿のステータスと流れ</h3>
+      <table class="config-table">
+        <tr><th>ステータス</th><th>意味</th><th>操作</th></tr>
+        <tr>
+          <th style="color:#856404;background:#fff3cd">DRAFT（下書き）</th>
+          <td>生成直後の状態。まだ投稿されない。</td>
+          <td>本文の編集、承認、削除が可能</td>
+        </tr>
+        <tr>
+          <th style="color:#155724;background:#d4edda">APPROVED（承認済み）</th>
+          <td>投稿予約が確定した状態。予約時刻に自動投稿される。</td>
+          <td>本文の編集がまだ可能。予約時刻前なら取り消しも可能。</td>
+        </tr>
+        <tr>
+          <th style="color:#004085;background:#cce5ff">SENT（送信済み）</th>
+          <td>Threads に投稿完了した状態。</td>
+          <td>インサイト更新ボタンでいいね/リプライ数を取得可能</td>
+        </tr>
+        <tr>
+          <th style="color:#721c24;background:#f8d7da">FAILED（失敗）</th>
+          <td>API エラー等で投稿に失敗した状態。</td>
+          <td>Django ログでエラー原因を確認</td>
+        </tr>
+      </table>
+    </article>
+
+    <!-- ── インサイト（パフォーマンス確認） ── -->
+    <article class="guide-card" style="margin-bottom:18px">
+      <h3>パフォーマンスを確認する（インサイト更新）</h3>
+      <p>SENT 状態の投稿は、Threads API からインサイト（いいね・リプライ・インプレッション）を取得できます。</p>
+      <ol>
+        <li>SENT 状態の投稿をチェックボックスで選択</li>
+        <li>「<strong>インサイト更新</strong>」ボタンをクリック</li>
+        <li>各カードにインプレッション数・エンゲージメント数が表示されます</li>
+      </ol>
+      <div class="info-box hint" style="margin-bottom:0">
+        <strong>活用のコツ</strong>
+        反応が良かった投稿の「リライト元」を確認し、同じ参考アカウントや類似テーマで再生成すると、ヒット率が上がります。
+      </div>
+    </article>
+
+    <!-- ── 運用のコツ ── -->
+    <div class="guide-grid">
+      <article class="guide-card">
+        <h3>効果的な運用パターン</h3>
+        <ul>
+          <li><strong>朝に一括生成</strong>: 参考アカウントを選んで5件生成 → 内容を確認 → 一括承認</li>
+          <li><strong>投稿間隔は8時間</strong>が基本（1日3投稿ペース）。フォロワーが増えたら6時間に短縮</li>
+          <li><strong>週に1回インサイト確認</strong>: 反応の良い投稿パターンを把握</li>
+          <li><strong>複数の参考アカウント</strong>を日替わりで使い、投稿のバリエーションを保つ</li>
+        </ul>
+      </article>
+      <article class="guide-card">
+        <h3>よくある質問</h3>
+        <ul>
+          <li><strong>Q: プロジェクトが選択肢に出ない</strong><br>A: コンセプト設計の Step 4 でキャラクターを保存し、プロジェクトを「完了」にしてください</li>
+          <li><strong>Q: 「投稿を生成」が押せない</strong><br>A: キャラクターに Threads アカウントが紐付いていません。上の「事前準備」を確認してください</li>
+          <li><strong>Q: 生成数が指定より少ない</strong><br>A: NGワードチェックで除外された投稿があります。参考投稿が少ない場合もあります</li>
+          <li><strong>Q: 承認後に投稿されない</strong><br>A: 予約時刻がまだ来ていないか、scheduler コンテナが停止していないか確認してください</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="cta">
+      <a class="button primary" href="{% url 'console:auto_posting' %}">自動投稿ワークフローを開く</a>
+      <a class="button" href="{% url 'console:concept_design' %}">コンセプト設計</a>
+      <a class="button" href="{% url 'console:scheduled_posts' %}">予約投稿管理</a>
+      <a class="button" href="{% url 'console:accounts' %}">アカウント連携</a>
     </div>
   </section>
 
