@@ -133,6 +133,11 @@ urlpatterns = [
     path("api/concept/save/",                   concept_views.concept_save_api,        name="concept_save_api"),
     path("api/concept/edit-md/",                concept_views.concept_edit_md_api,     name="concept_edit_md_api"),
 
+    # プロジェクト管理API
+    path("api/project/add-author/",             concept_views.project_add_author_api,    name="project_add_author"),
+    path("api/project/remove-author/",          concept_views.project_remove_author_api, name="project_remove_author"),
+    path("api/project/link-account/",           concept_views.project_link_account_api,  name="project_link_account"),
+
     # 自動投稿ワークフロー
     path("auto-posting/",                            auto_views.auto_posting,                      name="auto_posting"),
     path("api/auto-posting/generate/",               auto_views.auto_posting_generate_api,         name="auto_posting_generate"),

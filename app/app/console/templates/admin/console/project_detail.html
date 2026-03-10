@@ -1,0 +1,544 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}プロジェクト: {{ project.title|default:"無題" }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'console:index' %}">ダッシュボード</a> &gt;
+  <a href="{% url 'console:concept_design' %}">コンセプト設計</a> &gt;
+  {{ project.title|default:"無題" }}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .pd-container { max-width: 1200px; margin: 0 auto; padding: 0 10px; }
+  .pd-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+  }
+  .pd-header h2 { margin: 0; font-size: 18px; }
+  .pd-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; background: #e8f5e9; color: #2e7d32;
+  }
+  .pd-meta { font-size: 12px; color: #888; }
+
+  .pd-grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; }
+  @media (max-width: 900px) { .pd-grid { grid-template-columns: 1fr; } }
+
+  .pd-panel {
+    background: #fff; border-radius: 8px; padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px;
+  }
+  .pd-panel h3 {
+    font-size: 14px; margin: 0 0 12px; color: #333;
+    border-bottom: 1px solid #eee; padding-bottom: 6px;
+  }
+
+  .pd-md-preview {
+    background: #fafafa; border: 1px solid #eee; border-radius: 6px;
+    padding: 16px; font-size: 13px; line-height: 1.7; max-height: 700px; overflow-y: auto;
+  }
+  .pd-md-preview h2 { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .pd-md-preview h3 { font-size: 14px; }
+  .pd-md-preview ul { padding-left: 20px; }
+
+  .pd-md-edit {
+    width: 100%; min-height: 500px; font-family: monospace; font-size: 12px;
+    padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
+  }
+
+  .pd-btn {
+    padding: 7px 14px; border: none; border-radius: 5px;
+    font-size: 12px; font-weight: bold; cursor: pointer; transition: background .2s;
+  }
+  .pd-btn-primary { background: #9c27b0; color: #fff; }
+  .pd-btn-primary:hover { background: #7b1fa2; }
+  .pd-btn-primary:disabled { background: #ccc; cursor: wait; }
+  .pd-btn-success { background: #2e7d32; color: #fff; }
+  .pd-btn-success:hover { background: #1b5e20; }
+  .pd-btn-danger { background: #c62828; color: #fff; font-size: 11px; padding: 4px 10px; }
+  .pd-btn-danger:hover { background: #b71c1c; }
+  .pd-btn-outline { background: #fff; color: #555; border: 1px solid #ccc; }
+  .pd-btn-outline:hover { background: #f5f5f5; }
+
+  .pd-author-card {
+    background: #fafafa; border: 1px solid #eee; border-radius: 6px;
+    padding: 10px 12px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .pd-author-info { flex: 1; }
+  .pd-author-info .name { font-weight: 600; font-size: 13px; }
+  .pd-author-info .detail { font-size: 11px; color: #888; margin-top: 2px; }
+
+  .pd-add-form { display: flex; gap: 8px; margin-top: 10px; }
+  .pd-add-form input {
+    flex: 1; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
+  }
+
+  .pd-link-section select {
+    width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
+  }
+  .pd-link-current { font-size: 12px; color: #555; margin-bottom: 8px; }
+
+  .pd-loading { text-align: center; padding: 12px; color: #888; display: none; }
+  .pd-loading .spinner {
+    display: inline-block; width: 20px; height: 20px; border: 3px solid #ddd;
+    border-top-color: #9c27b0; border-radius: 50%; animation: pd-spin 1s linear infinite;
+  }
+  @keyframes pd-spin { to { transform: rotate(360deg); } }
+
+  .pd-toast {
+    position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+    background: #333; color: #fff; border-radius: 6px; font-size: 13px;
+    display: none; z-index: 9999; animation: pd-fadein .3s;
+  }
+  @keyframes pd-fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .pd-proposal-card {
+    background: #fafafa; border: 2px solid #eee; border-radius: 6px;
+    padding: 10px; cursor: pointer; transition: border-color .2s;
+  }
+  .pd-proposal-card.selected { border-color: #9c27b0; background: #fce4ec; }
+</style>
+
+<div class="pd-container">
+  <!-- ヘッダー -->
+  <div class="pd-header">
+    <div>
+      <h2>{{ project.title|default:"無題" }} <span class="pd-badge">完了</span></h2>
+      <div class="pd-meta">
+        {% if project.character %}キャラクター: <strong>{{ project.character.name }}</strong> | {% endif %}
+        作成: {{ project.created_at|date:"Y/m/d H:i" }} |
+        更新: {{ project.updated_at|date:"Y/m/d H:i" }}
+      </div>
+    </div>
+    <a href="{% url 'console:concept_design' %}" class="pd-btn pd-btn-outline">一覧に戻る</a>
+  </div>
+
+  <!-- 2カラム -->
+  <div class="pd-grid">
+    <!-- 左カラム: コンセプトMD -->
+    <div>
+      <div class="pd-panel">
+        <h3>
+          コンセプト設計書
+          <span style="float:right;">
+            <button class="pd-btn pd-btn-outline" id="toggleEditBtn" onclick="toggleMdEdit()" style="font-size:11px;">編集</button>
+            <button class="pd-btn pd-btn-primary" id="saveMdBtn" onclick="saveMdEdit()" style="font-size:11px;display:none;">保存</button>
+          </span>
+        </h3>
+        <div id="mdPreview" class="pd-md-preview"></div>
+        <textarea id="mdEditor" class="pd-md-edit" style="display:none;"></textarea>
+      </div>
+    </div>
+
+    <!-- 右カラム: アカウント管理 -->
+    <div>
+      <!-- Threadsアカウント紐付け -->
+      <div class="pd-panel">
+        <h3>Threadsアカウント紐付け</h3>
+        <div class="pd-link-current">
+          現在: <strong id="currentThAccount">
+            {% if project.character and project.character.th_account %}
+              {{ project.character.th_account }}
+            {% else %}
+              未紐付け
+            {% endif %}
+          </strong>
+        </div>
+        <div class="pd-link-section">
+          <select id="thAccountSelect">
+            <option value="">-- 紐付け解除 --</option>
+            {% for acc in threads_accounts %}
+            <option value="{{ acc.pk }}"
+              {% if project.character and project.character.th_account_id == acc.pk %}selected{% endif %}>
+              {{ acc.display_name }} (@{{ acc.username }})
+            </option>
+            {% endfor %}
+          </select>
+          <button class="pd-btn pd-btn-primary" onclick="linkAccount()" style="margin-top:8px;">変更</button>
+        </div>
+      </div>
+
+      <!-- 参考アカウント一覧 -->
+      <div class="pd-panel">
+        <h3>参考アカウント ({{ project_authors|length }})</h3>
+        <div id="authorList">
+          {% for pa in project_authors %}
+          <div class="pd-author-card" data-author-id="{{ pa.author.pk }}">
+            <div class="pd-author-info">
+              <div class="name">@{{ pa.author.username }}</div>
+              <div class="detail">
+                {% if pa.author.followers_count %}{{ pa.author.followers_count|floatformat:0 }} followers{% endif %}
+                {% if pa.ai_summary %} | {{ pa.ai_summary|truncatechars:60 }}{% endif %}
+              </div>
+            </div>
+            <button class="pd-btn pd-btn-danger" onclick="removeAuthor({{ pa.author.pk }}, this)">削除</button>
+          </div>
+          {% empty %}
+          <div style="font-size:12px;color:#888;" id="noAuthorsMsg">参考アカウントなし</div>
+          {% endfor %}
+        </div>
+
+        <div class="pd-add-form">
+          <input type="text" id="addAuthorInput" placeholder="@username">
+          <button class="pd-btn pd-btn-primary" id="addAuthorBtn" onclick="addAuthor()">追加</button>
+        </div>
+        <div id="addAuthorLoading" class="pd-loading">
+          <div class="spinner"></div> 分析中…
+        </div>
+      </div>
+
+      <!-- コンセプト再生成 -->
+      <div class="pd-panel">
+        <h3>コンセプト再生成</h3>
+        <p style="font-size:12px;color:#555;margin:0 0 10px;">
+          現在の参考アカウントを元にコンセプトを再生成します。
+          既存のコンセプトは上書きされます。
+        </p>
+        <button class="pd-btn pd-btn-primary" id="regenBtn" onclick="startRegeneration()">コンセプトを再生成</button>
+        <div id="regenLoading" class="pd-loading">
+          <div class="spinner"></div>
+          <span id="regenStatus">処理中…</span>
+        </div>
+        <!-- 再生成: コンセプト案選択 -->
+        <div id="regenProposals" style="display:none;margin-top:12px;">
+          <h4 style="font-size:13px;margin:0 0 8px;">コンセプト案を選択:</h4>
+          <div id="regenProposalCards" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div style="margin-top:10px;">
+            <label style="font-size:12px;color:#555;font-weight:600;">要望メモ（オプション）</label>
+            <textarea id="regenFeedback" style="width:100%;min-height:40px;padding:6px;border:1px solid #ccc;border-radius:4px;font-size:12px;box-sizing:border-box;margin-top:4px;"
+              placeholder="例: もう少しカジュアルに…"></textarea>
+          </div>
+          <button class="pd-btn pd-btn-success" id="regenDetailBtn" onclick="regenDetail()" disabled style="margin-top:8px;">選択した案を詳細化</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="pd-toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+const PROJECT_ID = {{ project.pk }};
+const CSRF = '{{ csrf_token }}';
+const initialMd = '{{ project.detailed_concept_md|escapejs }}';
+
+function getHeaders() {
+  return { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF };
+}
+
+function renderSafeMarkdown(md) {
+  return DOMPurify.sanitize(marked.parse(md));
+}
+
+function showToast(msg, duration) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, duration || 3000);
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.textContent;
+}
+
+// ─── 初期表示 ───
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('mdPreview').innerHTML = renderSafeMarkdown(initialMd);
+  document.getElementById('mdEditor').value = initialMd;
+});
+
+// ─── MD編集 ───
+var editMode = false;
+function toggleMdEdit() {
+  editMode = !editMode;
+  var preview = document.getElementById('mdPreview');
+  var editor = document.getElementById('mdEditor');
+  var toggleBtn = document.getElementById('toggleEditBtn');
+  var saveBtn = document.getElementById('saveMdBtn');
+  if (editMode) {
+    preview.style.display = 'none';
+    editor.style.display = 'block';
+    toggleBtn.textContent = 'プレビュー';
+    saveBtn.style.display = 'inline-block';
+  } else {
+    var md = editor.value;
+    preview.innerHTML = renderSafeMarkdown(md);
+    preview.style.display = 'block';
+    editor.style.display = 'none';
+    toggleBtn.textContent = '編集';
+    saveBtn.style.display = 'none';
+  }
+}
+
+async function saveMdEdit() {
+  var md = document.getElementById('mdEditor').value;
+  try {
+    var res = await fetch('{% url "console:concept_edit_md_api" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, md_content: md }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      document.getElementById('mdPreview').innerHTML = renderSafeMarkdown(md);
+      showToast('MD保存しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
+// ─── Threadsアカウント紐付け ───
+async function linkAccount() {
+  var accountId = document.getElementById('thAccountSelect').value;
+  try {
+    var res = await fetch('{% url "console:project_link_account" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, threads_account_id: accountId ? parseInt(accountId) : null }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      document.getElementById('currentThAccount').textContent = data.th_account_name || '未紐付け';
+      showToast('紐付けを変更しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
+// ─── 参考アカウント追加 ───
+async function addAuthor() {
+  var input = document.getElementById('addAuthorInput');
+  var username = input.value.trim().replace(/^@/, '');
+  if (!username) { alert('ユーザー名を入力してください'); return; }
+
+  var btn = document.getElementById('addAuthorBtn');
+  btn.disabled = true;
+  document.getElementById('addAuthorLoading').style.display = 'block';
+
+  try {
+    var res = await fetch('{% url "console:project_add_author" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, username: username }),
+    });
+    var data = await res.json();
+    document.getElementById('addAuthorLoading').style.display = 'none';
+
+    if (data.ok) {
+      var a = data.author;
+      var noMsg = document.getElementById('noAuthorsMsg');
+      if (noMsg) noMsg.remove();
+
+      // DOM構築（textContent使用でXSS回避）
+      var card = document.createElement('div');
+      card.className = 'pd-author-card';
+      card.setAttribute('data-author-id', a.id);
+
+      var info = document.createElement('div');
+      info.className = 'pd-author-info';
+      var nameDiv = document.createElement('div');
+      nameDiv.className = 'name';
+      nameDiv.textContent = '@' + a.username;
+      var detailDiv = document.createElement('div');
+      detailDiv.className = 'detail';
+      var detailText = '';
+      if (a.followers_count) detailText += a.followers_count + ' followers';
+      if (a.summary) detailText += (detailText ? ' | ' : '') + a.summary.substring(0, 60);
+      detailDiv.textContent = detailText;
+      info.appendChild(nameDiv);
+      info.appendChild(detailDiv);
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'pd-btn pd-btn-danger';
+      delBtn.textContent = '削除';
+      delBtn.onclick = function() { removeAuthor(a.id, delBtn); };
+
+      card.appendChild(info);
+      card.appendChild(delBtn);
+      document.getElementById('authorList').appendChild(card);
+      input.value = '';
+      showToast('@' + a.username + ' を追加しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) {
+    document.getElementById('addAuthorLoading').style.display = 'none';
+    alert('エラー: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ─── 参考アカウント削除 ───
+async function removeAuthor(authorId, btn) {
+  if (!confirm('この参考アカウントを削除しますか？')) return;
+  try {
+    var res = await fetch('{% url "console:project_remove_author" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, author_id: authorId }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      btn.closest('.pd-author-card').remove();
+      showToast('削除しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
+// ─── コンセプト再生成 ───
+var regenSelectedIndex = null;
+
+async function startRegeneration() {
+  if (!confirm('コンセプトを再生成します。既存のコンセプトは上書きされます。よろしいですか？')) return;
+
+  var btn = document.getElementById('regenBtn');
+  btn.disabled = true;
+  document.getElementById('regenLoading').style.display = 'block';
+  document.getElementById('regenStatus').textContent = '参考アカウントを再分析中…';
+  document.getElementById('regenProposals').style.display = 'none';
+
+  // 現在の参考アカウントのusernameを取得
+  var authorCards = document.querySelectorAll('.pd-author-card');
+  var usernames = [];
+  authorCards.forEach(function(card) {
+    var nameEl = card.querySelector('.name');
+    if (nameEl) {
+      var uname = nameEl.textContent.trim().replace(/^@/, '');
+      if (uname) usernames.push(uname);
+    }
+  });
+
+  if (!usernames.length) {
+    alert('参考アカウントがありません。先にアカウントを追加してください。');
+    btn.disabled = false;
+    document.getElementById('regenLoading').style.display = 'none';
+    return;
+  }
+
+  try {
+    // Step 1: analyze
+    var res = await fetch('{% url "console:concept_analyze_api" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, usernames: usernames }),
+    });
+    var data = await res.json();
+    if (!data.ok) { alert(data.error); return; }
+
+    // Step 2: proposals
+    document.getElementById('regenStatus').textContent = 'コンセプト案を生成中…';
+    var res2 = await fetch('{% url "console:concept_proposals_api" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: PROJECT_ID, user_context: '' }),
+    });
+    var data2 = await res2.json();
+    if (!data2.ok) { alert(data2.error); return; }
+
+    // コンセプト案を表示
+    document.getElementById('regenLoading').style.display = 'none';
+    showRegenProposals(data2.proposals);
+
+  } catch(e) {
+    alert('エラー: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('regenLoading').style.display = 'none';
+  }
+}
+
+function showRegenProposals(proposals) {
+  regenSelectedIndex = null;
+  var container = document.getElementById('regenProposalCards');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  document.getElementById('regenProposals').style.display = 'block';
+  document.getElementById('regenDetailBtn').disabled = true;
+
+  proposals.forEach(function(p, i) {
+    var card = document.createElement('div');
+    card.className = 'pd-proposal-card';
+    card.id = 'regen-proposal-' + i;
+    card.onclick = function() {
+      regenSelectedIndex = i;
+      document.querySelectorAll('.pd-proposal-card').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      card.classList.add('selected');
+      document.getElementById('regenDetailBtn').disabled = false;
+    };
+
+    var title = document.createElement('div');
+    title.style.cssText = 'font-weight:600;font-size:13px;margin-bottom:4px;';
+    title.textContent = String.fromCharCode(65+i) + '. ' + (p.title || '');
+    card.appendChild(title);
+
+    var labelMap = {target:'ターゲット', divination:'占術', character:'キャラ', shift_point:'ずらし'};
+    var fields = ['target', 'divination', 'character', 'shift_point'];
+    fields.forEach(function(key) {
+      if (p[key]) {
+        var line = document.createElement('div');
+        line.style.cssText = 'font-size:11px;color:#555;';
+        line.textContent = (labelMap[key] || key) + ': ' + p[key];
+        card.appendChild(line);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+async function regenDetail() {
+  if (regenSelectedIndex === null) { alert('案を選択してください'); return; }
+
+  var btn = document.getElementById('regenDetailBtn');
+  btn.disabled = true; btn.textContent = '詳細化中…';
+  document.getElementById('regenLoading').style.display = 'block';
+  document.getElementById('regenStatus').textContent = 'コンセプトを詳細化中…';
+
+  var feedback = document.getElementById('regenFeedback').value;
+
+  try {
+    var res = await fetch('{% url "console:concept_detail_api" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({
+        project_id: PROJECT_ID,
+        selected_index: regenSelectedIndex,
+        user_feedback: feedback,
+      }),
+    });
+    var data = await res.json();
+    if (!data.ok) { alert(data.error); return; }
+
+    // 保存確認
+    if (confirm('新しいコンセプトが生成されました。保存しますか？')) {
+      var res2 = await fetch('{% url "console:concept_save_api" %}', {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ project_id: PROJECT_ID, profile_bio: '', pinned_post_samples: [] }),
+      });
+      var data2 = await res2.json();
+      if (data2.ok) {
+        document.getElementById('mdPreview').innerHTML = renderSafeMarkdown(data.detailed_md);
+        document.getElementById('mdEditor').value = data.detailed_md;
+        showToast('コンセプトを再生成・保存しました');
+      } else {
+        alert(data2.error);
+      }
+    }
+
+    document.getElementById('regenProposals').style.display = 'none';
+  } catch(e) {
+    alert('エラー: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '選択した案を詳細化';
+    document.getElementById('regenLoading').style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

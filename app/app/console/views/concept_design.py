@@ -57,6 +57,16 @@ def concept_project_detail(request, pk):
     project = get_object_or_404(ConceptProject, pk=pk)
     project_authors = project.project_authors.select_related('author').all()
 
+    # ★ COMPLETED の場合は詳細閲覧画面へ
+    if project.status == 'COMPLETED':
+        from social.models import ThreadsAccount
+        threads_accounts = ThreadsAccount.objects.all()
+        return render(request, 'admin/console/project_detail.html', {
+            'project': project,
+            'project_authors': project_authors,
+            'threads_accounts': threads_accounts,
+        })
+
     # サジェスト用: お気に入り or コンセプト候補のアカウント
     suggest_authors = THBuzzAuthor.objects.filter(
         is_excluded=False,
@@ -309,3 +319,111 @@ def concept_edit_md_api(request):
     project.save(update_fields=['detailed_concept_md'])
 
     return JsonResponse({'ok': True})
+
+
+@staff_member_required
+@require_POST
+def project_add_author_api(request):
+    """COMPLETED プロジェクトに参考アカウントを追加"""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    username = (data.get('username') or '').lstrip('@').strip()
+
+    if not project_id or not username:
+        return JsonResponse({'ok': False, 'error': 'project_id と username が必要です'}, status=400)
+
+    project = get_object_or_404(ConceptProject, pk=project_id)
+
+    from th.services.concept_analyzer import ensure_author_data, analyze_author
+
+    try:
+        author = ensure_author_data(username)
+        if not author:
+            return JsonResponse({'ok': False, 'error': f'@{username}: アカウントが見つかりませんでした'}, status=404)
+
+        analysis = analyze_author(author)
+        analysis['username'] = author.username
+        analysis['display_name'] = author.display_name or ''
+
+        pa, _ = ConceptProjectAuthor.objects.update_or_create(
+            project=project, author=author,
+            defaults={
+                'ai_analysis': analysis,
+                'ai_summary': analysis.get('summary', ''),
+                'order': project.project_authors.count(),
+            },
+        )
+    except Exception as e:
+        logger.exception('project_add_author_api: @%s の追加失敗', username)
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+    return JsonResponse({
+        'ok': True,
+        'author': {
+            'id': author.pk,
+            'username': author.username,
+            'display_name': author.display_name or '',
+            'followers_count': author.followers_count,
+            'summary': analysis.get('summary', ''),
+        },
+    })
+
+
+@staff_member_required
+@require_POST
+def project_remove_author_api(request):
+    """参考アカウントをプロジェクトから削除"""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    author_id = data.get('author_id')
+
+    if not project_id or not author_id:
+        return JsonResponse({'ok': False, 'error': 'project_id と author_id が必要です'}, status=400)
+
+    deleted, _ = ConceptProjectAuthor.objects.filter(
+        project_id=project_id, author_id=author_id,
+    ).delete()
+
+    return JsonResponse({'ok': True, 'deleted': deleted > 0})
+
+
+@staff_member_required
+@require_POST
+def project_link_account_api(request):
+    """キャラクターにThreadsアカウントを紐付け"""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    threads_account_id = data.get('threads_account_id')
+
+    project = get_object_or_404(ConceptProject, pk=project_id)
+
+    if not project.character:
+        return JsonResponse({'ok': False, 'error': 'プロジェクトにキャラクターが紐付いていません'}, status=400)
+
+    from social.models import ThreadsAccount
+
+    if threads_account_id:
+        account = get_object_or_404(ThreadsAccount, pk=threads_account_id)
+        project.character.th_account = account
+    else:
+        project.character.th_account = None
+
+    project.character.save(update_fields=['th_account'])
+
+    return JsonResponse({
+        'ok': True,
+        'th_account_id': project.character.th_account_id,
+        'th_account_name': str(project.character.th_account) if project.character.th_account else '',
+    })

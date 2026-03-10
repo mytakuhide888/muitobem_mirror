@@ -166,16 +166,20 @@ JAZZMIN_SETTINGS = {
 
     # 左ナビに置く「便利リンク」（※存在確認済みURLだけ入れています）
     "custom_links": {
-        # 共通SNS：管理外のビューだけ
-        # "social": [
-        #     {"name": "投稿インポート", "url": "social:post-import", "icon": "fa fa-file-import"},
-        #     {"name": "投稿同期",       "url": "social:post-sync",   "icon": "fa fa-sync"},
-        # ],
-        # "ig": [] を消す（または ig キー自体を削除）
-        # "th": [] を消す（または th キー自体を削除）
-
-        # 認証はモデルが出るので custom_links は不要
-        # "auth": [] も削除
+        "th": [
+            {
+                "name": "プロジェクト一覧",
+                "url": "console:concept_design",
+                "icon": "fa fa-project-diagram",
+                "permissions": ["auth.view_user"],
+            },
+            {
+                "name": "自動投稿",
+                "url": "console:auto_posting",
+                "icon": "fa fa-robot",
+                "permissions": ["auth.view_user"],
+            },
+        ],
     },
     "topmenu_links": [
         {"name": "ダッシュボード",        "url": "console:index",            "permissions": ["auth.view_user"]},
