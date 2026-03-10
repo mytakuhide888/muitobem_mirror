@@ -32,6 +32,21 @@
   .cd-badge-detailing { background: #fce4ec; color: #c62828; }
   .cd-badge-completed { background: #e8f5e9; color: #2e7d32; }
   .cd-empty { text-align: center; padding: 40px; color: #888; }
+  .cd-card-actions {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+  .cd-card-actions button {
+    padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 11px; cursor: pointer; background: #fff; color: #555; transition: background .2s;
+  }
+  .cd-card-actions button:hover { background: #f5f5f5; }
+  .cd-card-actions .cd-del-btn { border-color: #e57373; color: #c62828; }
+  .cd-card-actions .cd-del-btn:hover { background: #ffebee; }
+  .cd-toast {
+    position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+    background: #333; color: #fff; border-radius: 6px; font-size: 13px;
+    display: none; z-index: 9999;
+  }
 
   /* インラインガイド */
   .cd-guide {
@@ -142,8 +157,8 @@
   {% if projects %}
   <div class="cd-cards">
     {% for p in projects %}
-    <a class="cd-card" href="{% url 'console:concept_project_detail' pk=p.pk %}">
-      <h3>
+    <a class="cd-card" href="{% url 'console:concept_project_detail' pk=p.pk %}" id="card-{{ p.pk }}">
+      <h3 id="card-title-{{ p.pk }}">
         {{ p.title|default:"無題" }}
         {% if p.status == 'DRAFT' %}<span class="cd-badge" style="background:#f3f4f6;color:#4b5563;">下書き</span>
         {% elif p.status == 'ANALYZING' %}<span class="cd-badge cd-badge-analyzing">分析中</span>
@@ -159,6 +174,10 @@
       {% if p.analysis_summary %}
       <div style="margin-top:8px;font-size:12px;color:#555;">{{ p.analysis_summary|truncatechars:80 }}</div>
       {% endif %}
+      <div class="cd-card-actions">
+        <button onclick="event.preventDefault();showRenameModal({{ p.pk }}, '{{ p.title|escapejs }}')">名前変更</button>
+        <button class="cd-del-btn" onclick="event.preventDefault();deleteProject({{ p.pk }}, '{{ p.title|escapejs }}')">削除</button>
+      </div>
     </a>
     {% endfor %}
   </div>
@@ -184,7 +203,95 @@
   </div>
 </div>
 
+<!-- 名前変更モーダル -->
+<div class="cd-modal-overlay" id="renameModal">
+  <div class="cd-modal">
+    <h3>プロジェクト名を変更</h3>
+    <input type="text" id="renameInput" placeholder="新しいプロジェクト名">
+    <input type="hidden" id="renameProjectId">
+    <div class="cd-modal-actions">
+      <button type="button" class="cd-btn cd-btn-cancel" onclick="hideRenameModal()">キャンセル</button>
+      <button type="button" class="cd-btn cd-btn-primary" onclick="submitRename()">変更</button>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="cd-toast" id="cdToast"></div>
+
 <script>
+const CSRF = '{{ csrf_token }}';
+function getHeaders() {
+  return { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF };
+}
+function showCdToast(msg) {
+  var el = document.getElementById('cdToast');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+// 名前変更
+function showRenameModal(projectId, currentTitle) {
+  document.getElementById('renameProjectId').value = projectId;
+  document.getElementById('renameInput').value = currentTitle;
+  document.getElementById('renameModal').classList.add('active');
+  document.getElementById('renameInput').focus();
+}
+function hideRenameModal() { document.getElementById('renameModal').classList.remove('active'); }
+document.getElementById('renameModal').addEventListener('click', function(e) {
+  if (e.target === this) hideRenameModal();
+});
+document.getElementById('renameInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); submitRename(); }
+});
+
+async function submitRename() {
+  var projectId = document.getElementById('renameProjectId').value;
+  var title = document.getElementById('renameInput').value.trim();
+  if (!title) { alert('プロジェクト名を入力してください'); return; }
+
+  try {
+    var res = await fetch('{% url "console:project_rename" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: parseInt(projectId), title: title }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      // カードタイトルを更新（バッジ部分は保持）
+      var h3 = document.getElementById('card-title-' + projectId);
+      if (h3) {
+        var badge = h3.querySelector('.cd-badge');
+        h3.textContent = data.title + ' ';
+        if (badge) h3.appendChild(badge);
+      }
+      hideRenameModal();
+      showCdToast('名前を変更しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
+// 削除
+async function deleteProject(projectId, title) {
+  if (!confirm('プロジェクト「' + title + '」を削除しますか？\nこの操作は取り消せません。')) return;
+
+  try {
+    var res = await fetch('{% url "console:project_delete" %}', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      var card = document.getElementById('card-' + projectId);
+      if (card) card.remove();
+      showCdToast('プロジェクトを削除しました');
+    } else {
+      alert(data.error);
+    }
+  } catch(e) { alert('エラー: ' + e.message); }
+}
+
 function showNewModal() { document.getElementById('newModal').classList.add('active'); }
 function hideNewModal() { document.getElementById('newModal').classList.remove('active'); }
 document.getElementById('newModal').addEventListener('click', function(e) {

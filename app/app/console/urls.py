@@ -134,7 +134,9 @@ urlpatterns = [
     path("api/concept/edit-md/",                concept_views.concept_edit_md_api,     name="concept_edit_md_api"),
 
     # プロジェクト管理API
-    path("api/project/add-author/",             concept_views.project_add_author_api,    name="project_add_author"),
+    path("api/project/rename/",                 concept_views.project_rename_api,         name="project_rename"),
+    path("api/project/delete/",                 concept_views.project_delete_api,         name="project_delete"),
+    path("api/project/add-author/",             concept_views.project_add_author_api,     name="project_add_author"),
     path("api/project/remove-author/",          concept_views.project_remove_author_api, name="project_remove_author"),
     path("api/project/link-account/",           concept_views.project_link_account_api,  name="project_link_account"),
 

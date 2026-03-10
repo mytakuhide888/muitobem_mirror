@@ -323,6 +323,47 @@ def concept_edit_md_api(request):
 
 @staff_member_required
 @require_POST
+def project_rename_api(request):
+    """プロジェクト名を変更"""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    title = (data.get('title') or '').strip()
+
+    if not project_id or not title:
+        return JsonResponse({'ok': False, 'error': 'project_id と title が必要です'}, status=400)
+
+    project = get_object_or_404(ConceptProject, pk=project_id)
+    project.title = title
+    project.save(update_fields=['title'])
+
+    return JsonResponse({'ok': True, 'title': project.title})
+
+
+@staff_member_required
+@require_POST
+def project_delete_api(request):
+    """プロジェクトを削除"""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    if not project_id:
+        return JsonResponse({'ok': False, 'error': 'project_id が必要です'}, status=400)
+
+    project = get_object_or_404(ConceptProject, pk=project_id)
+    project.delete()
+
+    return JsonResponse({'ok': True})
+
+
+@staff_member_required
+@require_POST
 def project_add_author_api(request):
     """COMPLETED プロジェクトに参考アカウントを追加"""
     try:
