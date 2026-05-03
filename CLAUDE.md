@@ -1,181 +1,84 @@
-# muitobem プロジェクト指示書
-## Workflow Orchestration
+# muitobem_mirror — システムの脳
 
-### 1. Plan Node Default
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately – don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+占いコンテンツの SNS 自動化・収益化プラットフォーム。
+Threads / Instagram の Meta API を用いてアカウント管理・投稿・スクレイピングを行う。
+Django 5.2.4 + MySQL 8.0 + Docker Compose（4 コンテナ）構成、ConoHa VPS で稼働。
 
-### 2. Subagent Strategy
-- Use subagents liberally to keep main context window clean
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One task per subagent for focused execution
+## メンタルモデル（リポジトリの読み方）
+- **`CLAUDE.md`**（この場所）= システムの脳。薄く保つ。詳細は配下にリンク。
+- **`.claude/memory/`** = 長期知能。教訓・パターン・回避策（高シグナルのみ）。
+- **`.claude/skills/`** = 実行エンジン。再利用可能な能力単位（vps-deploy / docker-ops / threads-ops / instagram-ops / scheduler-ops）。
+- **`.claude/agents/`** = 思考の分割。architect / coder / reviewer / optimizer。
+- **`.claude/workflows/`** = 自動化レイヤー。Plan→Build→Review→Test→Ship の段取り。
+- **`.claude/hooks/`** = 強制レイヤー。秘密漏えい遮断・構文検証・要約欠落検知（dry-run 中、ログ: `.claude/hooks/log/hooks.log`）。
+- **`CLAUDE/ops/`** = 機密情報（SSH パスワード等、`.gitignore` 対象、AI は読み取り可）。
+- **`CLAUDE/<YYYYMMDD>_<連番>/`** = チャット作業ログ（umbrella §1.2 規約）。教訓は `.claude/memory/lessons.md` に抽出。
+- **`CLAUDE/project_overview.md`** = 技術概要（不変設計）。
+- **`CLAUDE/strategy/`** = 事業戦略（全 12 章）。
 
-### 3. Self-Improvement Loop
-- After ANY correction from the user: update `tasks/lessons.md` with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
+## 実行ルール
+1. **継承**: umbrella `/home/niiya/CLAUDE.md` ＋ Karpathy 4 原則（最優先）。詳細は umbrella §「Karpathy 4 原則」または `~/.claude/skills/karpathy-guidelines/SKILL.md` ／ `.cursor/rules/karpathy-guidelines.mdc`。
+2. **Plan 先出し**: 非自明な変更（3+ ファイル・仕様影響・新機能・複数解釈あり）は Plan を提示し、承認後に実装。軽微な bug 修正（umbrella §6 自走の境界内）は Build から開始してよい。
+3. **最小差分**: 変更行は要求にトレース可能であること（Karpathy #3）。
+4. **記録**: セッション開始時に `CLAUDE/<YYYYMMDD>_<連番>/summary.md` を作成（umbrella テンプレ準拠）。
+5. **git は人間**: add / commit / push / branch 操作は人間が実施。AI は `git pull` / `git status` / `git diff` / `git log` のみ。
+6. **言語**: 計画・記録・コメントは日本語。
+7. **ローカル制約**: WSL では Django 起動不可。`migrate` / `runserver` は VPS のみ。構文検証は `python3 -c "import ast; ast.parse(open('x.py').read())"`。
+8. **機密**: SSH パスワード等は `CLAUDE/ops/server.md`（git 管理外）に集約。CLAUDE.md・docs に書かない。
 
-### 4. Verification Before Done
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness
+## クイックリファレンス
+| やりたいこと | 参照先 |
+|---|---|
+| 全体像・機能ステータス | `CLAUDE/project_overview.md` |
+| 機能仕様（Threads / Instagram） | `Threads_func.md` ／ `Insta_func.md` |
+| バズ機能ロードマップ | `CLAUDE/buzz_feature_roadmap.md` |
+| 事業戦略（全 12 章） | `CLAUDE/strategy/fortune_business_strategy.md` |
+| 運用方針 | `CLAUDE/20260208_2/operation_strategy.md` |
+| 引き継ぎ資料 | `docs/handover_summary.md` |
+| 参考資料（原文） | `docs/sankou/` ／ `CLAUDE/sankou/` |
+| 教訓ログ | `.claude/memory/lessons.md` |
+| VPS デプロイ手順 | `.claude/skills/vps-deploy/SKILL.md` |
+| Docker 操作 | `.claude/skills/docker-ops/SKILL.md` |
+| Threads 業務 | `.claude/skills/threads-ops/SKILL.md` |
+| Instagram 業務 | `.claude/skills/instagram-ops/SKILL.md` |
+| 定期ジョブ運用 | `.claude/skills/scheduler-ops/SKILL.md` |
+| 役割別エージェント | `.claude/agents/{architect,coder,reviewer,optimizer}.md` |
+| 自動化フロー | `.claude/workflows/plan-build-review-test-ship.md` |
+| 機械的検証（Hook） | `.claude/hooks/`（dry-run 中、ログ: `.claude/hooks/log/hooks.log`）|
+| **機密情報（SSH 接続・パスワード）** | **`CLAUDE/ops/server.md`（git 管理外、AI 読み取り可）** |
+| Cursor ルール | `.cursor/rules/karpathy-guidelines.mdc`（`alwaysApply: true`）|
+| 作業ログ（umbrella §1.2 規約） | `CLAUDE/<YYYYMMDD>_<連番>/summary.md` |
 
-### 5. Demand Elegance (Balanced)
-- For non-trivial changes: pause and ask "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes – don't over-engineer
-- Challenge your own work before presenting it
+## アーキテクチャ要約
 
-### 6. Autonomous Bug Fixing
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests – then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
+### コンテナ構成（Docker Compose / `-p muitobem`）
+| サービス | 役割 |
+|---|---|
+| `django` | Django アプリ本体（Python 3.12 / Django 5.2.4） |
+| `db` | MySQL 8.0 |
+| `caddy` | HTTPS リバースプロキシ |
+| `scheduler` | 定期ジョブ（60 秒間隔ループ＋ flock） |
 
-## Task Management
-
-1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
-2. **Verify Plan**: Check in before starting implementation
-3. **Track Progress**: Mark items complete as you go
-4. **Explain Changes**: High-level summary at each step
-5. **Document Results**: Add review section to `tasks/todo.md`
-6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
-
-## Core Principles
-
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
-
-## プロジェクト概要
-
-占いコンテンツのSNS自動化・収益化プラットフォーム。
-Django + MySQL + Docker Compose で構成。
-
-- **ドメイン**: https://muitobem.top/admin/
-- **VPS**: ConoHa VPS (160.251.140.93)
-- **リポジトリ**: https://github.com/mytakuhide888/muitobem_mirror
-
-## ⚠️ セッション開始時の必須読み込み（毎回実行すること）
-
-**チャット開始時に必ず以下を全て読み込む。読み飛ばし禁止。**
-
-```
-docs/handover_summary.md       # SSH接続情報・デプロイ手順・引き継ぎ事項
-docs/implementation_plan.md    # 実装計画履歴
-docs/task.md                   # 残タスク一覧
-docs/sankou/                   # 参考資料要約（全ファイル）
-CLAUDE/project_overview.md     # 技術概要
-CLAUDE/buzz_feature_roadmap.md # バズ機能ロードマップ
-```
-
-`docs/handover_summary.md` には **SSH接続方法・デプロイコマンド** が記載されている。
-必ず読んでから作業を開始すること。読んでいない場合は作業開始前に読む。
-
-## 必読ドキュメント（優先順）
-
-1. **引き継ぎ資料** → `docs/handover_summary.md` ← **SSH/デプロイ情報はここ**
-2. **全体戦略** → `CLAUDE/strategy/fortune_business_strategy.md`
-   - 全12章構成。事業本質、顧客心理、ブランディング、コンテンツ戦略、プラットフォーム戦略、ファネル設計、価格設計、顧客対応、AI占い術、コンセプト設計、法令遵守、実装ロードマップ
-3. **プロジェクト技術概要** → `CLAUDE/project_overview.md`
-4. **バズ機能ロードマップ** → `CLAUDE/buzz_feature_roadmap.md`
-5. **運用方針** → `CLAUDE/20260208_2/operation_strategy.md`
-6. **参考資料（原文）** → `docs/sankou/`, `CLAUDE/sankou/`
-
-## アーキテクチャ
-
-```
-Docker Compose (4コンテナ):
-  django  - メインアプリ (Python 3.12 / Django 5.2.4)
-  db      - MySQL 8.0
-  caddy   - リバースプロキシ (HTTPS自動)
-  scheduler - 定期ジョブ (60秒間隔)
-```
-
-### Djangoアプリ構成
-
+### Django アプリ構成
 | アプリ | 役割 | 完成度 |
-|--------|------|--------|
-| th/ | Threads API連携・バズリサーチ | 80% |
-| ig/ | Instagram機能 | 20% |
-| social/ | SNS共通基盤・Threads API | — |
-| social_core/ | ベースモデル定義 | — |
-| sns_core/ | Metaトークン管理 | — |
-| webhooks/ | Webhook受信 | — |
-| app/console/ | カスタム管理画面 | — |
+|---|---|---|
+| `th/` | Threads API 連携・バズリサーチ・コンセプト分析 | 80% |
+| `ig/` | Instagram 機能 | 20% |
+| `social/` | SNS 共通基盤（Threads API クライアント等） | — |
+| `social_core/` | ベースモデル定義 | — |
+| `sns_core/` | Meta トークン管理 | — |
+| `webhooks/` | Webhook 受信（署名検証） | — |
+| `app/console/` | カスタム管理画面 | — |
 
-## 開発フロー・デプロイ手順（修正・テスト工程管理）
+## プロジェクト固有の固定値
+- ドメイン：https://muitobem.top/admin/
+- リポジトリ：https://github.com/mytakuhide888/muitobem_mirror
+- 本番アプリディレクトリ：`/srv/muitobem`
+- テンプレート：Jazzmin の `base_site.html` を継承
+- NG ワード・法令チェック：全出力に `th/services/ng_word_checker.py` を通す（事業戦略 第 11 章）
+- 教訓：**innerHTML 禁止**（XSS）／ **`.env` 変更時は `up -d`**（restart は再読込しない）／ `git add -A` 禁止
 
-### ローカル作業（WSL: ~/muitobem_mirror）
-
-```bash
-# ファイル修正後
-git add <変更ファイル>           # 対象ファイルのみ明示的に add（git add -A は禁止）
-git commit -m "feat: ..."
-git push origin main
-```
-
-### VPS デプロイ（sshpass経由、パスワード認証）
-
-```bash
-# 1. git pull
-sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-  'cd /srv/muitobem && git pull origin main'
-
-# 2. staticファイル収集（テンプレート/JS/CSS変更時）
-sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-  'cd /srv/muitobem && docker compose exec django python manage.py collectstatic --noinput'
-
-# 3. djangoコンテナ再起動（Pythonファイル変更時）
-sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-  'cd /srv/muitobem && docker compose restart django'
-
-# 4. マイグレーション（models.py変更時のみ）
-sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-  'cd /srv/muitobem && docker compose exec django python manage.py migrate'
-```
-
-### テスト検証工程（完了の定義）
-
-1. **Djangoエラーゼロ確認**
-   ```bash
-   sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-     'cd /srv/muitobem && docker compose logs django --since 2m 2>&1 | grep -E "ERROR|Exception|Traceback|500"'
-   ```
-   → 出力なし = OK
-
-2. **対象URLの HTTP 200 確認**
-   ```bash
-   sshpass -p '[REDACTED-PASSWORD]' ssh -o StrictHostKeyChecking=no django@160.251.140.93 \
-     'curl -s -o /dev/null -w "%{http_code}" -L https://muitobem.top/admin/console/<endpoint>/'
-   ```
-
-3. **System check 確認**（ログに `System check identified no issues` があること）
-
-### SSH接続情報
-- **ホスト**: 160.251.140.93
-- **ユーザー**: django
-- **パスワード**: `[REDACTED-PASSWORD]`（sshpass経由で使用）
-- **アプリディレクトリ**: `/srv/muitobem`
-- **ドメイン**: https://muitobem.top/admin/
-
-## コーディング原則
-
-- テンプレートはJazzmin管理画面のbase_site.htmlを継承
-- 新機能は既存のモデル構造（social_core基底クラス）に準拠
-- Threads APIは `social/services/threads_api.py` を使用
-- 環境変数は `.env` で管理（docker-compose.ymlで参照）
-- NGワード・法令チェックは全出力に適用（第11章参照）
-
-## 現在のPhase
-
-**Phase A完了（2/23）→ Phase B完了（2/24）**
-
-- Phase A: 投稿パターン分析・構造化分析メモ・自動巡回パイプライン
-- Phase B: fortune_classifier改善・アカウント比較画面・類似アカウント自動発見
-- 次のPhase: `CLAUDE/buzz_feature_roadmap.md` を参照
+## 現在の Phase
+- Phase A 完了（投稿パターン分析・自動巡回パイプライン）
+- Phase B 完了（fortune_classifier 改善・類似アカウント発見）
+- 次の Phase は `CLAUDE/buzz_feature_roadmap.md` を参照

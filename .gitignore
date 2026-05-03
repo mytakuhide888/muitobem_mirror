@@ -30,3 +30,7 @@ threads_session.json
 debug_scraper_html.txt
 
 # CLAUDE project files
+# 機密情報（SSH パスワード等）は ops/ に集約し、git 管理外に置く
+CLAUDE/ops/
+.claude/hooks/log/
+.claude/settings.local.json
