@@ -6,6 +6,7 @@ from .models import (
     THAutoReplyTemplate, THAutoReplyRule, THWebhookEvent,
     THBuzzAuthor, THBuzzPost, THBuzzSearchJob,
     ConceptProject, ConceptProjectAuthor,
+    ResearchAccount, ScraperEventLog, ScraperNotificationConfig,
 )
 
 
@@ -119,3 +120,133 @@ class ConceptProjectAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     readonly_fields = ('created_at', 'updated_at')
     inlines = [ConceptProjectAuthorInline]
+
+
+# ─── Phase G: リサーチ用スクレイパ運用 ──────────────────────────────
+
+@admin.register(ResearchAccount)
+class ResearchAccountAdmin(admin.ModelAdmin):
+    list_display = (
+        'name', 'threads_username', 'status',
+        'warmup_started_at', 'warmup_duration_days',
+        'daily_request_count', 'last_used_at', 'updated_at',
+    )
+    list_filter = ('status', 'auto_promote')
+    search_fields = ('name', 'threads_username')
+    readonly_fields = (
+        'last_used_at', 'daily_request_count', 'daily_count_reset_at',
+        'suspended_at', 'created_at', 'updated_at',
+    )
+    fieldsets = (
+        ('基本', {
+            'fields': ('name', 'threads_username', 'storage_state_path', 'status'),
+        }),
+        ('VPSウォームアップ', {
+            'fields': ('warmup_started_at', 'warmup_duration_days', 'auto_promote'),
+            'description': (
+                'VPS スタートアップ時の安全運転期間。デフォルト14日が経過すると '
+                'auto_promote=True の場合に ACTIVE へ自動昇格。'
+            ),
+        }),
+        ('凍結／停止', {
+            'fields': ('suspended_at', 'suspended_reason'),
+        }),
+        ('使用状況（自動更新）', {
+            'fields': ('last_used_at', 'daily_request_count', 'daily_count_reset_at'),
+            'classes': ('collapse',),
+        }),
+        ('メモ／メタ', {
+            'fields': ('memo', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    actions = ['action_promote_to_active', 'action_pause_warmup', 'action_resume_warmup']
+
+    @admin.action(description='選択行を ACTIVE に昇格')
+    def action_promote_to_active(self, request, queryset):
+        n = queryset.update(status=ResearchAccount.STATUS_ACTIVE)
+        self.message_user(request, f'{n} 件を ACTIVE に変更しました')
+
+    @admin.action(description='選択行を VPS_WARMUP に戻す')
+    def action_pause_warmup(self, request, queryset):
+        from django.utils import timezone as _tz
+        n = 0
+        for ra in queryset:
+            ra.status = ResearchAccount.STATUS_VPS_WARMUP
+            if not ra.warmup_started_at:
+                ra.warmup_started_at = _tz.now()
+            ra.save(update_fields=['status', 'warmup_started_at', 'updated_at'])
+            n += 1
+        self.message_user(request, f'{n} 件を VPS_WARMUP に変更しました')
+
+    @admin.action(description='SUSPENDED 解除（VPS_WARMUP で再開）')
+    def action_resume_warmup(self, request, queryset):
+        from django.utils import timezone as _tz
+        n = 0
+        for ra in queryset.filter(status=ResearchAccount.STATUS_SUSPENDED):
+            ra.status = ResearchAccount.STATUS_VPS_WARMUP
+            ra.warmup_started_at = _tz.now()
+            ra.suspended_at = None
+            ra.suspended_reason = ''
+            ra.save(update_fields=[
+                'status', 'warmup_started_at',
+                'suspended_at', 'suspended_reason', 'updated_at',
+            ])
+            n += 1
+        self.message_user(request, f'{n} 件を VPS_WARMUP に再開しました')
+
+
+@admin.register(ScraperEventLog)
+class ScraperEventLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'account', 'event_type', 'level', 'notified', 'message_short')
+    list_filter = ('event_type', 'level', 'notified')
+    search_fields = ('message',)
+    readonly_fields = (
+        'account', 'event_type', 'level', 'message',
+        'payload', 'notified', 'created_at',
+    )
+    date_hierarchy = 'created_at'
+
+    @admin.display(description='メッセージ抜粋')
+    def message_short(self, obj):
+        msg = obj.message or ''
+        return msg[:80] + ('…' if len(msg) > 80 else '')
+
+    def has_add_permission(self, request):
+        # ログは自動記録のみ
+        return False
+
+
+@admin.register(ScraperNotificationConfig)
+class ScraperNotificationConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        'enabled', 'min_level', 'aggregate_window_min',
+        'aggregate_threshold', 'auto_stop_on_suspension', 'updated_at',
+    )
+    fieldsets = (
+        ('通知有効化', {
+            'fields': ('enabled', 'recipient_emails'),
+            'description': 'recipient_emails はカンマ区切りで複数指定可。',
+        }),
+        ('通知対象', {
+            'fields': ('notify_events', 'min_level'),
+            'description': (
+                'notify_events は ScraperEventLog.event_type 文字列の JSON 配列。'
+                '例: ["SUSPENSION_DETECTED", "HTTP_403", "JOB_FAILED"]'
+            ),
+        }),
+        ('集約', {
+            'fields': ('aggregate_window_min', 'aggregate_threshold'),
+            'description': '同種イベントが N 分以内に閾値件数以上で 1 通にまとめる。',
+        }),
+        ('自動停止', {
+            'fields': ('auto_stop_on_suspension',),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        # シングルトン（pk=1）
+        return not ScraperNotificationConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

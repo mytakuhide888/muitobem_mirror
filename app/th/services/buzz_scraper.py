@@ -31,51 +31,121 @@ def _sanitize(text: str) -> str:
     if not isinstance(text, str):
         return str(text)
     return text.encode('utf-8', errors='replace').decode('utf-8')
+# ─── Phase G: 互換用の旧 STORAGE_STATE_PATH ───
+# 既定のセッションファイル（ResearchAccount 未使用時のフォールバック）。
+# 新運用では ResearchAccount.storage_state_path を使う。
 STORAGE_STATE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     'deploy', 'threads_session.json',
 )
 
 
-# ─── 設定 ───
+# ─── 設定（Phase G で scraper_config に切り出し） ───
 
-class ScraperConfig:
-    """スクレイピング設定"""
-    MIN_DELAY = 3          # 最小待機秒数
-    MAX_DELAY = 8          # 最大待機秒数
-    REQUESTS_PER_HOUR = 60 # 1時間あたりの最大リクエスト数
-    MAX_SCROLL_COUNT = 10  # 検索結果ページのスクロール回数
-    HEADLESS = True        # ヘッドレスモード（Docker環境用）
-
-    USER_AGENTS = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    ]
+from th.services import scraper_config
 
 
-# ─── レート制限 ───
+# ─── レート制限（Phase G: ステータス連動） ───
 
-class RateLimiter:
-    """レート制限管理"""
+class AccountRateLimiter:
+    """ResearchAccount.status に応じてレート上限・待機・深夜停止を切り替えるレートリミッタ。
 
-    def __init__(self, requests_per_hour: int = ScraperConfig.REQUESTS_PER_HOUR):
-        self.requests_per_hour = requests_per_hour
+    `account=None` で生成された場合は ACTIVE プロファイルを既定として用いる
+    （legacy 互換）。
+    """
+
+    def __init__(self, account=None):
+        self.account = account
+        if account is not None and getattr(account, 'status', None):
+            self.profile = scraper_config.get_profile(account.status)
+        else:
+            self.profile = scraper_config.get_profile('ACTIVE')
         self.request_times: List[float] = []
 
     def wait_if_needed(self):
+        from datetime import date
         now = time.time()
-        self.request_times = [t for t in self.request_times if now - t < 3600]
+        prof = self.profile
 
-        if len(self.request_times) >= self.requests_per_hour:
+        # 深夜停止判定
+        if scraper_config.is_in_quiet_hours(prof):
+            # 通知（DB ログ + メール）を一度発火し、ジョブを停止する
+            try:
+                from th.services.scraper_notifier import log_event
+                log_event(
+                    'QUIET_HOURS_ENTER',
+                    account=self.account,
+                    message=f"深夜停止帯（{prof.get('quiet_hours')}）のため停止",
+                    payload={'profile': prof.get('name', '?')},
+                )
+            except Exception:
+                pass
+            raise RuntimeError(
+                f"深夜停止帯（{prof.get('quiet_hours')}）のため実行中断"
+            )
+
+        # 日次上限チェック
+        if self.account is not None:
+            today = timezone.localdate()
+            if self.account.daily_count_reset_at != today:
+                self.account.daily_request_count = 0
+                self.account.daily_count_reset_at = today
+                try:
+                    self.account.save(update_fields=[
+                        'daily_request_count', 'daily_count_reset_at', 'updated_at',
+                    ])
+                except Exception:
+                    pass
+            if self.account.daily_request_count >= prof['daily_limit']:
+                try:
+                    from th.services.scraper_notifier import log_event
+                    log_event(
+                        'DAILY_LIMIT_REACHED',
+                        account=self.account,
+                        message=f"日次上限 {prof['daily_limit']} に到達",
+                        payload={'count': self.account.daily_request_count},
+                    )
+                except Exception:
+                    pass
+                raise RuntimeError(
+                    f"日次リクエスト上限 {prof['daily_limit']} に到達"
+                )
+
+        # 時間あたりの上限
+        self.request_times = [t for t in self.request_times if now - t < 3600]
+        if len(self.request_times) >= prof['requests_per_hour']:
             oldest = self.request_times[0]
             wait_time = 3600 - (now - oldest) + random.uniform(5, 15)
             logger.info("レート制限: %.0f秒待機", wait_time)
+            try:
+                from th.services.scraper_notifier import log_event
+                log_event(
+                    'RATE_LIMIT_HIT',
+                    account=self.account,
+                    message=f"時間あたり {prof['requests_per_hour']} 件到達",
+                )
+            except Exception:
+                pass
             time.sleep(wait_time)
 
-        delay = random.uniform(ScraperConfig.MIN_DELAY, ScraperConfig.MAX_DELAY)
+        delay = scraper_config.pick_delay_seconds(prof)
         time.sleep(delay)
         self.request_times.append(time.time())
+
+        # カウンタ更新
+        if self.account is not None:
+            try:
+                self.account.daily_request_count += 1
+                self.account.last_used_at = timezone.now()
+                self.account.save(update_fields=[
+                    'daily_request_count', 'last_used_at', 'updated_at',
+                ])
+            except Exception:
+                pass
+
+
+# legacy alias（既存コードが import 可能）
+RateLimiter = AccountRateLimiter
 
 
 # ─── バズ判定 ───
@@ -214,12 +284,57 @@ def _find_chromium() -> str:
     return '/usr/bin/chromium'
 
 
-def _create_playwright_browser(headless: bool = True):
-    """Playwright ブラウザインスタンスを生成"""
+def _parse_proxy_url(url: str) -> Optional[Dict]:
+    """proxy URL 文字列を Playwright の proxy パラメータ用の辞書に変換。
+    `http://user:pass@host:port` 形式に対応。
+    """
+    if not url:
+        return None
+    from urllib.parse import urlparse
+    try:
+        u = urlparse(url)
+        if not u.hostname or not u.port:
+            return None
+        server = f"{u.scheme}://{u.hostname}:{u.port}"
+        result = {'server': server}
+        if u.username:
+            result['username'] = u.username
+        if u.password:
+            # URL デコード（パスワードに特殊文字が含まれる場合の保険）
+            from urllib.parse import unquote
+            result['password'] = unquote(u.password)
+        return result
+    except Exception as e:
+        logger.warning("プロキシ URL の解析に失敗: %s", e)
+        return None
+
+
+def _create_playwright_browser(headless: bool = True, account=None,
+                               proxy_url: Optional[str] = None,
+                               require_proxy: bool = True):
+    """Playwright ブラウザインスタンスを生成。
+
+    Args:
+        headless: ヘッドレスモード（Docker 環境では True 固定）
+        account:  ResearchAccount。指定時は storage_state_path から Cookie 読込
+        proxy_url: プロキシ URL。未指定なら RESEARCH_PROXY_URL を使う
+        require_proxy: True なら未設定時に RuntimeError（VPS 生 IP 禁止）
+    """
     from playwright.sync_api import sync_playwright
 
+    # ─── プロキシ URL 解決 ───
+    if proxy_url is None:
+        proxy_url = scraper_config.get_proxy_url()
+    if not proxy_url and require_proxy:
+        # Phase G の設計原則：プロキシ未設定での Threads アクセス禁止
+        raise RuntimeError(
+            'RESEARCH_PROXY_URL が未設定です。Phase G ではプロキシ経由必須です。'
+            'VPS の .env に RESEARCH_PROXY_URL を設定してください。'
+        )
+    proxy_param = _parse_proxy_url(proxy_url) if proxy_url else None
+
     pw = sync_playwright().start()
-    browser = pw.chromium.launch(
+    launch_kwargs = dict(
         headless=headless,
         executable_path=_find_chromium(),
         args=[
@@ -228,18 +343,31 @@ def _create_playwright_browser(headless: bool = True):
             '--no-sandbox',
         ],
     )
+    if proxy_param:
+        launch_kwargs['proxy'] = proxy_param
+        logger.info("プロキシ経由でブラウザ起動: server=%s", proxy_param.get('server'))
+    browser = pw.chromium.launch(**launch_kwargs)
 
-    # 保存済みセッションがあれば読み込む
-    storage_state = None
-    if os.path.exists(STORAGE_STATE_PATH):
-        storage_state = STORAGE_STATE_PATH
-        logger.info("セッションファイル読み込み: %s", STORAGE_STATE_PATH)
+    # ─── セッションファイル決定 ───
+    storage_state_path = None
+    if account is not None and getattr(account, 'storage_state_path', ''):
+        storage_state_path = account.storage_state_path
     else:
-        logger.warning("セッションファイルなし: %s（未認証でアクセスします）", STORAGE_STATE_PATH)
+        storage_state_path = STORAGE_STATE_PATH  # legacy fallback
+
+    storage_state = None
+    if storage_state_path and os.path.exists(storage_state_path):
+        storage_state = storage_state_path
+        logger.info("セッションファイル読み込み: %s", storage_state_path)
+    else:
+        logger.warning(
+            "セッションファイルなし: %s（未認証でアクセスします）",
+            storage_state_path,
+        )
 
     context = browser.new_context(
         viewport={'width': random.randint(1366, 1920), 'height': random.randint(768, 1080)},
-        user_agent=random.choice(ScraperConfig.USER_AGENTS),
+        user_agent=scraper_config.pick_user_agent(),
         locale='ja-JP',
         timezone_id='Asia/Tokyo',
         storage_state=storage_state,
@@ -252,6 +380,34 @@ def _create_playwright_browser(headless: bool = True):
     """)
 
     return pw, browser, context, page
+
+
+# ─── 凍結検知 ───
+
+_SUSPENSION_KEYWORDS = (
+    'account has been suspended',
+    'your account has been disabled',
+    'we suspended your account',
+    'アカウントが停止されています',
+    'アカウントは停止されました',
+    'this account is temporarily',
+    'temporarily restricted',
+    '一時的に制限されています',
+)
+
+
+def _detect_suspension(url: str, html: str) -> Optional[str]:
+    """URL／HTML から凍結／challenge を検知。検出時は理由文字列を返す。"""
+    low_url = (url or '').lower()
+    if '/challenge/' in low_url or '/checkpoint' in low_url:
+        return f'チャレンジ/チェックポイント URL にリダイレクト: {url}'
+    if '/suspended' in low_url or 'account/disabled' in low_url:
+        return f'アカウント停止 URL にリダイレクト: {url}'
+    head = (html or '')[:8000].lower()
+    for kw in _SUSPENSION_KEYWORDS:
+        if kw in head:
+            return f'凍結を示すテキストを検出: "{kw}"'
+    return None
 
 
 # ─── インプレッション（表示回数）HTML フォールバック抽出 ───
@@ -915,11 +1071,40 @@ def _extract_profile_from_html(html: str, username: str) -> Dict:
 # ─── メインスクレイパー ───
 
 class ThreadsBuzzScraper:
-    """Threads バズ投稿スクレイパー"""
+    """Threads バズ投稿スクレイパー（Phase G: ResearchAccount 連動）"""
 
-    def __init__(self, headless: bool = ScraperConfig.HEADLESS):
+    def __init__(self, headless: bool = True, account=None,
+                 require_proxy: bool = True):
+        """
+        Args:
+            headless:      ヘッドレスモード（Docker 環境では True 固定）
+            account:       ResearchAccount インスタンス。未指定なら DB から
+                           is_available() なものを last_used_at 昇順で 1 件選ぶ。
+            require_proxy: True なら RESEARCH_PROXY_URL 未設定時に RuntimeError。
+                           legacy/開発用に False にもできる。
+        """
         self.headless = headless
-        self.rate_limiter = RateLimiter()
+        self.require_proxy = require_proxy
+        # account の自動選択（DB からローテーション）
+        if account is None:
+            account = self._auto_pick_account()
+        self.account = account
+        # ステータス自動昇格チェック
+        if self.account is not None:
+            try:
+                if self.account.maybe_auto_promote():
+                    try:
+                        from th.services.scraper_notifier import log_event
+                        log_event(
+                            'WARMUP_PROMOTED',
+                            account=self.account,
+                            message=f"ウォームアップ期間({self.account.warmup_duration_days}日)経過で ACTIVE に昇格",
+                        )
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning("auto_promote 判定失敗: %s", e)
+        self.rate_limiter = AccountRateLimiter(account=self.account)
         self._pw = None
         self._browser = None
         self._context = None
@@ -927,17 +1112,58 @@ class ThreadsBuzzScraper:
         self._response_handler = None
         self._captured_thread_data: List[str] = []
 
+    @staticmethod
+    def _auto_pick_account():
+        """ResearchAccount.is_available() なものを last_used_at 昇順で 1 件選ぶ"""
+        try:
+            from th.models import ResearchAccount
+        except Exception:
+            return None
+        qs = ResearchAccount.objects.filter(
+            status__in=[
+                ResearchAccount.STATUS_VPS_WARMUP,
+                ResearchAccount.STATUS_ACTIVE,
+            ],
+        ).order_by('last_used_at')  # MySQL は NULL を先頭にソート
+        return qs.first()
+
     def _ensure_browser(self):
         if self._page is None:
-            logger.info("[DEBUG] ブラウザ起動開始 (headless=%s)", self.headless)
+            logger.info(
+                "[DEBUG] ブラウザ起動開始 (headless=%s, account=%s, profile=%s)",
+                self.headless,
+                self.account.name if self.account else None,
+                self.rate_limiter.profile.get('name'),
+            )
             try:
                 self._pw, self._browser, self._context, self._page = (
-                    _create_playwright_browser(self.headless)
+                    _create_playwright_browser(
+                        self.headless,
+                        account=self.account,
+                        require_proxy=self.require_proxy,
+                    )
                 )
                 logger.info("[DEBUG] ブラウザ起動成功")
             except Exception as e:
                 logger.error("[DEBUG] ブラウザ起動失敗: %s", e, exc_info=True)
                 raise
+
+    def _check_suspension(self, url: str, html: str) -> bool:
+        """凍結検知。検出時は SUSPENSION_DETECTED を発火し True を返す"""
+        reason = _detect_suspension(url, html)
+        if not reason:
+            return False
+        try:
+            from th.services.scraper_notifier import log_event
+            log_event(
+                'SUSPENSION_DETECTED',
+                account=self.account,
+                message=reason,
+                payload={'url': url[:300]},
+            )
+        except Exception as e:
+            logger.error("SUSPENSION_DETECTED 通知失敗: %s", e)
+        return True
 
     # ─── API レスポンス傍受 ───
 
@@ -1041,6 +1267,12 @@ class ThreadsBuzzScraper:
         if 'challenge' in html[:5000].lower():
             logger.warning("[DEBUG] チャレンジ/CAPTCHA の可能性あり")
 
+        # Phase G: 凍結検知。検出時は通知・停止して例外
+        if self._check_suspension(current_url, html):
+            raise RuntimeError(
+                f"凍結検知（{current_url}）。ResearchAccount を SUSPENDED に変更しました"
+            )
+
         # デバッグ用: HTML を一時ファイルに保存
         try:
             debug_path = '/app/deploy/debug_scraper_html.txt'
@@ -1073,14 +1305,17 @@ class ThreadsBuzzScraper:
         self._start_response_capture()
         no_new_count = 0
 
-        for i in range(ScraperConfig.MAX_SCROLL_COUNT):
+        max_scroll = self.rate_limiter.profile.get('max_scroll_count', 10)
+        for i in range(max_scroll):
             prev_height = self._page.evaluate('document.body.scrollHeight')
             self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
             try:
                 self._page.wait_for_load_state('networkidle', timeout=10000)
             except Exception:
                 pass
-            time.sleep(random.uniform(3, 6))
+            # 待機間隔もプロファイル連動の対数正規（最低 3 秒は確保）
+            scroll_delay = max(3.0, scraper_config.pick_delay_seconds(self.rate_limiter.profile) / 4.0)
+            time.sleep(scroll_delay)
             new_height = self._page.evaluate('document.body.scrollHeight')
 
             # 傍受した API レスポンスから投稿を抽出
@@ -1148,6 +1383,12 @@ class ThreadsBuzzScraper:
         # ログインウォール/リダイレクトチェック
         if 'login' in current_url.lower() or 'login' in html[:3000].lower():
             logger.warning("[DEBUG] プロフィールページ: ログインウォールの可能性")
+
+        # Phase G: 凍結検知
+        if self._check_suspension(current_url, html):
+            raise RuntimeError(
+                f"凍結検知（プロフィール取得: {current_url}）"
+            )
 
         profile = _extract_profile_from_html(html, username)
         if profile.get('followers_count') is None or profile.get('following_count') is None:
@@ -1339,10 +1580,15 @@ class ThreadsBuzzScraper:
 
     # ─── 投稿者の過去投稿取得 ───
 
-    def fetch_author_posts(self, username: str, max_scrolls: int = 10, exclude_replies: bool = True) -> List[Dict]:
-        """投稿者の過去投稿をスクレイピングして取得"""
+    def fetch_author_posts(self, username: str, max_scrolls: Optional[int] = None, exclude_replies: bool = True) -> List[Dict]:
+        """投稿者の過去投稿をスクレイピングして取得。
+        max_scrolls 未指定時はステータス連動プロファイルの max_scroll_count を使う。
+        """
         self._ensure_browser()
         self.rate_limiter.wait_if_needed()
+
+        if max_scrolls is None:
+            max_scrolls = self.rate_limiter.profile.get('max_scroll_count', 10)
 
         profile_url = f"{THREADS_BASE}/@{username}"
         logger.info("[DEBUG] 投稿履歴取得開始: @%s → %s", username, profile_url)
@@ -1358,6 +1604,12 @@ class ThreadsBuzzScraper:
         logger.info("[DEBUG] 投稿履歴ページ URL: %s", current_url)
         logger.info("[DEBUG] 投稿履歴ページ タイトル: %s", title)
         logger.info("[DEBUG] 投稿履歴ページ HTML長: %d文字", len(html))
+
+        # Phase G: 凍結検知
+        if self._check_suspension(current_url, html):
+            raise RuntimeError(
+                f"凍結検知（投稿履歴取得: {current_url}）"
+            )
 
         ti_count = html.count('"thread_items"')
         logger.info("[DEBUG] 投稿履歴ページ thread_items 出現回数: %d", ti_count)
@@ -1447,7 +1699,8 @@ class ThreadsBuzzScraper:
                 self._page.wait_for_load_state('networkidle', timeout=10000)
             except Exception:
                 pass
-            time.sleep(random.uniform(3, 6))
+            scroll_delay = max(3.0, scraper_config.pick_delay_seconds(self.rate_limiter.profile) / 4.0)
+            time.sleep(scroll_delay)
             new_height = self._page.evaluate('document.body.scrollHeight')
 
             # 傍受した API レスポンスから投稿を抽出
@@ -1493,20 +1746,30 @@ class ThreadsBuzzScraper:
 
 # ─── Cookie 有効期限チェック ───
 
-def check_session_validity() -> Dict:
+def check_session_validity(account=None) -> Dict:
     """
-    保存済みセッション (threads_session.json) の Cookie 有効期限を確認する。
+    保存済みセッションの Cookie 有効期限を確認する。
+
+    Args:
+        account: ResearchAccount。未指定なら legacy STORAGE_STATE_PATH を見る。
+                 指定時は account.storage_state_path を見る。
+
     戻り値: {'valid': bool, 'message': str, 'expires_at': datetime|None}
     """
-    if not os.path.exists(STORAGE_STATE_PATH):
+    if account is not None and getattr(account, 'storage_state_path', ''):
+        path = account.storage_state_path
+    else:
+        path = STORAGE_STATE_PATH
+
+    if not os.path.exists(path):
         return {
             'valid': False,
-            'message': 'セッションファイルが見つかりません',
+            'message': f'セッションファイルが見つかりません: {path}',
             'expires_at': None,
         }
 
     try:
-        with open(STORAGE_STATE_PATH, 'r', encoding='utf-8') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
     except (json.JSONDecodeError, IOError) as e:
         return {

@@ -681,3 +681,219 @@ class ConceptProjectAuthor(models.Model):
 
     def __str__(self):
         return f"{self.project} — @{self.author.username}"
+
+
+# ─── Phase G: リサーチ用スクレイパ運用 ─────────────────────────────
+
+class ResearchAccount(models.Model):
+    """リサーチ専用 Threads アカウント（複数管理／ステータス遷移）
+
+    凍結リスクを抑えるため、VPS スタートアップ時は `VPS_WARMUP` で
+    超低頻度運用し、所定期間（既定 14 日）経過後に `ACTIVE` へ自動昇格する。
+    """
+    STATUS_NEW = 'NEW'
+    STATUS_VPS_WARMUP = 'VPS_WARMUP'
+    STATUS_ACTIVE = 'ACTIVE'
+    STATUS_SUSPENDED = 'SUSPENDED'
+    STATUS_CHOICES = [
+        (STATUS_NEW, '新規追加（未起動）'),
+        (STATUS_VPS_WARMUP, 'VPSウォームアップ中（超低頻度）'),
+        (STATUS_ACTIVE, '通常稼働'),
+        (STATUS_SUSPENDED, '凍結検知／停止中'),
+    ]
+
+    name = models.CharField(
+        '識別名', max_length=64, unique=True,
+        help_text='例: arayasaki7、research_01',
+    )
+    threads_username = models.CharField(
+        'Threadsユーザー名', max_length=128, blank=True, default='',
+    )
+    storage_state_path = models.CharField(
+        'セッションファイルパス', max_length=256,
+        help_text='例: /app/deploy/threads_session_arayasaki7.json',
+    )
+    status = models.CharField(
+        '運用ステータス', max_length=20,
+        choices=STATUS_CHOICES, default=STATUS_NEW,
+    )
+    # ─── ウォームアップ管理 ───
+    warmup_started_at = models.DateTimeField(
+        'VPSウォームアップ開始日時', null=True, blank=True,
+        help_text='VPS_WARMUP 状態に遷移した日時',
+    )
+    warmup_duration_days = models.IntegerField(
+        'ウォームアップ期間(日)', default=14,
+        help_text='期間経過後に ACTIVE へ自動昇格（auto_promote=True の場合）',
+    )
+    auto_promote = models.BooleanField(
+        '期間経過で自動昇格', default=True,
+    )
+    # ─── 凍結検知 ───
+    suspended_at = models.DateTimeField('停止日時', null=True, blank=True)
+    suspended_reason = models.TextField('停止理由', blank=True, default='')
+    # ─── 使用状況 ───
+    last_used_at = models.DateTimeField('最終使用日時', null=True, blank=True)
+    daily_request_count = models.IntegerField('日次リクエスト数', default=0)
+    daily_count_reset_at = models.DateField('日次カウンタ最終リセット日', null=True, blank=True)
+    # ─── メタ情報 ───
+    memo = models.TextField('運用メモ', blank=True, default='')
+    created_at = models.DateTimeField('作成日時', auto_now_add=True)
+    updated_at = models.DateTimeField('更新日時', auto_now=True)
+
+    class Meta:
+        db_table = 'meta_th_research_accounts'
+        verbose_name = 'リサーチ用アカウント'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"{self.name} [{self.get_status_display()}]"
+
+    def is_available(self):
+        """スクレイピングに使用可能か（停止／新規未起動は不可）"""
+        return self.status in (self.STATUS_VPS_WARMUP, self.STATUS_ACTIVE)
+
+    def days_in_warmup(self):
+        """ウォームアップ開始からの経過日数"""
+        if not self.warmup_started_at:
+            return 0
+        from django.utils import timezone as _tz
+        delta = _tz.now() - self.warmup_started_at
+        return delta.days
+
+    def maybe_auto_promote(self):
+        """warmup_duration_days を超え auto_promote=True なら ACTIVE に昇格"""
+        if self.status != self.STATUS_VPS_WARMUP:
+            return False
+        if not self.auto_promote:
+            return False
+        if self.days_in_warmup() < self.warmup_duration_days:
+            return False
+        self.status = self.STATUS_ACTIVE
+        self.save(update_fields=['status', 'updated_at'])
+        return True
+
+
+class ScraperEventLog(models.Model):
+    """スクレイパ運用イベントログ"""
+    EVENT_LOGIN_SUCCESS = 'LOGIN_SUCCESS'
+    EVENT_LOGIN_FAILED = 'LOGIN_FAILED'
+    EVENT_RATE_LIMIT_HIT = 'RATE_LIMIT_HIT'
+    EVENT_HTTP_403 = 'HTTP_403'
+    EVENT_HTTP_429 = 'HTTP_429'
+    EVENT_SUSPENSION_DETECTED = 'SUSPENSION_DETECTED'
+    EVENT_JOB_START = 'JOB_START'
+    EVENT_JOB_COMPLETE = 'JOB_COMPLETE'
+    EVENT_JOB_FAILED = 'JOB_FAILED'
+    EVENT_DAILY_LIMIT_REACHED = 'DAILY_LIMIT_REACHED'
+    EVENT_QUIET_HOURS_ENTER = 'QUIET_HOURS_ENTER'
+    EVENT_PROXY_ERROR = 'PROXY_ERROR'
+    EVENT_WARMUP_PROMOTED = 'WARMUP_PROMOTED'
+    EVENT_CHOICES = [
+        (EVENT_LOGIN_SUCCESS, 'ログイン成功'),
+        (EVENT_LOGIN_FAILED, 'ログイン失敗'),
+        (EVENT_RATE_LIMIT_HIT, 'レート制限到達'),
+        (EVENT_HTTP_403, 'HTTP 403'),
+        (EVENT_HTTP_429, 'HTTP 429'),
+        (EVENT_SUSPENSION_DETECTED, '凍結検知'),
+        (EVENT_JOB_START, 'ジョブ開始'),
+        (EVENT_JOB_COMPLETE, 'ジョブ完了'),
+        (EVENT_JOB_FAILED, 'ジョブ失敗'),
+        (EVENT_DAILY_LIMIT_REACHED, '日次上限到達'),
+        (EVENT_QUIET_HOURS_ENTER, '深夜停止突入'),
+        (EVENT_PROXY_ERROR, 'プロキシエラー'),
+        (EVENT_WARMUP_PROMOTED, 'ウォームアップ→稼働昇格'),
+    ]
+    LEVEL_DEBUG = 'DEBUG'
+    LEVEL_INFO = 'INFO'
+    LEVEL_WARN = 'WARN'
+    LEVEL_ERROR = 'ERROR'
+    LEVEL_CRITICAL = 'CRITICAL'
+    LEVEL_CHOICES = [
+        (LEVEL_DEBUG, 'DEBUG'),
+        (LEVEL_INFO, 'INFO'),
+        (LEVEL_WARN, 'WARN'),
+        (LEVEL_ERROR, 'ERROR'),
+        (LEVEL_CRITICAL, 'CRITICAL'),
+    ]
+
+    account = models.ForeignKey(
+        ResearchAccount, on_delete=models.CASCADE,
+        related_name='events', null=True, blank=True,
+        verbose_name='対象アカウント',
+    )
+    event_type = models.CharField('イベント種別', max_length=32, choices=EVENT_CHOICES)
+    level = models.CharField('レベル', max_length=10, choices=LEVEL_CHOICES, default=LEVEL_INFO)
+    message = models.TextField('メッセージ', blank=True, default='')
+    payload = models.JSONField('付加データ', default=dict, blank=True)
+    notified = models.BooleanField('通知送信済み', default=False)
+    created_at = models.DateTimeField('発生日時', auto_now_add=True)
+
+    class Meta:
+        db_table = 'meta_th_scraper_event_log'
+        verbose_name = 'スクレイパイベント'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at'], name='sel_created_desc'),
+            models.Index(fields=['event_type'], name='sel_event_type'),
+            models.Index(fields=['level'], name='sel_level'),
+        ]
+
+    def __str__(self):
+        return f"[{self.level}] {self.event_type} ({self.created_at:%Y-%m-%d %H:%M})"
+
+
+class ScraperNotificationConfig(models.Model):
+    """スクレイパ通知設定（メール）— singleton（pk=1）"""
+    enabled = models.BooleanField('メール通知有効', default=True)
+    recipient_emails = models.TextField(
+        '通知先メール（カンマ区切り）', blank=True, default='',
+        help_text='例: alert@example.com, ops@example.com',
+    )
+    notify_events = models.JSONField(
+        '通知イベント種別', default=list, blank=True,
+        help_text='ScraperEventLog の event_type 文字列の配列',
+    )
+    min_level = models.CharField(
+        '通知レベル下限', max_length=10,
+        choices=ScraperEventLog.LEVEL_CHOICES,
+        default=ScraperEventLog.LEVEL_WARN,
+    )
+    aggregate_window_min = models.IntegerField(
+        '集約ウィンドウ(分)', default=30,
+        help_text='同種イベントを N 分以内に閾値件数以上で 1 通にまとめる',
+    )
+    aggregate_threshold = models.IntegerField(
+        '集約しきい値(件)', default=3,
+    )
+    auto_stop_on_suspension = models.BooleanField(
+        'SUSPENSION_DETECTED 時に自動停止', default=True,
+    )
+    updated_at = models.DateTimeField('更新日時', auto_now=True)
+
+    class Meta:
+        db_table = 'meta_th_scraper_notification_config'
+        verbose_name = 'スクレイパ通知設定'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"通知設定 (enabled={self.enabled})"
+
+    @classmethod
+    def load(cls):
+        """シングルトン取得（無ければ既定値で作成）"""
+        defaults = {
+            'enabled': True,
+            'recipient_emails': '',
+            'notify_events': [
+                'LOGIN_FAILED', 'RATE_LIMIT_HIT', 'HTTP_403', 'HTTP_429',
+                'SUSPENSION_DETECTED', 'JOB_FAILED', 'PROXY_ERROR',
+            ],
+            'min_level': 'WARN',
+            'aggregate_window_min': 30,
+            'aggregate_threshold': 3,
+            'auto_stop_on_suspension': True,
+        }
+        obj, _ = cls.objects.get_or_create(pk=1, defaults=defaults)
+        return obj

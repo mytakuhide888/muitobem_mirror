@@ -154,6 +154,9 @@ JAZZMIN_SETTINGS = {
         "th.THBuzzAuthor": "fa fa-user-circle",
         "th.THBuzzPost": "fa fa-fire",
         "th.THBuzzSearchJob": "fa fa-search",
+        "th.ResearchAccount": "fa fa-user-secret",
+        "th.ScraperEventLog": "fa fa-clipboard-list",
+        "th.ScraperNotificationConfig": "fa fa-bell",
     },
 
     # 左ナビでのアプリ表示順
@@ -359,3 +362,17 @@ except Exception:
     # do not break settings import even if TEMPLATES is unusual
     pass
 # --- end ops patch ---
+
+# === Email (Gmail SMTP) — Phase G スクレイパ通知用 ===
+# .env に GMAIL_SMTP_USER / GMAIL_SMTP_APP_PASSWORD を設定すること。
+# アプリパスワードは Google アカウントの 2 段階認証 ON + アプリパスワード発行で取得。
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"
+EMAIL_HOST_USER = os.environ.get("GMAIL_SMTP_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("GMAIL_SMTP_APP_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "SCRAPER_NOTIFY_EMAIL_FROM",
+    EMAIL_HOST_USER or "noreply@muitobem.top",
+)

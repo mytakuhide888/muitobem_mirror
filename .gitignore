@@ -27,7 +27,9 @@ tmp_img/
 
 # Threads セッションファイル（認証情報）
 threads_session.json
+threads_session_*.json
 debug_scraper_html.txt
+debug_author_html.txt
 
 # CLAUDE project files
 # 機密情報（SSH パスワード等）は ops/ に集約し、git 管理外に置く
