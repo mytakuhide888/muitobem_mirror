@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
             description: "企画設計とThreadsリサーチ",
             icon: "fas fa-lightbulb",
             items: [
+                { label: "バズ・人気アカウントリサーチ", url: "/console/buzz-research-overview/" },
                 { label: "コンセプト設計", url: "/console/concept-design/" },
                 { label: "バズ投稿取得", url: "/console/buzz-search/" },
                 { label: "急成長ランキング", url: "/console/buzz-growth-ranking/" },
