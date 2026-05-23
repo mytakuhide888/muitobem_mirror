@@ -1751,11 +1751,27 @@ def check_session_validity(account=None) -> Dict:
     保存済みセッションの Cookie 有効期限を確認する。
 
     Args:
-        account: ResearchAccount。未指定なら legacy STORAGE_STATE_PATH を見る。
+        account: ResearchAccount。
+                 未指定なら DB から is_available() なものを last_used_at 昇順で 1 件選ぶ。
+                 該当ゼロなら legacy STORAGE_STATE_PATH を見る。
                  指定時は account.storage_state_path を見る。
 
     戻り値: {'valid': bool, 'message': str, 'expires_at': datetime|None}
     """
+    # Phase G: account 未指定なら DB から自動選択（buzz_search 等の既存 view 互換）
+    if account is None:
+        try:
+            from th.models import ResearchAccount
+            account = ResearchAccount.objects.filter(
+                status__in=[
+                    ResearchAccount.STATUS_VPS_WARMUP,
+                    ResearchAccount.STATUS_ACTIVE,
+                ],
+            ).order_by('last_used_at').first()
+        except Exception as e:
+            logger.warning("ResearchAccount 自動選択失敗: %s", e)
+            account = None
+
     if account is not None and getattr(account, 'storage_state_path', ''):
         path = account.storage_state_path
     else:
