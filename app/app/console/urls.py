@@ -57,6 +57,9 @@ urlpatterns = [
     path("api/buzz/exclude-unfetchable/",     buzz_views.buzz_exclude_unfetchable, name="buzz_exclude_unfetchable"),
     path("api/buzz/refresh-selected/",        buzz_views.buzz_refresh_selected_authors, name="buzz_refresh_selected_authors"),
 
+    # バズ・人気アカウントリサーチ運用 Overview（Phase G）
+    path("buzz-research-overview/",           buzz_views.buzz_research_overview, name="buzz_research_overview"),
+
     # 急成長アカウント発見
     path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),
     path("buzz-keyword-scan/",                buzz_views.buzz_keyword_scan,      name="buzz_keyword_scan"),

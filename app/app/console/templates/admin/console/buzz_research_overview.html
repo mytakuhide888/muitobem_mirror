@@ -1,0 +1,274 @@
+{% extends "admin/console/base.html" %}
+
+{% block title %}バズ・人気アカウントリサーチ{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'console:index' %}">ダッシュボード</a> &gt; バズ・人気アカウントリサーチ</div>{% endblock %}
+
+{% block console_content %}
+<style>
+  .br-container { max-width: 1200px; margin: 0 auto; padding: 0 10px; }
+  .br-header h2 { margin: 0 0 4px; font-size: 22px; color: #1e3548; }
+  .br-header .br-sub { color: #6a7a85; font-size: 13px; margin-bottom: 18px; }
+
+  .br-guide {
+    border: 1px solid #d7e3ea; border-radius: 12px; padding: 20px 24px;
+    background: linear-gradient(135deg, #f8fbfd 0%, #eef6fb 60%, #fefcf8 100%);
+    margin-bottom: 22px;
+  }
+  .br-guide h3 { margin: 0 0 10px; font-size: 16px; color: #1e3548; }
+  .br-guide p { margin: 6px 0; line-height: 1.6; color: #2d3e4d; font-size: 13px; }
+  .br-guide ol { margin: 10px 0 4px 0; padding-left: 22px; line-height: 1.7; color: #2d3e4d; font-size: 13px; }
+  .br-guide ol li { margin-bottom: 6px; }
+  .br-guide code {
+    background: #fff; border: 1px solid #cfd8de; border-radius: 4px;
+    padding: 1px 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+  }
+
+  .br-section-title {
+    font-size: 15px; font-weight: 700; color: #1e3548; margin: 24px 0 10px;
+    padding-bottom: 6px; border-bottom: 2px solid #d7e3ea;
+  }
+
+  /* サブメニューカード */
+  .br-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .br-card {
+    background: #fff; border: 1px solid #e0e6ea; border-radius: 10px; padding: 18px 18px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: box-shadow .2s, transform .1s;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .br-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); transform: translateY(-1px); }
+  .br-card h4 {
+    font-size: 15px; margin: 0 0 6px; color: #1e3548;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .br-card .br-icon {
+    width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px; background: #1e88e5; color: #fff; font-weight: 700;
+    font-family: ui-monospace, monospace; font-size: 14px;
+  }
+  .br-card .br-icon.green { background: #43a047; }
+  .br-card .br-icon.orange { background: #fb8c00; }
+  .br-card p { font-size: 12px; color: #5a6b78; margin: 4px 0 8px; line-height: 1.5; }
+  .br-card .br-link { font-size: 12px; color: #1565c0; font-weight: 600; }
+
+  /* ステータスサマリ */
+  .br-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .br-status-card {
+    background: #fff; border: 1px solid #e0e6ea; border-radius: 10px; padding: 14px 16px;
+  }
+  .br-status-card .label { font-size: 11px; color: #6a7a85; margin-bottom: 4px; letter-spacing: .03em; }
+  .br-status-card .value { font-size: 18px; font-weight: 700; color: #1e3548; }
+  .br-status-card .value.warn { color: #e65100; }
+  .br-status-card .value.ok { color: #2e7d32; }
+  .br-status-card .sub { font-size: 11px; color: #6a7a85; margin-top: 4px; }
+
+  /* アカウント表 */
+  .br-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .br-table th, .br-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #eef2f4; font-size: 13px; }
+  .br-table th { background: #f4f7f9; font-weight: 600; color: #1e3548; font-size: 12px; }
+  .br-table tr:last-child td { border-bottom: none; }
+  .br-badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .br-badge-new { background: #eceff1; color: #455a64; }
+  .br-badge-warmup { background: #fff3e0; color: #e65100; }
+  .br-badge-active { background: #e8f5e9; color: #2e7d32; }
+  .br-badge-suspended { background: #ffebee; color: #c62828; }
+
+  .br-note {
+    background: #fff8e1; border: 1px solid #ffd54f; border-left: 4px solid #fb8c00;
+    padding: 12px 16px; border-radius: 6px; margin-top: 16px;
+    color: #4e3415; font-size: 12.5px; line-height: 1.7;
+  }
+  .br-note strong { color: #b45200; }
+</style>
+
+<div class="br-container">
+  <div class="br-header">
+    <h2>バズ・人気アカウントリサーチ</h2>
+    <div class="br-sub">
+      Threads 上の伸びているアカウントを巡回スクレイピングし、コンセプト設計の素材を集めるための運用入口。
+    </div>
+  </div>
+
+  <!-- 通常フェーズの運用手順 -->
+  <div class="br-guide">
+    <h3>📌 通常フェーズの運用手順</h3>
+    <p>このページは、Threads のリサーチをほぼ無人で回しつつ、人間は <strong>異常監視と方針判断のみ</strong> 行うための窓口です。</p>
+    <ol>
+      <li>
+        <strong>日 1〜数回、「① バズキーワードスキャン」を開いて巡回を実行</strong>
+        — キーワード（例:「占い」「タロット」）を入力 → 「実行」ボタン。<br>
+        新規バズ投稿・成長中のアカウントが自動でデータベースに蓄積されます。
+      </li>
+      <li>
+        <strong>「② スクレイピングログ」で WARN 以上のイベントを毎日チェック</strong>
+        — 通常時は 0 件のはず。LOGIN_FAILED / HTTP_403 / HTTP_429 / SUSPENSION_DETECTED が出ていたら即対応（後述の対応表参照）。
+      </li>
+      <li>
+        <strong>「③ リサーチ用アカウントのステータス・カウンタ」で arayasaki7 が ACTIVE のまま稼働しているか確認</strong>
+        — daily_request_count が当日上限内、status が SUSPENDED に落ちていないことを確認。
+      </li>
+      <li>
+        <strong>通知メール（ebisu.uranai@gmail.com）の異常受信を確認</strong>
+        — WARN 以上のイベント発生時は Gmail に自動送信されます。30 分以内に同種イベントが 3 件以上なら 1 通にまとめて配信。
+      </li>
+    </ol>
+    <p style="margin-top:10px;">
+      <strong>頻度の目安（通常フェーズ）</strong>：
+      巡回スキャン = 日 1〜3 回／ログチェック = 日 1 回（朝）／アカウント状態確認 = 日 1 回。
+    </p>
+  </div>
+
+  <!-- ステータスサマリ -->
+  <div class="br-section-title">現在の状態</div>
+  <div class="br-status-grid">
+    <div class="br-status-card">
+      <div class="label">リサーチアカウント数</div>
+      <div class="value">{{ account_rows|length }} 件</div>
+      <div class="sub">下表参照</div>
+    </div>
+    <div class="br-status-card">
+      <div class="label">直近 24h の WARN+ イベント</div>
+      <div class="value {% if warn_or_above_24h > 0 %}warn{% else %}ok{% endif %}">{{ warn_or_above_24h }} 件</div>
+      <div class="sub">0 = 正常稼働</div>
+    </div>
+    <div class="br-status-card">
+      <div class="label">通知メール</div>
+      <div class="value" style="font-size:14px;">
+        {% if notification_config.enabled and notification_config.recipient_emails %}
+          <span class="ok">有効</span>
+        {% else %}
+          <span class="warn">無効</span>
+        {% endif %}
+      </div>
+      <div class="sub">{{ notification_config.recipient_emails|default:"(未設定)" }}<br>min_level={{ notification_config.min_level }}</div>
+    </div>
+  </div>
+
+  <table class="br-table">
+    <thead>
+      <tr>
+        <th>name</th>
+        <th>Threads</th>
+        <th>ステータス</th>
+        <th>ウォームアップ</th>
+        <th>日次カウンタ</th>
+        <th>最終使用</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in account_rows %}
+        <tr>
+          <td><strong>{{ row.obj.name }}</strong></td>
+          <td>@{{ row.obj.threads_username|default:"-" }}</td>
+          <td>
+            {% if row.obj.status == 'ACTIVE' %}
+              <span class="br-badge br-badge-active">ACTIVE</span>
+            {% elif row.obj.status == 'VPS_WARMUP' %}
+              <span class="br-badge br-badge-warmup">VPS_WARMUP</span>
+            {% elif row.obj.status == 'SUSPENDED' %}
+              <span class="br-badge br-badge-suspended">SUSPENDED</span>
+            {% else %}
+              <span class="br-badge br-badge-new">NEW</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.in_warmup %}
+              {{ row.days_in_warmup }}/{{ row.obj.warmup_duration_days }} 日経過
+              （残 {{ row.remaining_days }} 日で ACTIVE 昇格）
+            {% else %}
+              －
+            {% endif %}
+          </td>
+          <td>{{ row.obj.daily_request_count }}</td>
+          <td>{{ row.obj.last_used_at|date:"Y-m-d H:i"|default:"未使用" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#888;padding:18px;">ResearchAccount が未登録です。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- サブメニュー -->
+  <div class="br-section-title">運用画面（サブメニュー）</div>
+  <div class="br-cards">
+    <a href="{% url 'console:buzz_keyword_scan' %}" class="br-card">
+      <h4><span class="br-icon">①</span>バズキーワードスキャン</h4>
+      <p>キーワードを入力して Threads を巡回 → バズ投稿・成長アカウントを取得。<br>
+      ステータスに応じてレート制限（VPS_WARMUP=5 req/h、ACTIVE=15 req/h）が自動適用されます。</p>
+      <span class="br-link">→ 一括巡回を開く</span>
+    </a>
+    <a href="/admin/th/scrapereventlog/" class="br-card">
+      <h4><span class="br-icon green">②</span>スクレイピングログ</h4>
+      <p>LOGIN_FAILED / HTTP_403 / HTTP_429 / SUSPENSION_DETECTED 等のイベントを時系列で確認。<br>
+      list_filter で event_type／level／notified（通知済み）でフィルタできます。</p>
+      <span class="br-link">→ ScraperEventLog 一覧を開く</span>
+    </a>
+    <a href="/admin/th/researchaccount/" class="br-card">
+      <h4><span class="br-icon orange">③</span>リサーチ用アカウントの状態</h4>
+      <p>arayasaki7 等のステータス・日次カウンタ・最終使用時刻を確認。<br>
+      「ACTIVE に昇格」「VPS_WARMUP に戻す」「SUSPENDED 解除」のアクションも提供。</p>
+      <span class="br-link">→ ResearchAccount 一覧を開く</span>
+    </a>
+    <a href="/admin/th/scrapernotificationconfig/" class="br-card">
+      <h4><span class="br-icon" style="background:#8e24aa;">④</span>通知設定</h4>
+      <p>メール宛先（カンマ区切り可）／通知イベント種別／通知レベル下限／集約しきい値／自動停止の設定。</p>
+      <span class="br-link">→ ScraperNotificationConfig を開く</span>
+    </a>
+  </div>
+
+  <!-- イベント対応表 -->
+  <div class="br-section-title">主要イベントと対応</div>
+  <table class="br-table">
+    <thead>
+      <tr>
+        <th>イベント</th>
+        <th>レベル</th>
+        <th>意味</th>
+        <th>対応</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>SUSPENSION_DETECTED</code></td><td>CRITICAL</td>
+          <td>ログインウォール／challenge／凍結 URL を検知</td>
+          <td>該当 ResearchAccount は自動 SUSPENDED 化。原因調査後、別アカウント立ち上げ or プロキシ調整</td></tr>
+      <tr><td><code>HTTP_403</code> / <code>HTTP_429</code></td><td>WARN</td>
+          <td>Threads 側からの制限応答</td>
+          <td>頻度を下げる（VPS_WARMUP に戻す）、プロキシのセッション切替を待つ</td></tr>
+      <tr><td><code>LOGIN_FAILED</code></td><td>WARN</td>
+          <td>Cookie 失効や認証エラー</td>
+          <td>ローカル PC で <code>scripts/local_threads_login.py</code> を再実行 → scp で配置</td></tr>
+      <tr><td><code>RATE_LIMIT_HIT</code></td><td>WARN</td>
+          <td>時間あたりリクエスト上限到達（自動待機後再開）</td>
+          <td>頻発するなら <code>SCRAPER_REQUESTS_PER_HOUR</code> を下げる</td></tr>
+      <tr><td><code>DAILY_LIMIT_REACHED</code></td><td>INFO</td>
+          <td>日次リクエスト上限到達で当日終了</td>
+          <td>翌日 00:00 で自動リセット。継続的に到達するなら上限を上げる</td></tr>
+      <tr><td><code>QUIET_HOURS_ENTER</code></td><td>DEBUG</td>
+          <td>深夜停止帯に突入</td>
+          <td>正常。ACTIVE=02:00〜06:00、VPS_WARMUP=22:00〜09:00 は停止</td></tr>
+      <tr><td><code>PROXY_ERROR</code></td><td>ERROR</td>
+          <td>プロキシ接続エラー</td>
+          <td>IPRoyal の残量・認証情報を確認</td></tr>
+      <tr><td><code>WARMUP_PROMOTED</code></td><td>INFO</td>
+          <td>ウォームアップ期間を完走し ACTIVE に昇格</td>
+          <td>記録のみ。これ以降は通常頻度</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 観察フェーズの補足 -->
+  <div class="br-note">
+    <strong>📎 補足：観察フェーズ（新規アカウント追加後 1〜2 週間）について</strong><br>
+    新規リサーチアカウントを追加した直後は <code>status=VPS_WARMUP</code> の <strong>超低頻度モード</strong>（5 req/h、待機 60〜180 秒、深夜停止 22:00〜09:00、日次 30 req、スクロール 3 回）で稼働します。<br>
+    <br>
+    観察フェーズ中の推奨運用：
+    <ul style="margin:6px 0 4px 18px;">
+      <li><strong>巡回頻度</strong>：1 日 1 回のみ（午前か夕方）。連続実行は控える。</li>
+      <li><strong>毎日 1 回</strong>、「② スクレイピングログ」で WARN+ イベントゼロを確認。</li>
+      <li><strong>毎日 1 回</strong>、「③ リサーチ用アカウントの状態」で SUSPENDED に落ちていないことを確認。</li>
+      <li>14 日間（<code>warmup_duration_days</code>）連続無凍結なら、次回スクレイパ起動時に <code>maybe_auto_promote()</code> が走り自動で ACTIVE 昇格。</li>
+      <li>異常が出たら即「③」から該当アカウントを SUSPENDED にし、原因調査。プロキシ／頻度／UA のいずれかを見直す。</li>
+    </ul>
+    観察フェーズで 2〜4 週連続無凍結を確認したら、Phase F（投稿アカウントの立ち上げ）に進める段階です。
+  </div>
+
+</div>
+{% endblock %}

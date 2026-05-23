@@ -1500,3 +1500,49 @@ def buzz_ng_check_api(request):
 
     result = check_ng_words(text)
     return JsonResponse({'ok': True, **result})
+
+
+# ─── Phase G: バズ・人気アカウントリサーチ運用 Overview ──────────────
+
+@staff_member_required
+def buzz_research_overview(request):
+    """バズ・人気アカウントリサーチ運用 Overview ページ。
+
+    Phase G で導入された ResearchAccount / ScraperEventLog の運用を
+    人間がワンクリックで把握・遷移できる入口画面。
+    通常フェーズと観察フェーズの手順を案内する。
+    """
+    from th.models import ResearchAccount, ScraperEventLog, ScraperNotificationConfig
+
+    accounts = list(
+        ResearchAccount.objects.all().order_by('-status', 'name')
+    )
+    account_rows = []
+    for ra in accounts:
+        in_warmup = ra.status == ResearchAccount.STATUS_VPS_WARMUP
+        days = ra.days_in_warmup()
+        account_rows.append({
+            'obj': ra,
+            'days_in_warmup': days,
+            'remaining_days': max(0, ra.warmup_duration_days - days) if in_warmup else 0,
+            'in_warmup': in_warmup,
+        })
+
+    recent_events = list(
+        ScraperEventLog.objects.order_by('-created_at')[:10]
+    )
+    warn_or_above_24h = ScraperEventLog.objects.filter(
+        created_at__gte=timezone.now() - timedelta(hours=24),
+        level__in=['WARN', 'ERROR', 'CRITICAL'],
+    ).count()
+
+    notification_config = ScraperNotificationConfig.load()
+
+    context = {
+        'title': 'バズ・人気アカウントリサーチ',
+        'account_rows': account_rows,
+        'recent_events': recent_events,
+        'warn_or_above_24h': warn_or_above_24h,
+        'notification_config': notification_config,
+    }
+    return render(request, 'admin/console/buzz_research_overview.html', context)
