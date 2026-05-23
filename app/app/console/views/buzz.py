@@ -876,6 +876,13 @@ def buzz_run_keyword_scan(request):
         if not keywords:
             return JsonResponse({'ok': False, 'error': 'キーワードを入力してください'}, status=400)
 
+        # --max-profile-fetch（任意指定、デフォルト 20）
+        try:
+            max_profile_fetch = int(request.POST.get('max_profile_fetch') or 20)
+            max_profile_fetch = max(0, min(200, max_profile_fetch))
+        except (TypeError, ValueError):
+            max_profile_fetch = 20
+
         # ジョブレコード作成
         job = THBuzzSearchJob.objects.create(
             keywords=json.dumps(keywords, ensure_ascii=False),
@@ -884,7 +891,9 @@ def buzz_run_keyword_scan(request):
         )
 
         # バックグラウンドで一括巡回コマンドを起動
-        cmd = [sys.executable, 'manage.py', 'th_buzz_keyword_scan', '--job-id', str(job.id)]
+        cmd = [sys.executable, 'manage.py', 'th_buzz_keyword_scan',
+               '--job-id', str(job.id),
+               '--max-profile-fetch', str(max_profile_fetch)]
         sort_order = request.POST.get('sort_order', 'recent')
         if sort_order in ('recent', 'default'):
             cmd.extend(['--sort-order', sort_order])
@@ -905,15 +914,52 @@ def buzz_run_keyword_scan(request):
             stderr=log_err,
         )
 
+        # 見積り計算（Phase G）
+        estimate = _estimate_keyword_scan(len(keywords), max_profile_fetch)
+
         return JsonResponse({
             'ok': True,
             'message': f'一括巡回を開始しました (ID: {job.id}, {len(keywords)}キーワード)',
             'job_id': job.id,
+            'estimate': estimate,
         })
 
     except Exception as e:
         logger.exception("buzz_run_keyword_scan エラー")
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+def _estimate_keyword_scan(num_keywords: int, max_profile_fetch: int) -> dict:
+    """選択中の ResearchAccount プロファイルから見積りを計算するヘルパー"""
+    from th.models import ResearchAccount
+    from th.services import scraper_config
+
+    # buzz_scraper と同じローテーション選択
+    account = ResearchAccount.objects.filter(
+        status__in=[ResearchAccount.STATUS_VPS_WARMUP, ResearchAccount.STATUS_ACTIVE],
+    ).order_by('last_used_at').first()
+
+    if account is None:
+        # ResearchAccount 未登録時は ACTIVE プロファイルを既定として返す
+        profile = scraper_config.get_profile('ACTIVE')
+        account_name = None
+        account_status = None
+    else:
+        profile = scraper_config.get_profile(account.status)
+        account_name = account.name
+        account_status = account.status
+
+    est = scraper_config.estimate_job(num_keywords, max_profile_fetch, profile)
+    # 完了予想時刻
+    from datetime import timedelta as _td
+    eta = timezone.now() + _td(seconds=est['total_seconds'])
+    est['eta_iso'] = eta.isoformat()
+    est['eta_local'] = timezone.localtime(eta).strftime('%Y-%m-%d %H:%M JST')
+    est['account_name'] = account_name
+    est['account_status'] = account_status
+    est['keyword_count'] = num_keywords
+    est['profile_fetch_count'] = max_profile_fetch
+    return est
 
 
 # ─── Phase C: Googleトレンド連携 ───

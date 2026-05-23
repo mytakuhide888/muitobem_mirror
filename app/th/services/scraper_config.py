@@ -168,3 +168,70 @@ def require_proxy_url() -> str:
             'VPS の .env に RESEARCH_PROXY_URL を設定してください。'
         )
     return url
+
+
+# ─── ジョブ見積り ───
+
+def estimate_job(num_keywords: int, max_profile_fetch: int, profile: Dict) -> Dict:
+    """1 ジョブの総リクエスト数と推定所要時間を見積もる。
+
+    実装ロジック:
+      total_requests = num_keywords + max_profile_fetch
+      base_time  = total_requests × (平均待機 + 処理時間)
+                   平均待機 = (min_delay + max_delay) / 2
+                   処理時間（HTML 取得・SSR JSON 抽出・スクロール）= 概算 8 秒
+      extra_wait = max(0, ceil((total_requests - requests_per_hour) / requests_per_hour)) × 3600
+                   時間上限超過分は 1 時間単位の追加 sleep
+      total      = base_time + extra_wait
+
+    Args:
+        num_keywords:      検索キーワード数
+        max_profile_fetch: プロフィール取得最大件数
+        profile:           get_profile(status) で取得したレートプロファイル
+
+    Returns:
+        {
+            'total_requests': int,
+            'requests_per_hour': int,
+            'profile_name': str,
+            'base_seconds': float,    # 待機＋処理の合計
+            'extra_seconds': float,   # レート上限超過による追加待機
+            'total_seconds': float,
+            'estimate_hours': int,
+            'estimate_minutes': int,  # 0〜59
+            'rate_limit_hit_expected': bool,  # 上限到達して追加待機が入るか
+        }
+    """
+    import math
+
+    num_keywords = max(1, int(num_keywords))
+    max_profile_fetch = max(0, int(max_profile_fetch))
+
+    total_requests = num_keywords + max_profile_fetch
+
+    mn = float(profile.get('min_delay_sec', 15))
+    mx = float(profile.get('max_delay_sec', 45))
+    avg_wait = (mn + mx) / 2.0
+    proc_sec = 8.0  # HTML 取得・SSR JSON 抽出・スクロール等の処理時間（概算）
+
+    base_seconds = total_requests * (avg_wait + proc_sec)
+
+    rph = max(1, int(profile.get('requests_per_hour', 15)))
+    extra_buckets = max(0, math.ceil((total_requests - rph) / float(rph)))
+    extra_seconds = extra_buckets * 3600.0
+
+    total_seconds = base_seconds + extra_seconds
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+
+    return {
+        'total_requests': total_requests,
+        'requests_per_hour': rph,
+        'profile_name': profile.get('name', '?'),
+        'base_seconds': round(base_seconds, 1),
+        'extra_seconds': round(extra_seconds, 1),
+        'total_seconds': round(total_seconds, 1),
+        'estimate_hours': hours,
+        'estimate_minutes': minutes,
+        'rate_limit_hit_expected': total_requests > rph,
+    }

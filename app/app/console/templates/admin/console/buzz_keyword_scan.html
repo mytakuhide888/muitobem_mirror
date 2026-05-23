@@ -87,6 +87,10 @@
           <option value="default">おすすめ順</option>
         </select>
       </div>
+      <div title="プロフィール取得の最大件数。VPS_WARMUP 中は 3 推奨、ACTIVE は 10〜20 推奨。空欄でデフォルト 20。">
+        <label style="font-size:12px; display:block; margin-bottom:2px; color:#666;">プロフ取得上限</label>
+        <input type="number" id="scan-max-profile-fetch" value="20" min="0" max="200" style="width:70px; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+      </div>
       <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:13px;">
         <input type="checkbox" id="scan-growth-filter"> 急成長フィルタ
       </label>
@@ -97,6 +101,7 @@
       <a href="{% url 'console:buzz_growth_ranking' %}" class="buzz-btn buzz-btn-secondary">ランキング画面へ</a>
     </div>
     <div id="scan-message" class="buzz-msg"></div>
+    <div id="scan-estimate" style="display:none; margin-top:10px; padding:10px 12px; background:#eef6fb; border:1px solid #b3d4e2; border-radius:6px; font-size:12.5px; line-height:1.7; color:#1e3548;"></div>
     <p style="font-size:11px; color:#999; margin-top:8px;">
       各キーワードで検索 → 新規投稿者のプロフィール取得 → 成長スコア計算を自動実行します。<br>
       「急成長フィルタ」ON: コンセプト候補（7〜90日, フォロワー500+, 1日10人+増加）に該当しないアカウントの投稿を除外します。<br>
@@ -198,6 +203,10 @@ function runKeywordScan() {
       if (data.ok) {
         msgEl.className = 'buzz-msg ok';
         msgEl.textContent = data.message + ' バックグラウンドで処理中です。完了後にランキング画面で確認できます。';
+        // 見積り表示（Phase G）
+        if (data.estimate) {
+          renderEstimate(estEl, data.estimate);
+        }
         // ジョブステータスをポーリング
         if (data.job_id) {
           pollJobStatus(data.job_id);
@@ -211,6 +220,88 @@ function runKeywordScan() {
       msgEl.className = 'buzz-msg err';
       msgEl.textContent = 'リクエストエラー: ' + err;
     });
+}
+
+// ─── Phase G: ジョブ見積り表示（DOM 操作で構築、innerHTML 不使用） ───
+function _row(label, valueNode) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(label));
+  if (valueNode instanceof Node) {
+    div.appendChild(valueNode);
+  } else {
+    div.appendChild(document.createTextNode(String(valueNode)));
+  }
+  return div;
+}
+function _strong(text) {
+  const s = document.createElement('strong');
+  s.textContent = text;
+  return s;
+}
+function _code(text) {
+  const c = document.createElement('code');
+  c.textContent = text;
+  return c;
+}
+function _span(text, color, bold) {
+  const s = document.createElement('span');
+  s.textContent = text;
+  if (color) s.style.color = color;
+  if (bold) s.style.fontWeight = '600';
+  return s;
+}
+function renderEstimate(estEl, e) {
+  estEl.textContent = '';
+
+  const title = document.createElement('div');
+  title.appendChild(_strong('📊 ジョブ見積り'));
+  estEl.appendChild(title);
+
+  // アカウント
+  const accNode = document.createElement('span');
+  if (e.account_name) {
+    accNode.appendChild(_code(e.account_name));
+    accNode.appendChild(document.createTextNode(' (' + e.account_status + ', ' + e.profile_name + ')'));
+  } else {
+    accNode.appendChild(_code('未登録'));
+    accNode.appendChild(document.createTextNode(' (ACTIVE 既定)'));
+  }
+  estEl.appendChild(_row('アカウント: ', accNode));
+
+  // 総リクエスト数
+  const reqNode = document.createElement('span');
+  reqNode.appendChild(_strong(e.total_requests + ' 件'));
+  reqNode.appendChild(document.createTextNode(
+    ' (検索 ' + e.keyword_count + ' + プロフィール ' + e.profile_fetch_count + ')'
+  ));
+  estEl.appendChild(_row('総リクエスト数: ', reqNode));
+
+  // 推定所要時間
+  const timeNode = document.createElement('span');
+  timeNode.appendChild(_strong(e.estimate_hours + ' 時間 ' + e.estimate_minutes + ' 分'));
+  timeNode.appendChild(_span(
+    ' (基本 ' + Math.round(e.base_seconds / 60) + ' 分 + 待機 ' + Math.round(e.extra_seconds / 60) + ' 分)',
+    '#6a7a85'
+  ));
+  estEl.appendChild(_row('推定所要時間: ', timeNode));
+
+  // 完了予想時刻
+  estEl.appendChild(_row('完了予想時刻: ', _strong(e.eta_local || '?')));
+
+  // レート上限判定
+  if (e.rate_limit_hit_expected) {
+    const hours = Math.ceil(e.extra_seconds / 3600);
+    estEl.appendChild(_span(
+      '⚠ ' + e.requests_per_hour + ' req/h を超過 → 約 ' + hours + ' 時間分の自動 sleep が入ります',
+      '#c62828', true
+    ));
+  } else {
+    estEl.appendChild(_span(
+      '✓ ' + e.requests_per_hour + ' req/h 上限内 (自動 sleep なし見込み)',
+      '#2e7d32'
+    ));
+  }
+  estEl.style.display = 'block';
 }
 
 function pollJobStatus(jobId) {
