@@ -429,6 +429,23 @@ DB:
 - IPRoyal 残量・コストの自動監視（`IPROYAL_API_TOKEN` は `.env` 投入済みだが API 呼出処理は未実装）
 - 凍結検知のモックテスト（実運用での自然な初発火を観察する方針）
 
+### Phase G 追加機能（2026-05-23 追加）
+- **キーワード一括巡回画面に「プロフ取得上限」入力欄**（デフォルト 20）
+- **投入直後にジョブ見積り表示**：総リクエスト数／推定所要時間／完了予想時刻／レート上限超過判定
+  - 実装: `scraper_config.estimate_job()` ／ `buzz_run_keyword_scan` API レスポンス ／ `buzz_keyword_scan.html` の `renderEstimate()`
+  - 計算式: `total_requests = num_keywords + max_profile_fetch`、`base = total × (avg_delay + 8s)`、`extra = ceil((total - rph) / rph) × 3600s`
+
+#### 推奨投入値（VPS_WARMUP プロファイル、5 req/h）
+| キーワード | プロフ取得上限 | 推定所要 | 備考 |
+|---|---|---|---|
+| 1 | 3 | **8 分** | 上限内、推奨 |
+| 1 | 5 | 1h 12m | 60 分 sleep |
+| 1 | 20（デフォ） | 4h 44m | 240 分 sleep |
+| 3 | 10 | 2h 27m | 120 分 sleep |
+
+#### 推奨投入値（ACTIVE プロファイル、15 req/h）
+ウォームアップ完了後は `--max-profile-fetch 20` でも 25 分前後で完了。
+
 ### `auto_promote` トリガー仕様
 - `ThreadsBuzzScraper.__init__()` で呼ばれる `maybe_auto_promote()` が唯一の昇格起点
 - つまり 14 日経過しても、誰もスクレイパを起動しなければ `ACTIVE` には上がらない（実害なし、起動時に昇格する）
