@@ -2,6 +2,11 @@
 muitobem.top, www.muitobem.top {
     encode gzip
 
+    # リサーチブラウザ（noVNC）: WebSocket 含むのでキャッシュ無効化
+    handle /research-browser/* {
+        reverse_proxy research-browser:3000
+    }
+
     # 動的ページにはキャッシュさせない
     handle {
         header {

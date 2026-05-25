@@ -97,6 +97,23 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  research-browser:
+    image: lscr.io/linuxserver/chromium:latest
+    container_name: muitobem-research-browser-1
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tokyo
+      - SUBFOLDER=/research-browser/
+      - TITLE=Research Browser (@arayasaki7)
+      - PASSWORD=${RESEARCH_BROWSER_PASSWORD:-muitobem2026}
+      - CHROME_CLI=https://www.threads.net/ --proxy-server=http://geo.iproyal.com:12321
+    volumes:
+      - /srv/muitobem/research-browser-config:/config
+    restart: unless-stopped
+
 volumes:
   db_data:
   static_volume:

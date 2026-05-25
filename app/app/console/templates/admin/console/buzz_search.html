@@ -126,7 +126,14 @@
   .bulk-bar .bulk-msg { font-size:12px; color:#28a745; }
 </style>
 
-<div class="buzz-header">バズ投稿取得</div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+  <div class="buzz-header" style="margin:0;">バズ投稿取得</div>
+  <a href="/research-browser/" target="_blank" rel="noopener"
+     style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; background:#17a2b8; color:#fff; border-radius:6px; font-size:13px; text-decoration:none; white-space:nowrap;"
+     title="@arayasaki7 アカウントでプロキシ経由のブラウザを開きます（初回はプロキシ認証が必要です）">
+    🌐 @arayasaki7 でブラウザを開く
+  </a>
+</div>
 
 <!-- Cookie 警告 -->
 {% if session_warning %}
