@@ -382,6 +382,25 @@ def _create_playwright_browser(headless: bool = True, account=None,
     return pw, browser, context, page
 
 
+# ─── スクロール補助（document.body が null になる SPA 再構築への保険） ───
+
+def _safe_scroll_height(page) -> int:
+    """document.body / documentElement のいずれかから scrollHeight を取得。
+    どちらも null なら 0 を返す。Threads の SPA 再構築で一瞬 body が消える瞬間がある。
+    """
+    return int(page.evaluate(
+        '() => { const e = document.body || document.documentElement; return (e && e.scrollHeight) || 0; }'
+    ) or 0)
+
+
+def _safe_scroll_to_bottom(page) -> None:
+    """ページ末尾までスクロール。body 不在時は何もしない。"""
+    page.evaluate(
+        '() => { const e = document.body || document.documentElement; '
+        'if (e) { window.scrollTo(0, e.scrollHeight); } }'
+    )
+
+
 # ─── 凍結検知 ───
 
 _SUSPENSION_KEYWORDS = (
@@ -1307,8 +1326,12 @@ class ThreadsBuzzScraper:
 
         max_scroll = self.rate_limiter.profile.get('max_scroll_count', 10)
         for i in range(max_scroll):
-            prev_height = self._page.evaluate('document.body.scrollHeight')
-            self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+            try:
+                prev_height = _safe_scroll_height(self._page)
+                _safe_scroll_to_bottom(self._page)
+            except Exception as e:
+                logger.warning("[DEBUG] スクロール操作失敗（継続）: %s", e)
+                break
             try:
                 self._page.wait_for_load_state('networkidle', timeout=10000)
             except Exception:
@@ -1316,7 +1339,11 @@ class ThreadsBuzzScraper:
             # 待機間隔もプロファイル連動の対数正規（最低 3 秒は確保）
             scroll_delay = max(3.0, scraper_config.pick_delay_seconds(self.rate_limiter.profile) / 4.0)
             time.sleep(scroll_delay)
-            new_height = self._page.evaluate('document.body.scrollHeight')
+            try:
+                new_height = _safe_scroll_height(self._page)
+            except Exception as e:
+                logger.warning("[DEBUG] スクロール高さ取得失敗（継続）: %s", e)
+                new_height = prev_height
 
             # 傍受した API レスポンスから投稿を抽出
             api_posts = self._collect_captured_posts()
@@ -1393,7 +1420,9 @@ class ThreadsBuzzScraper:
         profile = _extract_profile_from_html(html, username)
         if profile.get('followers_count') is None or profile.get('following_count') is None:
             try:
-                visible_text = _sanitize(self._page.evaluate('document.body.innerText'))
+                visible_text = _sanitize(self._page.evaluate(
+                    '() => { const e = document.body || document.documentElement; return (e && e.innerText) || ""; }'
+                ))
                 text_counts = _extract_counts_from_visible_text(visible_text)
                 if profile.get('followers_count') is None:
                     profile['followers_count'] = text_counts['followers_count']
@@ -1693,15 +1722,23 @@ class ThreadsBuzzScraper:
         no_new_count = 0
 
         for i in range(max_scrolls):
-            prev_height = self._page.evaluate('document.body.scrollHeight')
-            self._page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+            try:
+                prev_height = _safe_scroll_height(self._page)
+                _safe_scroll_to_bottom(self._page)
+            except Exception as e:
+                logger.warning("[DEBUG] 投稿履歴スクロール操作失敗（継続）: %s", e)
+                break
             try:
                 self._page.wait_for_load_state('networkidle', timeout=10000)
             except Exception:
                 pass
             scroll_delay = max(3.0, scraper_config.pick_delay_seconds(self.rate_limiter.profile) / 4.0)
             time.sleep(scroll_delay)
-            new_height = self._page.evaluate('document.body.scrollHeight')
+            try:
+                new_height = _safe_scroll_height(self._page)
+            except Exception as e:
+                logger.warning("[DEBUG] 投稿履歴スクロール高さ取得失敗（継続）: %s", e)
+                new_height = prev_height
 
             # 傍受した API レスポンスから投稿を抽出
             api_posts = self._collect_captured_posts()
