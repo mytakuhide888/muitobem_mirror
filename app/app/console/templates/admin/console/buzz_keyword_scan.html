@@ -175,6 +175,7 @@ function usePreset(keywords) {
 
 function runKeywordScan() {
   const msgEl = document.getElementById('scan-message');
+  const estEl = document.getElementById('scan-estimate');
   const keywords = document.getElementById('keywords-input').value.trim();
 
   if (!keywords) {
