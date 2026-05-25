@@ -446,6 +446,22 @@ DB:
 #### 推奨投入値（ACTIVE プロファイル、15 req/h）
 ウォームアップ完了後は `--max-profile-fetch 20` でも 25 分前後で完了。
 
+### Phase G 修正履歴（2026-05-25 追加）
+- **scrollHeight null クラッシュ修正**（job id=186 失敗時の対応）
+  - Threads SPA の DOM 再構築タイミングで `document.body` が一瞬 null になり `Page.evaluate('document.body.scrollHeight')` で TypeError
+  - `_safe_scroll_height()` / `_safe_scroll_to_bottom()` ヘルパー導入（`document.body || documentElement` のフォールバックチェーン）
+  - `search_keyword` / `fetch_author_posts` のスクロールループを try-except で防御
+  - `document.body.innerText` 取得も同様に防御
+  - HEAD: `a1a87be`
+
+### 操作上の注意：buzz-search 画面の 2 フォーム使い分け
+| 用途 | フォーム | API |
+|---|---|---|
+| 特定アカウントのプロフィール＋過去投稿を直接取得 | 「アカウント名」（`buzz-usernames`） | `buzz_run_account_fetch` |
+| キーワードを含む投稿を横断検索 | 「キーワード検索」 | `buzz_run_search` |
+
+ユーザー名（例: `ran_uranai1018`）を取得したい場合は **「アカウント名」フォーム** を使うこと。キーワード検索フォームに入れると 0 件か少数しかヒットせず、SPA 再構築バグを踏みやすい（修正済みだが本来の用途ではない）。
+
 ### `auto_promote` トリガー仕様
 - `ThreadsBuzzScraper.__init__()` で呼ばれる `maybe_auto_promote()` が唯一の昇格起点
 - つまり 14 日経過しても、誰もスクレイパを起動しなければ `ACTIVE` には上がらない（実害なし、起動時に昇格する）
