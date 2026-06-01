@@ -1805,6 +1805,23 @@ def check_session_validity(account=None) -> Dict:
                     ResearchAccount.STATUS_ACTIVE,
                 ],
             ).order_by('last_used_at').first()
+            # 利用可能なアカウントがゼロのとき、DB に登録が 1 件以上あれば
+            # legacy パス警告ではなく状況を説明するメッセージを返す
+            if account is None and ResearchAccount.objects.exists():
+                total = ResearchAccount.objects.count()
+                suspended_n = ResearchAccount.objects.filter(
+                    status=ResearchAccount.STATUS_SUSPENDED).count()
+                new_n = ResearchAccount.objects.filter(
+                    status=ResearchAccount.STATUS_NEW).count()
+                return {
+                    'valid': False,
+                    'message': (
+                        f'利用可能なリサーチ用アカウントがありません'
+                        f'（登録 {total} 件 / SUSPENDED {suspended_n} / NEW {new_n}）。'
+                        f'ウォームアップ開始または凍結解除が必要です。'
+                    ),
+                    'expires_at': None,
+                }
         except Exception as e:
             logger.warning("ResearchAccount 自動選択失敗: %s", e)
             account = None
