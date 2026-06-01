@@ -8,11 +8,11 @@ JSON ファイルに保存する。保存したファイルをスクレイパー
 
 使用例（ローカルPCで実行）:
   python manage.py th_buzz_login                                  # legacy: deploy/threads_session.json
-  python manage.py th_buzz_login --account arayasaki7             # deploy/threads_session_arayasaki7.json
-  python manage.py th_buzz_login --account arayasaki7 --proxy http://user:pass@gateway:port
+  python manage.py th_buzz_login --account arayahide3             # deploy/threads_session_arayahide3.json
+  python manage.py th_buzz_login --account arayahide3 --proxy http://user:pass@gateway:port
 
 VPSへの反映:
-  scp deploy/threads_session_arayasaki7.json user@vps:/srv/muitobem/app/deploy/
+  scp deploy/threads_session_arayahide3.json user@vps:/srv/muitobem/app/deploy/
 """
 import logging
 import os

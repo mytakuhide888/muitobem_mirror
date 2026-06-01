@@ -107,7 +107,7 @@ services:
       - PGID=1000
       - TZ=Asia/Tokyo
       - SUBFOLDER=/research-browser/
-      - TITLE=Research Browser (@arayasaki7)
+      - TITLE=Research Browser (@arayahide3)
       - PASSWORD=${RESEARCH_BROWSER_PASSWORD:-muitobem2026}
       - CHROME_CLI=https://www.threads.net/ --proxy-server=http://geo.iproyal.com:12321
     volumes:

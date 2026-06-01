@@ -29,6 +29,16 @@
 - **回避**: **`.env` 変更は `docker compose up -d`** を使う。`restart` は既存プロセス再起動のみ。
 - **適用**: `vps-deploy` Skill の手順に組み込み済。
 
+## 2026-05-31 — Threads リサーチ垢が凍結（research-browser + proxy 経由）
+- **学び**: `research-browser/`（linuxserver/chromium、UA = Linux + Chrome）で IPRoyal 尼崎 proxy 経由ログイン → Meta が即「Linux からログイン」警告。その後 proxy 経由のフォロー連打 → 物理的に離れたスマホ実機（宝塚）からの同時アクセス → bot 検証 → SMS / 顔写真認証 → **凍結**。
+- **複合要因**: ①Linux UA 露見 ②物理離隔 IP の混在（VPS proxy + 実機） ③ウォームアップ未完了で頻度上昇 ④proxy 認証ダイアログのキャンセル時に直 IP 漏れの懸念 ⑤占いアカウントへのフォロー連打。
+- **回避**:
+  1. リサーチ垢は **ウォームアップ期間（既定 14 日）を絶対に破らない**。`ResearchAccount.warmup_started_at` と `days_in_warmup()` を確認してから操作する。
+  2. **proxy 経由ブラウザと実機を同一アカウントで同時刻に触らない**。`ResearchAccount` に運用モード（VPS/MOBILE 排他）の概念を導入する設計を別途検討。
+  3. 凍結 / 警告検知時は **同端末・同指紋で次アカウントを使わない**（顔データ・端末指紋が紐づき連鎖 BAN）。Chromium プロファイル `/srv/muitobem/research-browser-config/` ごと退避してから新規セッションを作る。
+  4. リサーチ用 `linuxserver/chromium` は UA 偽装だけでは Meta の指紋検知に勝てない。**能動的アクション（フォロー・いいね・投稿）はスマホ実機に寄せ、`research-browser/` は閲覧専用とする**。
+- **適用**: `.claude/skills/threads-ops/SKILL.md`「垢バン回避ルール（厳守）」セクションを参照。`CLAUDE/20260531_2/summary.md` に詳細インシデント記録。
+
 ---
 
 ## 進行中作業の参照

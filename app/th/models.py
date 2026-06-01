@@ -704,14 +704,14 @@ class ResearchAccount(models.Model):
 
     name = models.CharField(
         '識別名', max_length=64, unique=True,
-        help_text='例: arayasaki7、research_01',
+        help_text='例: arayahide3、research_01',
     )
     threads_username = models.CharField(
         'Threadsユーザー名', max_length=128, blank=True, default='',
     )
     storage_state_path = models.CharField(
         'セッションファイルパス', max_length=256,
-        help_text='例: /app/deploy/threads_session_arayasaki7.json',
+        help_text='例: /app/deploy/threads_session_arayahide3.json',
     )
     status = models.CharField(
         '運用ステータス', max_length=20,
