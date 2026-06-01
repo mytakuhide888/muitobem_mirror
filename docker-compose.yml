@@ -109,7 +109,12 @@ services:
       - SUBFOLDER=/research-browser/
       - TITLE=Research Browser (@arayahide3)
       - PASSWORD=${RESEARCH_BROWSER_PASSWORD:-muitobem2026}
-      - CHROME_CLI=https://www.threads.net/ --proxy-server=http://geo.iproyal.com:12321
+      # Phase 3-A: iOS Safari UA を偽装（Linux+Chrome 判定の凍結原因 A 対策）
+      # proxy 認証の埋込は Chromium の仕様で URL 内 user:pass が無視されるため、
+      # 別途 Chrome 拡張機能 or ローカル proxy 化を別 Phase で実装する。現状は
+      # Basic Auth ダイアログ運用のままだが、操作モード排他（Phase 3-B）で
+      # 起動制御するので誤操作で直 IP 漏れる場面を最小化する。
+      - 'CHROME_CLI=https://www.threads.net/ --proxy-server=http://geo.iproyal.com:12321 --user-agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"'
     volumes:
       - /srv/muitobem/research-browser-config:/config
     restart: unless-stopped

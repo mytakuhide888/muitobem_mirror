@@ -736,6 +736,28 @@ class ResearchAccount(models.Model):
     last_used_at = models.DateTimeField('最終使用日時', null=True, blank=True)
     daily_request_count = models.IntegerField('日次リクエスト数', default=0)
     daily_count_reset_at = models.DateField('日次カウンタ最終リセット日', null=True, blank=True)
+    # ─── 操作モード（Phase 3-B: VPS / MOBILE 排他制御）───
+    # 同時刻に異なる位置からアクセスして Meta に「乗っ取り疑い」を持たれるのを防ぐ。
+    # 切替時は 15 分の cooldown を強制し、位置移動的な振る舞いを演出する。
+    OPERATION_MODE_IDLE = 'IDLE'
+    OPERATION_MODE_VPS = 'VPS'
+    OPERATION_MODE_MOBILE = 'MOBILE'
+    OPERATION_MODE_CHOICES = [
+        (OPERATION_MODE_IDLE, 'IDLE（誰も操作していない）'),
+        (OPERATION_MODE_VPS, 'VPS（research-browser で閲覧中）'),
+        (OPERATION_MODE_MOBILE, 'MOBILE（スマホ実機で操作中）'),
+    ]
+    current_operation_mode = models.CharField(
+        '現在の操作モード', max_length=10,
+        choices=OPERATION_MODE_CHOICES, default=OPERATION_MODE_IDLE,
+    )
+    operation_mode_started_at = models.DateTimeField(
+        'モード開始日時', null=True, blank=True,
+    )
+    operation_mode_locked_until = models.DateTimeField(
+        'モード切替ロック期限', null=True, blank=True,
+        help_text='この時刻まで別モードに切り替えられない（15分 cooldown）',
+    )
     # ─── メタ情報 ───
     memo = models.TextField('運用メモ', blank=True, default='')
     created_at = models.DateTimeField('作成日時', auto_now_add=True)
@@ -772,6 +794,34 @@ class ResearchAccount(models.Model):
         self.status = self.STATUS_ACTIVE
         self.save(update_fields=['status', 'updated_at'])
         return True
+
+    # ─── 操作モード（Phase 3-B）─────────────────────────────────
+    def is_mode_locked(self):
+        """切替 cooldown 中か"""
+        if not self.operation_mode_locked_until:
+            return False
+        from django.utils import timezone as _tz
+        return _tz.now() < self.operation_mode_locked_until
+
+    def mode_lock_remaining_seconds(self):
+        if not self.is_mode_locked():
+            return 0
+        from django.utils import timezone as _tz
+        return int((self.operation_mode_locked_until - _tz.now()).total_seconds())
+
+    def can_switch_to(self, new_mode):
+        """new_mode に切替可能か。(ok: bool, reason: str) を返す。
+
+        IDLE への戻しは cooldown 不要（緊急停止のため）。それ以外は cooldown を尊重。
+        """
+        if new_mode == self.current_operation_mode:
+            return True, '同一モードのため変更なし'
+        if new_mode == self.OPERATION_MODE_IDLE:
+            return True, ''
+        if self.is_mode_locked():
+            remaining_min = self.mode_lock_remaining_seconds() // 60 + 1
+            return False, f'切替 cooldown 中（残り約 {remaining_min} 分）'
+        return True, ''
 
 
 class ScraperEventLog(models.Model):

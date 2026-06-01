@@ -1572,6 +1572,8 @@ def buzz_research_overview(request):
             'days_in_warmup': days,
             'remaining_days': max(0, ra.warmup_duration_days - days) if in_warmup else 0,
             'in_warmup': in_warmup,
+            'mode_locked': ra.is_mode_locked(),
+            'mode_lock_remaining_min': ra.mode_lock_remaining_seconds() // 60 + 1 if ra.is_mode_locked() else 0,
         })
 
     recent_events = list(
@@ -1592,3 +1594,47 @@ def buzz_research_overview(request):
         'notification_config': notification_config,
     }
     return render(request, 'admin/console/buzz_research_overview.html', context)
+
+
+# ─── Phase 3-B: ResearchAccount の操作モード切替 ─────────────────
+@staff_member_required
+@require_POST
+def research_account_set_mode(request, pk):
+    """ResearchAccount.current_operation_mode を切替（cooldown 強制）
+
+    POST /console/api/research-account/<pk>/set-mode/  body: mode=VPS|MOBILE|IDLE
+
+    VPS と MOBILE は排他。同時刻に異なる位置から同一アカウントを触らない
+    ように切替時は 15 分の cooldown を強制する（IDLE への戻しは cooldown なし）。
+    """
+    from th.models import ResearchAccount
+
+    ra = get_object_or_404(ResearchAccount, pk=pk)
+    new_mode = (request.POST.get('mode') or '').upper()
+    valid_modes = {
+        ResearchAccount.OPERATION_MODE_IDLE,
+        ResearchAccount.OPERATION_MODE_VPS,
+        ResearchAccount.OPERATION_MODE_MOBILE,
+    }
+    if new_mode not in valid_modes:
+        return JsonResponse({'ok': False, 'error': f'invalid mode: {new_mode!r}'}, status=400)
+
+    ok, reason = ra.can_switch_to(new_mode)
+    if not ok:
+        return JsonResponse({'ok': False, 'error': reason}, status=409)
+
+    ra.current_operation_mode = new_mode
+    ra.operation_mode_started_at = timezone.now()
+    if new_mode == ResearchAccount.OPERATION_MODE_IDLE:
+        ra.operation_mode_locked_until = None
+    else:
+        ra.operation_mode_locked_until = timezone.now() + timedelta(minutes=15)
+    ra.save(update_fields=[
+        'current_operation_mode', 'operation_mode_started_at',
+        'operation_mode_locked_until', 'updated_at',
+    ])
+    return JsonResponse({
+        'ok': True,
+        'mode': new_mode,
+        'locked_until': ra.operation_mode_locked_until.isoformat() if ra.operation_mode_locked_until else None,
+    })

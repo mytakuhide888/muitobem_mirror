@@ -59,6 +59,8 @@ urlpatterns = [
 
     # バズ・人気アカウントリサーチ運用 Overview（Phase G）
     path("buzz-research-overview/",           buzz_views.buzz_research_overview, name="buzz_research_overview"),
+    # ResearchAccount 操作モード切替（Phase 3-B）
+    path("api/research-account/<int:pk>/set-mode/", buzz_views.research_account_set_mode, name="research_account_set_mode"),
 
     # 急成長アカウント発見
     path("buzz-growth-ranking/",              buzz_views.buzz_growth_ranking,    name="buzz_growth_ranking"),

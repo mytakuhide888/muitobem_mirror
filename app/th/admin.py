@@ -127,19 +127,31 @@ class ConceptProjectAdmin(admin.ModelAdmin):
 @admin.register(ResearchAccount)
 class ResearchAccountAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'threads_username', 'status',
+        'name', 'threads_username', 'status', 'current_operation_mode',
         'warmup_started_at', 'warmup_duration_days',
         'daily_request_count', 'last_used_at', 'updated_at',
     )
-    list_filter = ('status', 'auto_promote')
+    list_filter = ('status', 'current_operation_mode', 'auto_promote')
     search_fields = ('name', 'threads_username')
     readonly_fields = (
         'last_used_at', 'daily_request_count', 'daily_count_reset_at',
         'suspended_at', 'created_at', 'updated_at',
+        'operation_mode_started_at', 'operation_mode_locked_until',
     )
     fieldsets = (
         ('基本', {
             'fields': ('name', 'threads_username', 'storage_state_path', 'status'),
+        }),
+        ('操作モード（VPS / MOBILE 排他、Phase 3-B）', {
+            'fields': (
+                'current_operation_mode',
+                'operation_mode_started_at', 'operation_mode_locked_until',
+            ),
+            'description': (
+                '同時刻に異なる位置から同一アカウントにアクセスすると '
+                'Meta から「乗っ取り疑い」を持たれる。VPS と MOBILE は排他にし、'
+                '切替時は 15 分の cooldown を強制する。IDLE への戻しは cooldown なし。'
+            ),
         }),
         ('VPSウォームアップ', {
             'fields': ('warmup_started_at', 'warmup_duration_days', 'auto_promote'),

@@ -29,6 +29,15 @@
 - **回避**: **`.env` 変更は `docker compose up -d`** を使う。`restart` は既存プロセス再起動のみ。
 - **適用**: `vps-deploy` Skill の手順に組み込み済。
 
+## 2026-06-01 — `docker compose up -d` だけでは env_file の中身変更を検知しないことがある
+- **学び**: Phase 2 で `.env` の `RESEARCH_PROXY_URL` の値を amagasaki → osaka に書き換え後、`docker compose up -d` を実行したが django コンテナは recreate されず、コンテナ内の `RESEARCH_PROXY_URL` は旧値のままだった。`docker compose up -d --force-recreate --no-deps django` で初めて反映された。
+- **背景**: `docker-compose.yml` 内の `environment:` 直書きの変更は up -d が検知するが、`env_file:` 参照先のファイルの**中身**変更は compose の差分検知に拾われないケースがある（compose のバージョン・キャッシュ状態に依存）。
+- **回避**:
+  1. `.env` の値変更後は、対象サービスを **`docker compose up -d --force-recreate --no-deps <service>`** で明示的に作り直す。
+  2. 変更後は **コンテナ内で `docker compose exec <svc> sh -c "echo \$VAR"`** で実値が反映されているか必ず検証する（コンテナ uptime だけでは判断不能）。
+  3. 影響範囲を限定したいときは `--no-deps` を必ず付ける（他サービスを巻き込まない）。
+- **適用**: `.env` を触る Phase G 系作業（proxy 切替・Gmail SMTP 更新等）全般。
+
 ## 2026-05-31 — Threads リサーチ垢が凍結（research-browser + proxy 経由）
 - **学び**: `research-browser/`（linuxserver/chromium、UA = Linux + Chrome）で IPRoyal 尼崎 proxy 経由ログイン → Meta が即「Linux からログイン」警告。その後 proxy 経由のフォロー連打 → 物理的に離れたスマホ実機（宝塚）からの同時アクセス → bot 検証 → SMS / 顔写真認証 → **凍結**。
 - **複合要因**: ①Linux UA 露見 ②物理離隔 IP の混在（VPS proxy + 実機） ③ウォームアップ未完了で頻度上昇 ④proxy 認証ダイアログのキャンセル時に直 IP 漏れの懸念 ⑤占いアカウントへのフォロー連打。
