@@ -1,7 +1,7 @@
 # app/console/urls_webhook.py
 from django.urls import path
-from .views import webhook as v
+from .views import webhooks as v
 
 urlpatterns = [
-    path("instagram/", v.instagram_webhook, name="instagram_webhook"),
+    path("instagram/", v.meta_webhook, name="instagram_webhook"),
 ]
